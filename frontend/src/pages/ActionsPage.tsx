@@ -1,0 +1,1 @@
+import {MissionDashboardPage} from './MissionDashboardPage';export function ActionsPage(){return <MissionDashboardPage/>}

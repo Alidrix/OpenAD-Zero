@@ -1,0 +1,1 @@
+export function LiveConsole({logs}:{logs:string[]}){return <div className='card'><h2 className='mb-3 font-bold'>Console live</h2><pre className='h-72 overflow-auto rounded-xl bg-black p-4 text-sm text-green-400'>{logs.join('\n')||'En attente des événements backend...'}</pre></div>}

@@ -1,0 +1,1 @@
+export function missionSocket(id:string){const base=(import.meta.env.VITE_WS_URL as string)||`${location.protocol==='https:'?'wss':'ws'}://${location.host}`;return new WebSocket(`${base}/ws/missions/${id}`)}
