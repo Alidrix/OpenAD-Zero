@@ -1,0 +1,2 @@
+export function ScopeInput(p:{value:string;onChange:(v:string)=>void}){return <label className='block'><span className='font-semibold'>Scope</span><textarea className='mt-2 h-36 w-full rounded-xl border bg-transparent p-3 font-mono' value={p.value} onChange={e=>p.onChange(e.target.value)} placeholder='192.168.1.0/24
+192.168.1.10,192.168.1.20'/><small className='text-slate-500'>IP, CIDR, liste séparée par virgule ou retour à la ligne</small></label>}

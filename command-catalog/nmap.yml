@@ -1,0 +1,3 @@
+id: nmap_safe_discovery
+tool: nmap
+args: ["-Pn", "-sV", "--top-ports", "1000", "-oX", "<xml>", "<targets>"]

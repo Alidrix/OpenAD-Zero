@@ -1,0 +1,4 @@
+id: windows_ad_internal
+name: Windows / Active Directory interne
+steps:
+  - nmap_safe_discovery

@@ -1,0 +1,1 @@
+import type {Service} from '../../lib/api';export function ServicesBadgeList({services}:{services:Service[]}){return <div className='flex flex-wrap gap-2'>{services.map((s,i)=><span key={i} className='rounded-full bg-blue-600/20 px-2 py-1 text-xs'>{s.port}/{s.protocol} {s.name}</span>)}</div>}

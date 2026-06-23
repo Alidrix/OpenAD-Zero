@@ -1,0 +1,42 @@
+actions:
+  netexec_smb_fingerprint:
+    tool: nxc
+    purpose: Identifier les hôtes SMB/Windows et enrichir les informations déjà découvertes par Nmap.
+    risk_level: 2
+    requires_approval: true
+    execution_mode: backend
+    args: ["smb", "<targets>", "--log", "<log_path>"]
+  netexec_smb_signing_check:
+    tool: nxc
+    purpose: Identifier les hôtes pour lesquels SMB signing n’est pas requis.
+    risk_level: 2
+    requires_approval: true
+    execution_mode: backend
+    args: ["smb", "<targets>", "--gen-relay-list", "<relay_list_path>", "--log", "<log_path>"]
+  netexec_smb_null_session_check:
+    tool: nxc
+    purpose: Tester uniquement si une null session SMB est possible.
+    risk_level: 2
+    requires_approval: true
+    execution_mode: backend
+    args: ["smb", "<targets>", "-u", "", "-p", "", "--log", "<log_path>"]
+  netexec_smb_null_session_shares:
+    tool: nxc
+    purpose: Lister les partages accessibles anonymement sans téléchargement, spidering ou accès au contenu.
+    risk_level: 2
+    requires_approval: true
+    execution_mode: backend
+    args: ["smb", "<targets>", "-u", "", "-p", "", "--shares", "--log", "<log_path>"]
+blocked:
+  - -x
+  - -X
+  - --exec-method
+  - --sam
+  - --lsa
+  - --ntds
+  - --dpapi
+  - --mkfile
+  - --get-file
+  - --put-file
+  - --spider
+  - -M
