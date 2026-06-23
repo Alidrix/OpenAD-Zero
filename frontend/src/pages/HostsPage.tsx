@@ -1,1 +1,2 @@
-import {MissionDashboardPage} from './MissionDashboardPage';export function HostsPage(){return <MissionDashboardPage/>}
+import {useEffect} from 'react';import {useParams} from 'react-router-dom';import {getMission} from '../lib/api';import {useMissionStore} from '../stores/missionStore';import {HostsTable} from '../components/hosts/HostsTable';
+export function HostsPage(){const {missionId}=useParams();const {mission,setMission}=useMissionStore();useEffect(()=>{if(missionId)getMission(missionId).then(setMission)},[missionId]);if(!mission)return <p>Chargement...</p>;return <div className='space-y-4'><h1 className='text-3xl font-bold'>Hosts</h1><HostsTable hosts={mission.hosts}/></div>}
