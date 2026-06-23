@@ -1,1 +1,2 @@
-import {MissionDashboardPage} from './MissionDashboardPage';export function ActionsPage(){return <MissionDashboardPage/>}
+import {useEffect} from 'react';import {useParams} from 'react-router-dom';import {getMission} from '../lib/api';import {useMissionStore} from '../stores/missionStore';import {NextActionsPanel} from '../components/actions/NextActionsPanel';
+export function ActionsPage(){const {missionId}=useParams();const {mission,setMission}=useMissionStore();useEffect(()=>{if(missionId)getMission(missionId).then(setMission)},[missionId]);if(!mission)return <p>Chargement...</p>;return <div className='space-y-4'><h1 className='text-3xl font-bold'>Actions</h1><NextActionsPanel actions={mission.next_actions} missionId={mission.id}/></div>}

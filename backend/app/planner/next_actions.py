@@ -17,5 +17,20 @@ def plan_for_mission(db: Session, mission_id: str) -> tuple[list[Finding], list[
     if bh:
         a=NextAction(mission_id=mission_id,title='Préparer la collecte BloodHound / SharpHound',description='Afficher une étape préparatoire sans exécution en V1.',reason='Un candidat contrôleur de domaine a été détecté.',risk_level=3,requires_approval=True,command_template_id='bloodhound_collection_prepare'); db.add(a); actions.append(a)
     if smb:
-        a=NextAction(mission_id=mission_id,title='Préparer une énumération SMB contrôlée',description='Afficher une action SMB sûre proposée pour une étape ultérieure.',reason='SMB a été détecté sur un ou plusieurs hôtes.',risk_level=2,requires_approval=True,command_template_id='nmap_smb_safe_followup'); db.add(a); actions.append(a)
+        
+        for title, desc, tid in [('Énumération SMB contrôlée avec NetExec','Fingerprint SMB/Windows safe via NetExec côté backend.','netexec_smb_fingerprint'),('Vérifier les hôtes sans SMB signing requis','Générer une liste défensive des hôtes où SMB signing n’est pas requis.','netexec_smb_signing_check'),('Tester null session SMB','Tester uniquement si une session anonyme SMB est possible.','netexec_smb_null_session_check')]:
+            a=NextAction(mission_id=mission_id,title=title,description=desc,reason='SMB a été détecté sur un ou plusieurs hôtes par Nmap.',risk_level=2,requires_approval=True,command_template_id=tid); db.add(a); actions.append(a)
+    db.commit(); return findings, actions
+
+def plan_after_netexec(db: Session, mission_id: str, facts: list[dict], shares: list[dict], action_type: str) -> tuple[list[Finding], list[NextAction]]:
+    findings=[]; actions=[]
+    if action_type == 'netexec_smb_fingerprint' and any(f.get('domain') or (f.get('hostname') or '').upper().startswith('DC') for f in facts):
+        a=NextAction(mission_id=mission_id,title='Préparer la collecte BloodHound / SharpHound',description='Action préparée uniquement; exécution automatique désactivée en V2.',reason='NetExec a détecté un domaine ou un contrôleur de domaine probable.',risk_level=3,requires_approval=True,command_template_id='bloodhound_prepare_collection'); db.add(a); actions.append(a)
+    if action_type == 'netexec_smb_null_session_check' and any(f.get('null_session_possible') for f in facts):
+        a=NextAction(mission_id=mission_id,title='Lister les partages accessibles anonymement',description='Lister uniquement les partages visibles anonymement, sans téléchargement ni spidering.',reason='Une null session SMB semble possible.',risk_level=2,requires_approval=True,command_template_id='netexec_smb_null_session_shares'); db.add(a); actions.append(a)
+    if action_type == 'netexec_smb_signing_check':
+        for fct in facts:
+            if fct.get('smb_signing_required') is False:
+                host=db.query(Host).filter_by(mission_id=mission_id, ip=fct.get('ip')).first()
+                f=Finding(mission_id=mission_id, host_id=host.id if host else None, title='SMB signing not required', severity='high', description=f"{fct.get('ip')} does not require SMB signing. Document risk only; relay attacks are not executed by V2.", source='netexec', confidence='0.9'); db.add(f); findings.append(f)
     db.commit(); return findings, actions
