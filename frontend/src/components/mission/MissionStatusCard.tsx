@@ -1,0 +1,1 @@
+export function MissionStatusCard({status}:{status:string}){return <div className='card'><p className='text-sm text-slate-500'>Statut mission</p><p className='mt-2 text-2xl font-bold text-green-500'>{status}</p></div>}

@@ -1,0 +1,1 @@
+export function StartMissionButton({loading}:{loading:boolean}){return <button className='btn' disabled={loading}>{loading?'Lancement...':'Valider et lancer le scénario'}</button>}

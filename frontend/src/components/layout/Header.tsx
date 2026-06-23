@@ -1,0 +1,1 @@
+export function Header(){return <header className='mb-6'><p className='text-sm text-slate-500'>Windows / Active Directory Pentest Copilot — V1 safe discovery</p></header>}
