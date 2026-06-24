@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.scope import validate_scope, ScopeValidationError
 from app.db.session import get_db
-from app.db.models import Mission, Job, Host, Service, Finding, NextAction, SMBFact, SMBShare, WebTarget, BloodHoundCollection
+from app.db.models import Mission, Job, Host, Service, Finding, NextAction, SMBFact, SMBShare, WebTarget, BloodHoundCollection, ManualActionCard
 from app.events.publisher import publish
 from app.events.schemas import MissionEvent
 from app.jobs.nmap_job import run_nmap_job
@@ -17,6 +17,7 @@ from app.integrations.bloodhound.zip_inspector import inspect_sharphound_zip, sh
 from app.integrations.bloodhound.ingest import ingest_collection
 from app.integrations.bloodhound.stats import empty_stats
 from app.planner.next_actions import plan_after_bloodhound_upload
+from app.capabilities.catalog import get_capability, creates_manual_card_only
 from pathlib import Path
 import json
 
@@ -147,6 +148,62 @@ def ignore_action(mission_id:str, action_id:str, payload:IgnoreActionPayload, db
     a=db.get(NextAction, action_id)
     if not a or a.mission_id!=mission_id: raise HTTPException(404,'Action not found')
     a.status='ignored'; db.commit(); return {'mission_id':mission_id,'action_id':action_id,'status':'ignored'}
+
+class ManualActionCreate(BaseModel):
+    capability_id: str
+    title: str
+    description: str
+    risk_level: int
+    operator_note: str | None = ''
+    evidence_reference: str | None = ''
+class ManualActionUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    risk_level: int | None = None
+    status: str | None = None
+    operator_note: str | None = None
+    evidence_reference: str | None = None
+
+def _ser_manual(c:ManualActionCard):
+    return {'id':c.id,'mission_id':c.mission_id,'capability_id':c.capability_id,'title':c.title,'description':c.description,'risk_level':c.risk_level,'status':c.status,'operator_note':c.operator_note,'evidence_reference':c.evidence_reference,'created_at':c.created_at,'updated_at':c.updated_at}
+
+def _validate_manual_payload(payload):
+    cap=get_capability(payload.capability_id)
+    if not cap: raise HTTPException(400,'Unknown capability')
+    if not creates_manual_card_only(cap): raise HTTPException(400,'Capability does not allow manual action cards')
+    blob=' '.join(str(getattr(payload,k,'')) for k in ('title','description','operator_note','evidence_reference')).lower()
+    banned=['command','cmd.exe','powershell','mimikatz','lsass','dcsync','pass-the-hash','password spray','brute force']
+    if any(x in blob for x in banned): raise HTTPException(400,'Manual action cards document outcomes only and cannot contain executable commands or sensitive instructions')
+    return cap
+
+@router.post('/{mission_id}/manual-actions')
+def create_manual_action(mission_id:str, payload:ManualActionCreate, db:Session=Depends(get_db)):
+    if not get_settings().openadzero_enable_manual_action_cards: raise HTTPException(403,'Manual action cards disabled')
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    cap=_validate_manual_payload(payload)
+    card=ManualActionCard(mission_id=mission_id,capability_id=cap.id,title=payload.title,description=payload.description,risk_level=payload.risk_level,status='draft',operator_note=payload.operator_note,evidence_reference=payload.evidence_reference)
+    db.add(card); db.commit(); db.refresh(card); return _ser_manual(card)
+
+@router.get('/{mission_id}/manual-actions')
+def list_manual_actions(mission_id:str, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    return [_ser_manual(c) for c in db.query(ManualActionCard).filter_by(mission_id=mission_id).order_by(ManualActionCard.created_at.desc()).all()]
+
+@router.get('/{mission_id}/manual-actions/{manual_action_id}')
+def get_manual_action(mission_id:str, manual_action_id:str, db:Session=Depends(get_db)):
+    c=db.get(ManualActionCard, manual_action_id)
+    if not c or c.mission_id!=mission_id: raise HTTPException(404,'Manual action card not found')
+    return _ser_manual(c)
+
+@router.patch('/{mission_id}/manual-actions/{manual_action_id}')
+def update_manual_action(mission_id:str, manual_action_id:str, payload:ManualActionUpdate, db:Session=Depends(get_db)):
+    c=db.get(ManualActionCard, manual_action_id)
+    if not c or c.mission_id!=mission_id: raise HTTPException(404,'Manual action card not found')
+    if payload.status and payload.status not in {'draft','documented','reviewed','rejected'}: raise HTTPException(400,'Invalid manual action status')
+    if payload.capability_id if hasattr(payload,'capability_id') else False: raise HTTPException(400,'Capability cannot be changed')
+    _validate_manual_payload(type('P',(),{'capability_id':c.capability_id,'title':payload.title or c.title,'description':payload.description or c.description,'operator_note':payload.operator_note or c.operator_note,'evidence_reference':payload.evidence_reference or c.evidence_reference})())
+    for k,v in payload.model_dump(exclude_unset=True).items(): setattr(c,k,v)
+    c.updated_at=datetime.utcnow(); db.commit(); db.refresh(c); return _ser_manual(c)
 
 @router.post('/{mission_id}/start')
 async def start_mission(mission_id:str, db:Session=Depends(get_db)):

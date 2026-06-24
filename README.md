@@ -1,10 +1,35 @@
 # OpenAD Zero
 
-OpenAD Zero is a safe-by-design Windows / Active Directory pentest copilot MVP. V1 creates missions, validates an internal scope, runs a real Nmap discovery scan from the backend, streams logs through WebSocket, parses Nmap XML, and proposes non-executed next actions.
+OpenAD Zero is developed as a modular Windows/Active Directory pentest copilot. Capabilities are implemented progressively and controlled by execution modes, feature flags, human approval, evidence logging and scope validation.
 
-## V1 limits
+Current implemented capabilities include network discovery, SMB enrichment, web exposure scanning and BloodHound-assisted AD analysis, depending on the current build.
 
-Only Nmap safe discovery is implemented. NetExec, Nuclei, BloodHound CE, SharpHound, exploitation, credential collection, lateral movement, brute force, pass-the-hash, LSASS dump, DCSync, persistence, EDR bypass, reports and AI planning are intentionally not implemented.
+Advanced capabilities are not enabled by default and must be handled through explicit lab/authorized modes, strict approval workflows and project policy.
+
+## Capability model
+
+OpenAD Zero uses a capability matrix to describe which features are implemented, partial, planned, manual-only, lab-only, disabled or out-of-scope.
+
+Implemented capabilities include network discovery, SMB enrichment, web exposure scanning and BloodHound-assisted AD analysis, depending on the current build.
+
+Advanced testing categories are controlled through execution modes, feature flags, human approval, evidence logging and project policy. Some categories are intentionally manual-only, disabled or out-of-scope.
+
+The backend exposes the matrix through `GET /api/capabilities`, `GET /api/capabilities/{capability_id}` and the safe public feature-flag endpoint `GET /api/capabilities/config`.
+
+## Execution modes
+
+- `safe`: default mode for discovery, controlled enumeration, parsing, findings and reporting. Automatic execution is limited to low-risk allowlisted actions; human validation is required for `risk_level >= 2`; sensitive actions are disabled.
+- `assisted`: authorized pentest mode for backend-allowlisted command generation, human validation and controlled execution of authorized actions. Advanced categories remain manual-only or disabled according to feature flags.
+- `lab`: explicitly authorized laboratory mode. It must be enabled by environment variable and confirmed in the GUI. Even in lab mode, execution remains allowlisted and approval-gated; this build does not add sensitive offensive runners.
+
+## Advanced capability policy
+
+- OpenAD Zero does not execute arbitrary commands from the frontend.
+- Backend runners are allowlisted.
+- Risk level controls approval and execution.
+- Lab Mode must be explicitly enabled.
+- Disabled and out-of-scope capabilities are not executable.
+- Manual-only capabilities can be documented but not executed by OpenAD Zero.
 
 ## Quick start
 
@@ -26,6 +51,8 @@ make frontend-build
 ## API
 
 - `GET /api/health`
+- `GET /api/capabilities`
+- `GET /api/capabilities/config`
 - `POST /api/missions`
 - `POST /api/missions/{mission_id}/start`
 - `GET /api/missions/{mission_id}`

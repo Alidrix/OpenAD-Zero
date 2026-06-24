@@ -25,3 +25,6 @@ export const getBloodHoundObject=(id:string,oid:string)=>req<any>(`/api/missions
 export const getBloodHoundRelations=(id:string,oid:string,direction:string,limit=100)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}/relations?direction=${direction}&limit=${limit}`);
 export const getBloodHoundPermissions=(id:string,oid:string,limit=100)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}/permissions?limit=${limit}`);
 export const runBloodHoundPathfinding=(id:string,p:any)=>req<any>(`/api/missions/${id}/bloodhound/pathfinding`,{method:'POST',body:JSON.stringify(p)});
+
+export const getCapabilities=()=>req<any[]>('/api/capabilities');
+export const getCapabilityConfig=()=>req<any>('/api/capabilities/config');
