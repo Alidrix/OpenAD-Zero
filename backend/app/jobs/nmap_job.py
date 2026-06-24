@@ -7,6 +7,7 @@ from app.events.publisher import publish
 from app.jobs.runner import run_command
 from app.parsers.nmap_xml import parse_nmap_xml
 from app.planner.next_actions import plan_for_mission
+from app.integrations.nuclei.targets import ensure_web_targets_for_mission
 from app.storage.evidence import job_dir
 from app.core.config import get_settings
 
@@ -34,6 +35,9 @@ async def run_nmap_job(mission_id:str, job_id:str):
                     svc=Service(mission_id=mission_id, host_id=host.id, **s); db.add(svc)
                     await publish(MissionEvent(type='service.discovered',mission_id=mission_id,payload={'host_ip':host.ip,**s}))
             db.commit()
+            web_targets=ensure_web_targets_for_mission(db, mission_id)
+            for w in web_targets:
+                await publish(MissionEvent(type='web.target.discovered',mission_id=mission_id,payload={'url':w.url,'ip':w.ip,'port':w.port,'scheme':w.scheme,'source':w.source}))
             findings, actions=plan_for_mission(db, mission_id)
             for f in findings:
                 host=db.get(Host,f.host_id) if f.host_id else None

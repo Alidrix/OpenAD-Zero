@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     allow_public_scans: bool = False
     nmap_timeout_seconds: int = 900
     netexec_timeout_seconds: int = 600
+    nuclei_rate_limit: int = 20
+    nuclei_concurrency: int = 10
+    nuclei_timeout: int = 10
+    nuclei_job_timeout_seconds: int = 900
     cors_origins: str = 'http://localhost:5173,http://localhost:3000'
 
 @lru_cache

@@ -1,0 +1,15 @@
+id: openad-zero-missing-security-headers
+info:
+  name: Missing Common Security Headers
+  author: openad-zero
+  severity: low
+  description: Passive header observation for missing common hardening headers.
+  tags: misconfig,exposure
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    matchers:
+      - type: dsl
+        dsl:
+          - "!contains(tolower(all_headers), 'content-security-policy') || !contains(tolower(all_headers), 'x-frame-options')"

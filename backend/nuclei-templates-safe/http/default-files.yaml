@@ -1,0 +1,16 @@
+id: openad-zero-default-files
+info:
+  name: Default Public Files
+  author: openad-zero
+  severity: info
+  description: Safe GET checks for common public metadata files.
+  tags: exposure,tech
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/robots.txt"
+      - "{{BaseURL}}/.well-known/security.txt"
+    matchers:
+      - type: status
+        status:
+          - 200

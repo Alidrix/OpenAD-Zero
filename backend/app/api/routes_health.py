@@ -14,4 +14,4 @@ def tool_status(binary: str):
         version='available'
     return {'available':True,'version':version}
 @router.get('/health/tools')
-def health_tools(): return {'nmap':tool_status('nmap'),'netexec':tool_status('nxc')}
+def health_tools(): return {'nmap':tool_status('nmap'),'netexec':tool_status('nxc'),'nuclei':tool_status('nuclei')}
