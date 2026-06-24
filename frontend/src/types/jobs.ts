@@ -1,0 +1,2 @@
+export interface Job{ id:string; mission_id:string; type:string; tool:string; status:string; command_preview?:string|null; rq_job_id?:string|null; queued_at?:string|null; started_at?:string|null; completed_at?:string|null; return_code?:number|null; attempts?:number; max_attempts?:number; error_message?:string|null; stdout_path?:string|null; stderr_path?:string|null; output_path?:string|null }
+export interface JobLog{ id:string; mission_id:string; job_id:string; source:string; stream:string; line:string; created_at:string }

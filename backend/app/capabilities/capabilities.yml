@@ -150,3 +150,33 @@
   execution: backend
   description: Calculate mission progress based on phases, findings, evidence and reports.
   evidence: true
+- id: worker_queue
+  name: Worker Queue
+  category: platform
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Run long-running jobs through an RQ worker instead of the API process.
+  evidence: false
+- id: persistent_event_bus
+  name: Persistent Event Bus
+  category: platform
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Persist mission events and replay them to the GUI after reconnect.
+  evidence: true
+- id: job_retry_cancel
+  name: Job retry and cancellation
+  category: platform
+  status: partial
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Provide controlled retry and best-effort cancellation for queued or failed jobs.
+  evidence: true

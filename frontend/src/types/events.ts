@@ -1,0 +1,1 @@
+export interface MissionEvent{ id:string; mission_id:string; event_type:string; type?:string; source:string; payload_json?:Record<string,unknown>|null; payload?:Record<string,unknown>|null; created_at:string }

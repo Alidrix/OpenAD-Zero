@@ -18,6 +18,19 @@ services:
     ports: ['8000:8000']
     volumes: ['./evidence:/app/evidence']
     depends_on: [openadzero-postgres, openadzero-redis]
+  openadzero-worker:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://openadzero:openadzero@openadzero-postgres:5432/openadzero
+      REDIS_URL: redis://openadzero-redis:6379/0
+      EVIDENCE_DIR: /app/evidence
+    command: ["python", "-m", "app.worker"]
+    volumes:
+      - ./evidence:/app/evidence
+    depends_on:
+      - openadzero-postgres
+      - openadzero-redis
   openadzero-ui:
     build: ./frontend
     environment:

@@ -30,13 +30,18 @@ def build_netexec_command(action_type: str, targets: list[str], jd: Path) -> lis
 async def run_netexec_job(mission_id: str, job_id: str, action_id: str):
     db:Session=SessionLocal(); settings=get_settings(); job=db.get(Job,job_id); action=db.get(NextAction,action_id); mission=db.get(Mission,mission_id)
     try:
+        
+        if job.cancel_requested_at:
+            job.status='cancelled'; job.completed_at=datetime.utcnow(); db.commit(); return
         job.status='running'; job.started_at=datetime.utcnow(); db.commit()
         await publish(MissionEvent(type='netexec.started', mission_id=mission_id, payload={'job_id':job_id,'action_id':action_id,'profile':job.type}))
         targets=smb_targets(db, mission_id)
         jd=job_dir(mission_id, job_id); stdout=jd/'stdout.log'; stderr=jd/'stderr.log'; parsed_path=jd/'parsed.json'; findings_path=jd/'findings.json'
         if not targets:
             msg='Aucun hôte SMB détecté par Nmap. Action NetExec annulée proprement.'
-            (stdout).write_text(msg+'\n'); job.status='blocked'; action.status='blocked'; db.commit(); await publish(MissionEvent(type='netexec.log',mission_id=mission_id,payload={'job_id':job_id,'line':msg})); return
+            (stdout).write_text(msg+'\n'); job.status='blocked'
+            if action: action.status='blocked'
+            db.commit(); await publish(MissionEvent(type='netexec.log',mission_id=mission_id,payload={'job_id':job_id,'line':msg})); return
         cmd=build_netexec_command(job.type, targets, jd); validate_netexec_command(cmd); (jd/'command.txt').write_text(' '.join(cmd)+'\n')
         job.command_preview=' '.join(cmd); job.stdout_path=str(stdout); job.stderr_path=str(stderr); job.output_path=str(parsed_path); db.commit()
         if shutil.which('nxc') is None:
@@ -49,7 +54,8 @@ async def run_netexec_job(mission_id: str, job_id: str, action_id: str):
                     if not line: break
                     text=line.decode(errors='replace').rstrip(); f.write(text+'\n'); f.flush(); await publish(MissionEvent(type='netexec.log',mission_id=mission_id,payload={'job_id':job_id,'line':text}))
         await asyncio.wait_for(asyncio.gather(pump(proc.stdout,stdout), pump(proc.stderr,stderr), proc.wait()), timeout=getattr(settings,'netexec_timeout_seconds',600))
-        job.return_code=proc.returncode; job.completed_at=datetime.utcnow(); job.status='completed' if proc.returncode==0 else 'failed'; action.status=job.status
+        job.return_code=proc.returncode; job.completed_at=datetime.utcnow(); job.status='completed' if proc.returncode==0 else 'failed'; 
+        if action: action.status=job.status
         output=(stdout.read_text() if stdout.exists() else '')+'\n'+(stderr.read_text() if stderr.exists() else '')+'\n'+((jd/'netexec.log').read_text() if (jd/'netexec.log').exists() else '')
         parsed=parse_netexec_smb_output(output); parsed_path.write_text(json.dumps(parsed, indent=2))
         for f in parsed['facts']:
