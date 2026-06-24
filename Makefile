@@ -1,5 +1,5 @@
 COMPOSE ?= docker compose
-.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-test frontend-build lint format health clean
+.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev seed-demo e2e e2e-ui e2e-report qa demo smoke test backend-test frontend-build lint format health clean
 up:
 	$(COMPOSE) up
 up-build:
@@ -29,6 +29,22 @@ db-reset-dev:
 	./scripts/db-reset-dev.sh
 seed-dev:
 	./scripts/seed-dev.sh
+seed-demo:
+	$(COMPOSE) exec openadzero-api python scripts/seed_demo.py
+e2e:
+	cd frontend && npm run test:e2e
+e2e-ui:
+	cd frontend && npm run test:e2e:ui
+e2e-report:
+	cd frontend && npm run test:e2e:report
+qa:
+	$(MAKE) backend-test
+	$(MAKE) frontend-build
+	$(MAKE) e2e
+demo:
+	$(MAKE) up-build
+	$(MAKE) migrate
+	$(MAKE) seed-demo
 smoke:
 	./scripts/smoke.sh
 test: backend-test frontend-build

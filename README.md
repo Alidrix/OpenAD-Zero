@@ -429,3 +429,24 @@ The API enqueues jobs, while the worker executes tools such as Nmap, NetExec and
 4. Worker updates status and writes logs.
 5. Events are persisted and streamed.
 6. GUI replays historical events and receives live updates.
+
+## Demo scenario
+
+```bash
+make up-build
+make migrate
+make seed-demo
+```
+
+Then open the UI and navigate through the seeded mission.
+
+## QA
+
+```bash
+make backend-test
+make frontend-build
+make e2e
+make smoke
+```
+
+See docs/QA.md and docs/RELEASE_CHECKLIST.md.

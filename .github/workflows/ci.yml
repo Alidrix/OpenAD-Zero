@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: openadzero
+          POSTGRES_PASSWORD: openadzero
+          POSTGRES_DB: openadzero_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U openadzero -d openadzero_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg://openadzero:openadzero@localhost:5432/openadzero_test
+      REDIS_URL: redis://localhost:6379/0
+      EVIDENCE_DIR: /tmp/openadzero-evidence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install backend dependencies
+        run: python -m pip install -e . pytest
+        working-directory: backend
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+        working-directory: backend
+      - name: Run backend tests
+        run: pytest
+        working-directory: backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare env
+        run: cp .env.example .env || touch .env
+      - name: Start stack
+        run: docker compose up -d --build
+      - name: Run migrations
+        run: make migrate
+      - name: Seed demo
+        run: make seed-demo
+      - name: Smoke test
+        run: ./scripts/smoke.sh
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v

@@ -1,0 +1,1 @@
+{"template-id":"exposed-panel","info":{"name":"Example Nuclei web exposure","severity":"medium","tags":["exposure","demo"],"description":"Demo exposure fixture"},"type":"http","host":"http://192.168.56.30","ip":"192.168.56.30","port":"80","matched-at":"http://192.168.56.30/admin","matcher-name":"panel"}

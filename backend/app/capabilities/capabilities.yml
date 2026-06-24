@@ -210,3 +210,47 @@
   execution: backend
   description: Expose API, DB, Redis, worker and tool health checks.
   evidence: false
+
+- id: demo_scenario
+  name: Demo Scenario
+  category: qa
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Seed a reproducible local demo mission for QA and demos.
+  evidence: true
+
+- id: e2e_tests
+  name: End-to-end tests
+  category: qa
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Playwright E2E tests for key GUI flows.
+  evidence: false
+
+- id: ci_workflow
+  name: CI Workflow
+  category: qa
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: GitHub Actions workflow for backend tests, frontend build and smoke checks.
+  evidence: false
+
+- id: smoke_tests
+  name: Smoke tests
+  category: qa
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Quick checks for API, DB, Redis, worker and frontend availability.
+  evidence: false
