@@ -1,0 +1,9 @@
+import {useEffect,useState} from 'react';
+import {useParams} from 'react-router-dom';
+import type {Report} from '../types/report';
+import type {ReportPreview as Preview} from '../types/report';
+import {generateReport,getLatestReport,getReportDownloadUrl,getReportPreview} from '../lib/api';
+import {ReportActions} from '../components/report/ReportActions';
+import {ReportPreview} from '../components/report/ReportPreview';
+import {ReportStatusCard} from '../components/report/ReportStatusCard';
+export function ReportPage(){const {missionId=''}=useParams();const [report,setReport]=useState<Report|null>(null);const [preview,setPreview]=useState<Preview|null>(null);const [loading,setLoading]=useState(false);const [error,setError]=useState<string|null>(null);const load=()=>missionId&&getLatestReport(missionId).then(r=>setReport(r.report)).catch(e=>setError(String(e)));useEffect(()=>{load()},[missionId]);async function onGenerate(){setLoading(true);setError(null);try{const r=await generateReport(missionId);setReport(r);const p=await getReportPreview(missionId,'markdown');setPreview(p)}catch(e){setError(String(e))}finally{setLoading(false)}}async function onPreview(format:'markdown'|'html'){setError(null);try{setPreview(await getReportPreview(missionId,format))}catch(e){setError(String(e))}}return <div className="space-y-6"><div><h1 className="text-3xl font-bold">Report</h1><p className="text-slate-500">Generate, preview and download Markdown / HTML mission reports.</p></div>{error&&<div className="rounded-xl border border-red-300 bg-red-50 p-3 text-red-700">{error}</div>}<ReportStatusCard report={report}/><ReportActions report={report} loading={loading} onGenerate={onGenerate} onPreview={onPreview} downloadMarkdown={missionId?getReportDownloadUrl(missionId,'markdown'):undefined} downloadHtml={missionId?getReportDownloadUrl(missionId,'html'):undefined}/><ReportPreview preview={preview}/></div>}

@@ -40,3 +40,8 @@ export const deleteEvidence=(missionId:string,evidenceId:string)=>req<{deleted:b
 export const createEvidenceLink=(missionId:string,evidenceId:string,payload:{target_type:string;target_id:string})=>req<EvidenceLink>(`/api/missions/${missionId}/evidence/${evidenceId}/links`,{method:'POST',body:JSON.stringify(payload)});
 export const listEvidenceLinks=(missionId:string,evidenceId:string)=>req<EvidenceLink[]>(`/api/missions/${missionId}/evidence/${evidenceId}/links`);
 export const deleteEvidenceLink=(missionId:string,evidenceId:string,linkId:string)=>req<{deleted:boolean}>(`/api/missions/${missionId}/evidence/${evidenceId}/links/${linkId}`,{method:'DELETE'});
+import type {Report,ReportPreview} from '../types/report';
+export const generateReport=(missionId:string,payload?:{include_sections?:string[]|null})=>req<Report>(`/api/missions/${missionId}/report/generate`,{method:'POST',body:JSON.stringify(payload||{include_sections:null})});
+export const getLatestReport=(missionId:string)=>req<{report:Report|null}>(`/api/missions/${missionId}/report`);
+export const getReportPreview=(missionId:string,format:'markdown'|'html')=>req<ReportPreview>(`/api/missions/${missionId}/report/preview?format=${format}`);
+export const getReportDownloadUrl=(missionId:string,format:'markdown'|'html')=>`${API}/api/missions/${missionId}/report/download?format=${format}`;

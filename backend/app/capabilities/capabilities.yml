@@ -61,12 +61,12 @@
 - id: report_markdown_html
   name: Markdown / HTML reporting
   category: reporting
-  status: planned
+  status: implemented
   mode: safe
   risk_level: 1
   requires_approval: false
   execution: backend
-  description: Generate Markdown and HTML reports from mission findings and evidence.
+  description: Generate Markdown and HTML reports from mission findings, hosts, services, BloodHound data and evidence.
   evidence: true
 - id: evidence_manager
   name: Evidence Manager
@@ -117,4 +117,15 @@
   requires_approval: false
   execution: backend
   description: Upload external files as mission evidence without executing them.
+  evidence: true
+
+- id: reporting_engine_v1
+  name: Reporting Engine V1
+  category: reporting
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Build mission reports in Markdown and HTML from OpenAD Zero data.
   evidence: true
