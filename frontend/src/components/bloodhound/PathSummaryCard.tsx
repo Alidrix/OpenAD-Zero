@@ -1,0 +1,1 @@
+import {RiskBadge} from './RiskBadge';export function PathSummaryCard({path}:any){if(!path)return null;return <div className="rounded border border-slate-700 p-3"><b>Pathfinding</b><p>Chemin: {path.path_found?'trouvé':'non trouvé'} · longueur {path.length??0} <RiskBadge risk={path.risk}/></p>{path.finding_id&&<p>Finding créé: {path.finding_id}</p>}</div>}

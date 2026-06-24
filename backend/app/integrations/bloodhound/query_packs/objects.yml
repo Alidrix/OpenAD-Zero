@@ -1,0 +1,18 @@
+- id: search_objects
+  name: Search AD objects
+  description: Search users, computers, groups, OUs, GPOs and domains by name.
+  risk_level: 1
+  read_only: true
+  parameters:
+    - {name: search, type: string, required: true}
+    - {name: limit, type: integer, required: true, min: 1, max: 50}
+    - {name: object_types, type: list, required: false, allowed: [User, Computer, Group, Domain, OU, GPO]}
+  cypher: "MATCH (n) WHERE toUpper(coalesce(n.name,'')) CONTAINS toUpper('{{search}}') RETURN n LIMIT {{limit}}"
+- id: object_detail
+  name: Object detail
+  description: Load a single BloodHound object by object id.
+  risk_level: 1
+  read_only: true
+  parameters:
+    - {name: object_id, type: string, required: true}
+  cypher: "MATCH (n) WHERE n.objectid = '{{object_id}}' OR n.object_id = '{{object_id}}' RETURN n LIMIT 1"

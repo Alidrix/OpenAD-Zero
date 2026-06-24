@@ -1,0 +1,1 @@
+const c:any={info:'bg-slate-500/20 text-slate-300',medium:'bg-amber-500/20 text-amber-300',high:'bg-orange-500/20 text-orange-300',critical:'bg-red-500/20 text-red-300'};export function RiskBadge({risk}:{risk?:string}){return <span className={`rounded px-2 py-1 text-xs ${c[risk||'info']||c.info}`}>{risk||'info'}</span>}

@@ -1,0 +1,10 @@
+- id: shortest_path_domain_admins
+  name: Shortest path to Domain Admins
+  description: Read-only shortest path from a source object to a Domain Admins group.
+  risk_level: 1
+  read_only: true
+  parameters:
+    - {name: source_object_id, type: string, required: true}
+    - {name: target, type: string, required: false}
+    - {name: max_depth, type: integer, required: true, min: 1, max: 12}
+  cypher: "MATCH (s),(g:Group) WHERE (s.objectid = '{{source_object_id}}' OR s.object_id = '{{source_object_id}}') AND (toUpper(g.name) CONTAINS 'DOMAIN ADMINS' OR coalesce(g.objectid,'') ENDS WITH '-512') MATCH p=shortestPath((s)-[*1..{{max_depth}}]->(g)) RETURN p LIMIT 1"

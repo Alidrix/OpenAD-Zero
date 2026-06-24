@@ -1,0 +1,1 @@
+export function BloodHoundQueryStatus({status,error}:any){return <div className="card mb-4"><b>Status</b><p>enabled: {String(status?.enabled)} · reachable: {String(status?.reachable)} · ingested: {String(status?.ingested)}</p><p className={status?.reachable?'text-green-400':'text-amber-400'}>{error||status?.message}</p></div>}

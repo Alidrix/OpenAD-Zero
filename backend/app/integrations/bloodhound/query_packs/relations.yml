@@ -1,0 +1,18 @@
+- id: outbound_relations
+  name: Outbound relations
+  description: Read outbound BloodHound relationships for one object.
+  risk_level: 1
+  read_only: true
+  parameters:
+    - {name: object_id, type: string, required: true}
+    - {name: limit, type: integer, required: true, min: 1, max: 200}
+  cypher: "MATCH (s)-[r]->(t) WHERE s.objectid = '{{object_id}}' OR s.object_id = '{{object_id}}' RETURN s,r,t LIMIT {{limit}}"
+- id: inbound_relations
+  name: Inbound relations
+  description: Read inbound BloodHound relationships for one object.
+  risk_level: 1
+  read_only: true
+  parameters:
+    - {name: object_id, type: string, required: true}
+    - {name: limit, type: integer, required: true, min: 1, max: 200}
+  cypher: "MATCH (s)-[r]->(t) WHERE t.objectid = '{{object_id}}' OR t.object_id = '{{object_id}}' RETURN s,r,t LIMIT {{limit}}"

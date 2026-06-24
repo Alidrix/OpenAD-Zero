@@ -1,0 +1,1 @@
+export function BloodHoundRawProperties({object}:any){return <details className="mt-3"><summary className="cursor-pointer">Raw properties JSON</summary><pre className="mt-2 max-h-96 overflow-auto rounded bg-slate-950 p-3 text-xs">{JSON.stringify(object?.raw_properties||object?.properties||{},null,2)}</pre></details>}

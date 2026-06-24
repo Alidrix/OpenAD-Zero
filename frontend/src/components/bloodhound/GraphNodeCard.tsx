@@ -1,0 +1,1 @@
+import {ObjectTypeBadge} from './ObjectTypeBadge';export function GraphNodeCard({data}:any){return <div className="rounded border border-slate-600 bg-slate-900 p-2 text-xs"><b>{data.label}</b><div><ObjectTypeBadge type={data.type}/></div></div>}

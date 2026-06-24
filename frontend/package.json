@@ -10,6 +10,7 @@
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "latest",
+    "reactflow": "^11.11.4",
     "typescript": "latest",
     "vite": "latest",
     "zustand": "latest"
