@@ -1,0 +1,20 @@
+id: openad-zero-exposed-panels
+info:
+  name: Exposed Web Panel Indicator
+  author: openad-zero
+  severity: info
+  description: Non-destructive GET checks for common exposed panel titles.
+  tags: exposure,panel,tech
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "Admin"
+          - "Dashboard"
+          - "Login"
+        condition: or

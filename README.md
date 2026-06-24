@@ -90,3 +90,64 @@ evidence/<mission_id>/jobs/<job_id>/
 ### Limites V2
 
 Cette étape reste volontairement safe-by-design : elle ne réalise aucune exploitation, aucun dump, aucune exécution distante, aucun spidering de fichiers, aucun téléchargement/upload, aucune collecte BloodHound réelle et aucune attaque relay. Les actions de risque 3 sont préparées et affichées, mais l’exécution automatique est désactivée.
+
+## Étape 3 — Nuclei safe web exposure scan
+
+OpenAD Zero ajoute maintenant une intégration Nuclei V3 strictement safe-by-design pour les expositions web légères. Après Nmap, le backend identifie uniquement les services HTTP/HTTPS réellement découverts (`80`, `443`, `8080`, `8000`, `8443`, nom/produit contenant HTTP, ou indicateur SSL) et construit des URL dédiées comme `http://192.168.1.20`, `https://192.168.1.10` ou `http://192.168.1.30:8080`.
+
+Nuclei n'est jamais lancé sur le CIDR brut. Le frontend ne transmet aucune commande libre : le backend génère `targets.txt`, choisit les templates locaux safe dans `nuclei-templates-safe/`, écrit la commande dans les preuves et exécute `nuclei` sans shell après validation humaine de l'action **Scanner les expositions web avec Nuclei**.
+
+### Templates et options safe
+
+La V3 utilise un mini-pack local reproductible :
+
+```text
+nuclei-templates-safe/
+└── http/
+    ├── exposed-panels.yaml
+    ├── security-headers.yaml
+    └── default-files.yaml
+```
+
+La commande serveur utilise JSONL, une sortie dans `evidence/`, des limites conservatrices (`NUCLEI_RATE_LIMIT=20`, `NUCLEI_CONCURRENCY=10`, `NUCLEI_TIMEOUT=10`) et refuse explicitement les modes non souhaités : headless, code templates, fuzzing, DAST agressif, interactsh/interactions externes, proxy, headers/cookies/auth, variables utilisateur, resolvers système et commandes libres.
+
+### Vérifier les outils
+
+- API : `GET /api/health`
+- Outils backend : `GET /api/health/tools`
+- La réponse inclut maintenant `nmap`, `netexec` et `nuclei` avec `available` et `version`.
+- Si `nuclei` est absent, le backend ne crashe pas et la GUI affiche : `Nuclei indisponible dans l’environnement backend.`
+
+### Workflow de test
+
+1. Créer une mission sur un CIDR interne.
+2. Lancer le scénario.
+3. Attendre la fin de Nmap.
+4. Vérifier que des web targets sont détectées.
+5. Aller dans **Actions**.
+6. Autoriser **Scanner les expositions web avec Nuclei**.
+7. Suivre la console live avec les lignes `[nuclei]`.
+8. Consulter **Web Targets**.
+9. Consulter **Findings**.
+10. Vérifier `evidence/<mission_id>/jobs/<job_id>/nuclei.jsonl`.
+
+### Preuves
+
+Chaque job Nuclei écrit ses preuves dans :
+
+```text
+evidence/<mission_id>/jobs/<job_id>/
+├── command.txt
+├── targets.txt
+├── stdout.log
+├── stderr.log
+├── nuclei.jsonl
+├── parsed.json
+└── findings.json
+```
+
+`targets.txt` contient seulement les URL HTTP/HTTPS issues des services Nmap de la mission. `command.txt` contient la commande backend générée, sans secret.
+
+### Limites V3
+
+Cette étape ne fait pas de scan Internet massif, pas de fuzzing, pas de headless browser, pas de code templates, pas d'authentification web, pas de proxy, pas de cookies/headers personnalisés, pas d'interactsh, pas de crawling avancé, pas de Katana/httpx, pas de rapport PDF et aucune exploitation automatique. Les actions suivantes proposées après Nuclei sont défensives ou de validation manuelle uniquement.

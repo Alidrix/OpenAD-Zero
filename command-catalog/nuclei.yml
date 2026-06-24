@@ -1,0 +1,8 @@
+actions:
+  - id: nuclei_web_exposure_scan
+    title: Scanner les expositions web avec Nuclei
+    risk_level: 2
+    requires_approval: true
+    execution_mode: backend
+    tool: nuclei
+    description: Scanner uniquement les services HTTP/HTTPS détectés par Nmap avec des templates Nuclei safe.
