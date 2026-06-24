@@ -20,6 +20,12 @@ from app.planner.next_actions import plan_after_bloodhound_upload
 from app.capabilities.catalog import get_capability, creates_manual_card_only
 from pathlib import Path
 import json
+import logging
+from app.operations.service import initialize_operations_for_mission, safe_sync
+from app.operations.phases import mark_phase_completed, update_phase_status
+from app.operations.schemas import TimelineEventCreate
+from app.operations.timeline import create_timeline_event
+log=logging.getLogger(__name__)
 
 router=APIRouter(prefix='/missions')
 class MissionCreate(BaseModel):
@@ -87,6 +93,9 @@ async def upload_bh_zip(mission_id:str, file:UploadFile=File(...), db:Session=De
     await publish(MissionEvent(type='bloodhound.zip.validated',mission_id=mission_id,payload={'collection_id':c.id,'valid':c.zip_valid,'json_files_count':summary['json_files_count'],'sha256':c.sha256}))
     result={'status':'not_attempted'}
     if c.zip_valid:
+        try:
+            mark_phase_completed(db, mission_id, 'active_directory_collection', 'BloodHound ZIP validated.'); create_timeline_event(db, mission_id, TimelineEventCreate(event_type='bloodhound.collection.validated', title='BloodHound collection uploaded and validated', source='bloodhound', severity='success', related_bloodhound_collection_id=c.id))
+        except Exception: log.exception('operations bloodhound hook failed')
         await publish(MissionEvent(type='bloodhound.ingestion.started',mission_id=mission_id,payload={'collection_id':c.id,'provider':'bloodhound-ce'}))
         result=await ingest_collection(c)
         event='bloodhound.ingestion.completed' if c.ingestion_status=='ingested' or c.ingestion_status=='bloodhound_disabled' else 'bloodhound.ingestion.failed'
@@ -108,6 +117,8 @@ def create_mission(payload:MissionCreate, db:Session=Depends(get_db)):
     try: targets=validate_scope(payload.scope, get_settings().allow_public_scans).targets
     except ScopeValidationError as e: raise HTTPException(400, str(e))
     m=Mission(name=payload.name, scenario=payload.scenario, mode=payload.mode, status='scope_validated', raw_scope=payload.scope, validated_targets=targets); db.add(m); db.commit(); db.refresh(m)
+    try: initialize_operations_for_mission(db, m.id)
+    except Exception: log.exception('operations init failed')
     return {'mission_id':m.id,'status':m.status,'validated_targets':targets}
 
 class ApproveActionPayload(BaseModel):
@@ -211,6 +222,9 @@ async def start_mission(mission_id:str, db:Session=Depends(get_db)):
     if not m: raise HTTPException(404,'Mission not found')
     if m.status!='scope_validated': raise HTTPException(400,'Mission scope is not validated or mission already started')
     m.status='running'; m.started_at=datetime.utcnow()
+    try:
+        initialize_operations_for_mission(db, m.id); mark_phase_completed(db, m.id, 'scope_validation', 'Mission scope validated.'); update_phase_status(db, m.id, 'network_discovery', 'running', 'Nmap discovery started.'); create_timeline_event(db, m.id, TimelineEventCreate(event_type='nmap.started', title='Nmap discovery started', source='nmap', severity='info'))
+    except Exception: log.exception('operations start hook failed')
     j=Job(mission_id=m.id,type='discovery',tool='nmap',status='pending',command_preview='nmap -Pn -sV --top-ports 1000 -oX <evidence-path> <validated-targets>'); db.add(j); db.commit(); db.refresh(j)
     await publish(MissionEvent(type='mission.status',mission_id=m.id,payload={'status':'running'}))
     asyncio.create_task(run_nmap_job(m.id,j.id))
@@ -291,5 +305,11 @@ async def bloodhound_object_permissions(mission_id:str, object_id:str, limit:int
 @router.post('/{mission_id}/bloodhound/pathfinding')
 async def bloodhound_pathfinding(mission_id:str, payload:PathfindingPayload, db:Session=Depends(get_db)):
     if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
-    try: return await _explorer(db).pathfinding(mission_id,payload.source_object_id,payload.target,min(payload.max_depth,12))
+    try:
+        res=await _explorer(db).pathfinding(mission_id,payload.source_object_id,payload.target,min(payload.max_depth,12))
+        if res:
+            try:
+                mark_phase_completed(db, mission_id, 'pathfinding', 'BloodHound pathfinding returned results.'); create_timeline_event(db, mission_id, TimelineEventCreate(event_type='bloodhound.path.detected', title='BloodHound pathfinding detected a path', source='bloodhound', severity='success'))
+            except Exception: log.exception('operations pathfinding hook failed')
+        return res
     except Exception as e: _bh_exc(e)

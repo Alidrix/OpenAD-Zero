@@ -12,6 +12,11 @@ from app.evidence.preview import can_preview, build_preview
 from app.evidence.schemas import EvidenceLinkCreate
 from app.events.publisher import publish
 from app.events.schemas import MissionEvent
+import logging
+from app.operations.phases import update_phase_status
+from app.operations.schemas import TimelineEventCreate
+from app.operations.timeline import create_timeline_event
+log=logging.getLogger(__name__)
 
 router=APIRouter(prefix='/missions')
 TARGET_TYPES={'mission','host','service','job','finding','next_action','bloodhound_collection'}
@@ -48,6 +53,9 @@ async def import_evidence(mission_id:str, file:UploadFile=File(...), label:str=F
     metadata={'evidence_id':e.id,'mission_id':mission_id,'original_filename':original,'stored_filename':dest.name,'label':e.label,'category':e.category,'description':description,'sha256':e.sha256,'size_bytes':size,'mime_type':e.mime_type,'source':e.source,'created_at':datetime.utcnow().isoformat()+'Z'}
     e.metadata_json=metadata; write_metadata(base,metadata); (base/'sha256.txt').write_text(e.sha256+'\n'); (base/'README.txt').write_text('OpenAD Zero external evidence. Uploaded evidence is stored for documentation only and is never executed.\n')
     db.commit(); db.refresh(e)
+    try:
+        update_phase_status(db, mission_id, 'evidence_consolidation', 'completed', 'Evidence imported.'); create_timeline_event(db, mission_id, TimelineEventCreate(event_type='evidence.imported', title='Evidence imported', source='evidence', severity='success', related_evidence_id=e.id))
+    except Exception: log.exception('operations evidence hook failed')
     await publish(MissionEvent(type='evidence.created',mission_id=mission_id,payload={'evidence_id':e.id,'label':e.label,'category':e.category,'sha256':e.sha256,'size_bytes':e.size_bytes}))
     return _ser(e)
 

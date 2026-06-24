@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def _v(x): return '' if x is None else str(x).replace('|','\\|').replace('\n',' ')
 def _yn(x): return 'unknown' if x is None else ('yes' if x else 'no')
 
@@ -21,10 +22,21 @@ def _recommendations(data):
     if not rec: rec.add('Review discovered exposures, validate business impact, and prioritize remediation by severity.')
     return sorted(rec)
 
+
+def _ops_sections(data):
+    obj=data.get('objective') or {}
+    progress=data.get('progress') or {'score':0,'level':'initialized','completed_items':[],'missing_items':[]}
+    out=['', '## Mission Objective', '', f"- Objective: {obj.get('objective_name') or 'Not defined'}", f"- Type: {obj.get('objective_type') or 'n/a'}", f"- Target: {obj.get('objective_target') or 'n/a'}", f"- Status: {obj.get('objective_status') or 'n/a'}", '', '## Mission Progress', '', f"- Score: {progress.get('score',0)}%", f"- Level: {progress.get('level','initialized')}", f"- Completed items: {', '.join(progress.get('completed_items') or []) or 'None'}", f"- Missing items: {', '.join(progress.get('missing_items') or []) or 'None'}", '', '## Mission Phases', '', '| Order | Phase | Status | Summary |', '|---|---|---|---|']
+    for p in data.get('phases',[]): out.append(f"| {_v(p.get('order_index'))} | {_v(p.get('name'))} | {_v(p.get('status'))} | {_v(p.get('summary'))} |")
+    out += ['', '## Timeline', '', '| Date | Source | Severity | Event |', '|---|---|---|---|']
+    for t in data.get('timeline',[]): out.append(f"| {_v(t.get('created_at'))} | {_v(t.get('source'))} | {_v(t.get('severity'))} | {_v(t.get('title'))} |")
+    return out
+
 def render_markdown_report(data: dict) -> str:
     m=data['mission']; risk=data.get('risk_summary',{})
     out=['# OpenAD Zero Report','', '## 1. Executive Summary', f"- Mission: {m.get('name')}", f"- Scenario: {m.get('scenario')}", f"- Mode: {m.get('mode')}", f"- Status: {m.get('status')}", f"- Hosts: {len(data.get('hosts',[]))}", f"- Findings: {len(data.get('findings',[]))}", f"- Highest severity: {_highest(risk)}", f"- Generated at: {datetime.utcnow().isoformat()}Z",'', '## 2. Mission Scope', f"- Raw scope: `{m.get('raw_scope')}`", f"- Validated targets: {', '.join(m.get('validated_targets') or []) or 'None'}", f"- Created at: {m.get('created_at')}", f"- Started at: {m.get('started_at')}", f"- Completed at: {m.get('completed_at')}",'', '## 3. Methodology', '- Nmap discovery and service enumeration were used when nmap jobs exist.', '- NetExec SMB safe enumeration was included when SMB facts or shares exist.' if data.get('smb_facts') or data.get('smb_shares') else '- NetExec SMB safe enumeration was not present.', '- Nuclei safe web exposure scans were included when Nuclei findings exist.' if data.get('findings_by_source',{}).get('nuclei') else '- Nuclei safe web exposure scan data was not present.', '- BloodHound / SharpHound collection metadata was included when uploaded collections exist.' if data.get('bloodhound_collections') else '- BloodHound collection data was not present.', '- Evidence Manager metadata was included when evidence records exist.' if data.get('evidence') else '- Evidence Manager records were not present.','', '## 4. Tool Summary']
     for k,v in data.get('tool_summary',{}).items(): out.append(f'- {k}: {_yn(v)}')
+    out += _ops_sections(data)
     out += ['', '## 5. Hosts and Services','| IP | Hostname | OS Guess | DC Candidate | Services |','|---|---|---|---|---|']
     for h in data.get('hosts',[]):
         sv=', '.join(f"{s['port']}/{s['protocol']} {s['name']}" for s in h.get('services',[]))

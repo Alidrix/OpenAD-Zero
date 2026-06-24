@@ -45,6 +45,10 @@ async def run_nmap_job(mission_id:str, job_id:str):
             for a in actions:
                 await publish(MissionEvent(type='planner.next_action',mission_id=mission_id,payload={'title':a.title,'risk_level':a.risk_level,'requires_approval':a.requires_approval,'command_template_id':a.command_template_id}))
             mission.status='completed'; mission.completed_at=datetime.utcnow()
+            try:
+                from app.operations.service import safe_sync
+                safe_sync(db, mission_id)
+            except Exception: pass
         db.commit()
         await publish(MissionEvent(type='job.status',mission_id=mission_id,payload={'job_id':job_id,'status':job.status}))
         await publish(MissionEvent(type='mission.status',mission_id=mission_id,payload={'status':mission.status}))

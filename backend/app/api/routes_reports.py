@@ -7,6 +7,11 @@ from app.events.publisher import publish
 from app.events.schemas import MissionEvent
 from app.reports.schemas import ReportGenerateRequest, ReportResponse, ReportPreviewResponse
 from app.reports.service import generate_report, get_latest_report, get_report_file
+import logging
+from app.operations.phases import mark_phase_completed
+from app.operations.schemas import TimelineEventCreate
+from app.operations.timeline import create_timeline_event
+log=logging.getLogger(__name__)
 
 router=APIRouter(prefix='/missions')
 MAX_PREVIEW=500000
@@ -19,6 +24,9 @@ async def generate(mission_id:str, payload:ReportGenerateRequest|None=None, db:S
     if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
     try:
         r=generate_report(db, mission_id, payload.include_sections if payload else None)
+        try:
+            mark_phase_completed(db, mission_id, 'reporting', 'Report generated.'); create_timeline_event(db, mission_id, TimelineEventCreate(event_type='report.generated', title='Report generated', source='report', severity='success', related_report_id=r.id))
+        except Exception: log.exception('operations report hook failed')
         await publish(MissionEvent(type='report.generated',mission_id=mission_id,payload={'report_id':r.id,'markdown_path':r.markdown_path,'html_path':r.html_path}))
         return _ser(r)
     except Exception as e:
