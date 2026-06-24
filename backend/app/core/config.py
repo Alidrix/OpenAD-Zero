@@ -22,11 +22,13 @@ class Settings(BaseSettings):
     bloodhound_ingest_timeout: int = 300
     bloodhound_max_upload_mb: int = 250
     openadzero_default_mode: str = 'safe'
-    openadzero_enable_lab_mode: bool = False
-    openadzero_enable_advanced_actions: bool = False
+    openadzero_enable_assisted_mode: bool = True
+    openadzero_enable_ctf_lab_mode: bool = False
+    openadzero_enable_manual_action_cards: bool = False
+    openadzero_enable_external_evidence_import: bool = False
+    openadzero_enable_reporting: bool = False
     openadzero_enable_ai_planner: bool = False
-    openadzero_enable_reporting: bool = True
-    openadzero_enable_manual_action_cards: bool = True
+    openadzero_enable_advanced_automation: bool = False
 
 @lru_cache
 def get_settings() -> Settings:

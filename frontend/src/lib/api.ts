@@ -1,3 +1,4 @@
+import type {Capability, CapabilityConfig} from '../types/capabilities';
 export const API=(import.meta.env.VITE_API_URL as string)||'';
 export type Service={id?:string;port:number;protocol:string;name:string;product:string;version:string;state:string};
 export type SMBFact={hostname?:string;domain?:string;os?:string;smb_signing_required?:boolean;smbv1_enabled?:boolean;null_session_possible?:boolean;source?:string};
@@ -26,5 +27,7 @@ export const getBloodHoundRelations=(id:string,oid:string,direction:string,limit
 export const getBloodHoundPermissions=(id:string,oid:string,limit=100)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}/permissions?limit=${limit}`);
 export const runBloodHoundPathfinding=(id:string,p:any)=>req<any>(`/api/missions/${id}/bloodhound/pathfinding`,{method:'POST',body:JSON.stringify(p)});
 
-export const getCapabilities=()=>req<any[]>('/api/capabilities');
-export const getCapabilityConfig=()=>req<any>('/api/capabilities/config');
+export const getCapabilities=(filters?:{status?:string;category?:string;mode?:string;q?:string})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,v)});return req<Capability[]>(`/api/capabilities${qs.toString()?`?${qs}`:''}`)};
+export const getCapability=(id:string)=>req<Capability>(`/api/capabilities/${encodeURIComponent(id)}`);
+export const getCapabilitiesConfig=()=>req<CapabilityConfig>('/api/capabilities/config');
+export const getCapabilityConfig=getCapabilitiesConfig;

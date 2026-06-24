@@ -1,0 +1,110 @@
+- id: nmap_discovery
+  name: Nmap discovery
+  category: discovery
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Network and service discovery using Nmap.
+  evidence: true
+- id: netexec_smb_safe_enum
+  name: NetExec SMB safe enum
+  category: enumeration
+  status: implemented
+  mode: assisted
+  risk_level: 2
+  requires_approval: true
+  execution: backend
+  description: Controlled SMB enumeration and enrichment through NetExec.
+  evidence: true
+- id: nuclei_web_exposure_scan
+  name: Nuclei safe web exposure scan
+  category: vulnerability_discovery
+  status: implemented
+  mode: assisted
+  risk_level: 2
+  requires_approval: true
+  execution: backend
+  description: Safe Nuclei scan against HTTP/HTTPS services discovered by Nmap.
+  evidence: true
+- id: bloodhound_sharphound_upload
+  name: BloodHound / SharpHound ZIP ingestion
+  category: active_directory_analysis
+  status: implemented
+  mode: assisted
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Upload, validate, store and optionally ingest SharpHound ZIP data.
+  evidence: true
+- id: bloodhound_explorer
+  name: BloodHound Explorer
+  category: active_directory_analysis
+  status: implemented
+  mode: assisted
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Search and inspect AD objects, properties, relations, permissions and paths using BloodHound data.
+  evidence: true
+- id: bloodhound_pathfinding
+  name: BloodHound read-only pathfinding
+  category: active_directory_analysis
+  status: implemented
+  mode: assisted
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Read-only pathfinding toward sensitive groups such as Domain Admins.
+  evidence: true
+- id: report_markdown_html
+  name: Markdown / HTML reporting
+  category: reporting
+  status: planned
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Generate Markdown and HTML reports from mission findings and evidence.
+  evidence: true
+- id: evidence_manager
+  name: Evidence Manager
+  category: evidence
+  status: planned
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Import, store, hash and link evidence files to mission objects.
+  evidence: true
+- id: lab_operations_center
+  name: Lab Operations Center
+  category: lab_workflow
+  status: planned
+  mode: ctf_lab
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Track phases, timeline, manual notes and mission progress in lab environments.
+  evidence: true
+- id: ai_assisted_planner
+  name: AI-assisted planner
+  category: planning
+  status: planned
+  mode: assisted
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Suggest next steps from current findings without executing sensitive actions.
+  evidence: false
+- id: manual_lab_validation_notes
+  name: Manual lab validation notes
+  category: lab_workflow
+  status: planned
+  mode: ctf_lab
+  risk_level: 1
+  requires_approval: false
+  execution: manual_card
+  description: Document actions performed outside OpenAD Zero in an authorized lab or CTF.
+  evidence: true
