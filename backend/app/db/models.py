@@ -11,7 +11,28 @@ class Mission(Base):
     jobs=relationship('Job', cascade='all, delete-orphan'); hosts=relationship('Host', cascade='all, delete-orphan'); findings=relationship('Finding', cascade='all, delete-orphan'); next_actions=relationship('NextAction', cascade='all, delete-orphan'); smb_facts=relationship('SMBFact', cascade='all, delete-orphan'); smb_shares=relationship('SMBShare', cascade='all, delete-orphan'); web_targets=relationship('WebTarget', cascade='all, delete-orphan'); bloodhound_collections=relationship('BloodHoundCollection', cascade='all, delete-orphan'); bloodhound_stats=relationship('BloodHoundStat', cascade='all, delete-orphan'); manual_action_cards=relationship('ManualActionCard', cascade='all, delete-orphan'); evidence=relationship('Evidence', cascade='all, delete-orphan'); evidence_links=relationship('EvidenceLink', cascade='all, delete-orphan'); reports=relationship('Report', cascade='all, delete-orphan'); objective=relationship('MissionObjective', cascade='all, delete-orphan'); phases=relationship('MissionPhase', cascade='all, delete-orphan'); timeline_events=relationship('MissionTimelineEvent', cascade='all, delete-orphan')
 class Job(Base):
     __tablename__='jobs'
-    id:Mapped[str]=mapped_column(String, primary_key=True, default=uid); mission_id:Mapped[str]=mapped_column(ForeignKey('missions.id')); type:Mapped[str]=mapped_column(String(50)); tool:Mapped[str]=mapped_column(String(50)); status:Mapped[str]=mapped_column(String(40), default='pending'); command_preview:Mapped[str]=mapped_column(Text); started_at:Mapped[datetime|None]=mapped_column(DateTime); completed_at:Mapped[datetime|None]=mapped_column(DateTime); return_code:Mapped[int|None]=mapped_column(Integer); stdout_path:Mapped[str|None]=mapped_column(Text); stderr_path:Mapped[str|None]=mapped_column(Text); output_path:Mapped[str|None]=mapped_column(Text)
+    id:Mapped[str]=mapped_column(String, primary_key=True, default=uid); mission_id:Mapped[str]=mapped_column(ForeignKey('missions.id')); type:Mapped[str]=mapped_column(String(50)); tool:Mapped[str]=mapped_column(String(50)); status:Mapped[str]=mapped_column(String(40), default='pending'); command_preview:Mapped[str]=mapped_column(Text); started_at:Mapped[datetime|None]=mapped_column(DateTime); completed_at:Mapped[datetime|None]=mapped_column(DateTime); return_code:Mapped[int|None]=mapped_column(Integer); stdout_path:Mapped[str|None]=mapped_column(Text); stderr_path:Mapped[str|None]=mapped_column(Text); output_path:Mapped[str|None]=mapped_column(Text); rq_job_id:Mapped[str|None]=mapped_column(String(255)); queued_at:Mapped[datetime|None]=mapped_column(DateTime); cancel_requested_at:Mapped[datetime|None]=mapped_column(DateTime); last_heartbeat_at:Mapped[datetime|None]=mapped_column(DateTime); attempts:Mapped[int]=mapped_column(Integer, default=0); max_attempts:Mapped[int]=mapped_column(Integer, default=1); error_message:Mapped[str|None]=mapped_column(Text)
+
+class JobLog(Base):
+    __tablename__ = 'job_logs'
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    mission_id: Mapped[str] = mapped_column(ForeignKey('missions.id'))
+    job_id: Mapped[str] = mapped_column(ForeignKey('jobs.id'))
+    source: Mapped[str] = mapped_column(String(80), default='backend')
+    stream: Mapped[str] = mapped_column(String(40), default='stdout')
+    line: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class MissionEvent(Base):
+    __tablename__ = 'mission_events'
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    mission_id: Mapped[str] = mapped_column(ForeignKey('missions.id'))
+    event_type: Mapped[str] = mapped_column(String(120))
+    source: Mapped[str] = mapped_column(String(80), default='system')
+    payload_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    redis_stream_id: Mapped[str | None] = mapped_column(String(255))
+
 class Host(Base):
     __tablename__='hosts'
     id:Mapped[str]=mapped_column(String, primary_key=True, default=uid); mission_id:Mapped[str]=mapped_column(ForeignKey('missions.id')); ip:Mapped[str]=mapped_column(String(80)); hostname:Mapped[str|None]=mapped_column(String(255)); status:Mapped[str]=mapped_column(String(40)); os_guess:Mapped[str|None]=mapped_column(String(255)); is_domain_controller_candidate:Mapped[bool]=mapped_column(Boolean, default=False); created_at:Mapped[datetime]=mapped_column(DateTime, default=datetime.utcnow)

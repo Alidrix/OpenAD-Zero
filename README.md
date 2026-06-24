@@ -365,3 +365,26 @@ Important events such as mission creation, Nmap completion, NetExec completion, 
 The progress score is calculated from completed mission phases and existing data such as hosts, services, SMB facts, web targets, BloodHound collections, findings, evidence and reports.
 
 Next step: Worker and Event Bus hardening.
+
+## Worker Queue and Persistent Events
+
+OpenAD Zero runs long-running scan jobs through a dedicated RQ worker backed by Redis.
+
+The API enqueues jobs, while the worker executes tools such as Nmap, NetExec and Nuclei. Mission events are persisted and streamed to the GUI, allowing logs and status updates to survive browser refreshes and reconnects.
+
+### Services
+
+- `openadzero-api`: FastAPI backend that creates missions, validates scope, and enqueues long-running work.
+- `openadzero-worker`: RQ worker that consumes Redis jobs and executes existing safe Nmap, NetExec, and Nuclei runners.
+- `openadzero-ui`: React/Vite frontend.
+- `openadzero-postgres`: PostgreSQL database for missions, jobs, logs, evidence metadata, and persistent events.
+- `openadzero-redis`: Redis broker for RQ queues and mission event streams.
+
+### Job workflow
+
+1. API creates a Job record.
+2. API enqueues the job in Redis/RQ.
+3. Worker picks up the job.
+4. Worker updates status and writes logs.
+5. Events are persisted and streamed.
+6. GUI replays historical events and receives live updates.

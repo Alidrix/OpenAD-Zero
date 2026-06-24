@@ -22,12 +22,17 @@ def build_nuclei_command(targets_file:Path, jsonl_output:Path, templates_dir:Pat
 async def run_nuclei_job(mission_id:str, job_id:str, action_id:str):
     db:Session=SessionLocal(); settings=get_settings(); job=db.get(Job,job_id); action=db.get(NextAction,action_id); mission=db.get(Mission,mission_id)
     try:
+        
+        if job.cancel_requested_at:
+            job.status='cancelled'; job.completed_at=datetime.utcnow(); db.commit(); return
         job.status='running'; job.started_at=datetime.utcnow(); db.commit()
         targets=ensure_web_targets_for_mission(db, mission_id)
         jd=job_dir(mission_id,job_id); stdout=jd/'stdout.log'; stderr=jd/'stderr.log'; jsonl=jd/'nuclei.jsonl'; parsed_path=jd/'parsed.json'; findings_path=jd/'findings.json'; targets_file=jd/'targets.txt'
         if not targets:
             msg='Aucune cible HTTP/HTTPS détectée par Nmap. Action Nuclei annulée proprement.'
-            stdout.write_text(msg+'\n'); job.status='blocked'; action.status='blocked'; db.commit(); await publish(MissionEvent(type='nuclei.log',mission_id=mission_id,payload={'job_id':job_id,'line':msg})); return
+            stdout.write_text(msg+'\n'); job.status='blocked'
+            if action: action.status='blocked'
+            db.commit(); await publish(MissionEvent(type='nuclei.log',mission_id=mission_id,payload={'job_id':job_id,'line':msg})); return
         targets_file.write_text('\n'.join(w.url for w in targets)+'\n')
         await publish(MissionEvent(type='nuclei.started',mission_id=mission_id,payload={'job_id':job_id,'action_id':action_id,'targets_count':len(targets)}))
         templates=Path(os.getenv('NUCLEI_TEMPLATES_DIR','/app/nuclei-templates-safe'))
@@ -45,7 +50,8 @@ async def run_nuclei_job(mission_id:str, job_id:str, action_id:str):
                     if not line: break
                     text=line.decode(errors='replace').rstrip(); f.write(text+'\n'); f.flush(); await publish(MissionEvent(type='nuclei.log',mission_id=mission_id,payload={'job_id':job_id,'line':f'[nuclei] {text}'}))
         await asyncio.wait_for(asyncio.gather(pump(proc.stdout,stdout),pump(proc.stderr,stderr),proc.wait()), timeout=settings.nuclei_job_timeout_seconds)
-        job.return_code=proc.returncode; job.completed_at=datetime.utcnow(); job.status='completed' if proc.returncode==0 else 'failed'; action.status=job.status
+        job.return_code=proc.returncode; job.completed_at=datetime.utcnow(); job.status='completed' if proc.returncode==0 else 'failed'; 
+        if action: action.status=job.status
         parsed=parse_nuclei_jsonl(jsonl); parsed_path.write_text(json.dumps([p.to_dict() for p in parsed],indent=2))
         created=[]
         for p in parsed:

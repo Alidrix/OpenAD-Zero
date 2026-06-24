@@ -55,3 +55,12 @@ export const createTimelineEvent=(missionId:string,payload:Partial<TimelineEvent
 export const getMissionProgress=(missionId:string)=>req<ProgressScore>(`/api/missions/${missionId}/progress`);
 export const getOperationsSummary=(missionId:string)=>req<OperationsSummary>(`/api/missions/${missionId}/operations/summary`);
 export const syncOperations=(missionId:string)=>req<ProgressScore>(`/api/missions/${missionId}/operations/sync`,{method:'POST',body:JSON.stringify({})});
+import type {Job,JobLog} from '../types/jobs';
+import type {MissionEvent as PersistentMissionEvent} from '../types/events';
+export const listMissionJobs=(missionId:string)=>req<Job[]>(`/api/missions/${missionId}/jobs`);
+export const getMissionJob=(missionId:string,jobId:string)=>req<Job>(`/api/missions/${missionId}/jobs/${jobId}`);
+export const getMissionJobLogs=(missionId:string,jobId:string)=>req<JobLog[]>(`/api/missions/${missionId}/jobs/${jobId}/logs`);
+export const cancelJob=(missionId:string,jobId:string)=>req<Job>(`/api/missions/${missionId}/jobs/${jobId}/cancel`,{method:'POST',body:JSON.stringify({})});
+export const retryJob=(missionId:string,jobId:string)=>req<Job>(`/api/missions/${missionId}/jobs/${jobId}/retry`,{method:'POST',body:JSON.stringify({})});
+export const listMissionEvents=(missionId:string,filters?:{after_id?:string;limit?:number;event_type?:string;source?:string})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,String(v))});return req<PersistentMissionEvent[]>(`/api/missions/${missionId}/events${qs.toString()?`?${qs}`:''}`)};
+export const workerHealth=()=>req<any>('/api/health/worker');
