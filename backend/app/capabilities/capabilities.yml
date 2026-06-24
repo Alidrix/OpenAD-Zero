@@ -81,12 +81,12 @@
 - id: lab_operations_center
   name: Lab Operations Center
   category: lab_workflow
-  status: planned
+  status: implemented
   mode: ctf_lab
   risk_level: 1
   requires_approval: false
   execution: backend
-  description: Track phases, timeline, manual notes and mission progress in lab environments.
+  description: Track mission objective, phases, timeline and progress score.
   evidence: true
 - id: ai_assisted_planner
   name: AI-assisted planner
@@ -128,4 +128,25 @@
   requires_approval: false
   execution: backend
   description: Build mission reports in Markdown and HTML from OpenAD Zero data.
+  evidence: true
+
+- id: mission_timeline
+  name: Mission Timeline
+  category: lab_workflow
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Persist important mission events and display them in the GUI.
+  evidence: true
+- id: progress_score
+  name: Mission Progress Score
+  category: lab_workflow
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Calculate mission progress based on phases, findings, evidence and reports.
   evidence: true

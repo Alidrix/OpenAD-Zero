@@ -5,12 +5,13 @@ from app.core.config import get_settings
 from app.db.models import Report
 from app.reports.collector import collect_report_data
 from app.reports.markdown import render_markdown_report
+from app.operations.progress import calculate_progress_score
 from app.reports.html import render_html_report
 
 DEFAULT_SECTIONS=['executive_summary','mission_scope','methodology','tool_summary','hosts_services','smb_windows','web_exposure','bloodhound','findings','evidence','next_steps','technical_appendix']
 
 def generate_report(db: Session, mission_id: str, include_sections: list[str] | None = None) -> Report:
-    data=collect_report_data(db, mission_id)
+    data=collect_report_data(db, mission_id); data['progress']=calculate_progress_score(db, mission_id)
     sections=include_sections or DEFAULT_SECTIONS
     report=Report(mission_id=mission_id,status='generating',title=f"OpenAD Zero Report - {data['mission']['name']}",sections_json={'sections':sections})
     db.add(report); db.commit(); db.refresh(report)

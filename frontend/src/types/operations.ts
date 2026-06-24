@@ -1,0 +1,5 @@
+export interface MissionObjective {id:string;mission_id:string;objective_name:string;objective_description?:string|null;objective_type:string;objective_target?:string|null;objective_status:string;operator_note?:string|null;created_at:string;updated_at:string}
+export interface MissionPhase {id:string;mission_id:string;phase_key:string;name:string;description?:string|null;status:string;order_index:number;started_at?:string|null;completed_at?:string|null;summary?:string|null}
+export interface TimelineEvent {id:string;mission_id:string;event_type:string;title:string;description?:string|null;source:string;severity:string;created_at:string;metadata_json?:Record<string,unknown>|null}
+export interface ProgressScore {score:number;level:string;completed_items:string[];missing_items:string[];details:Record<string,unknown>}
+export interface OperationsSummary {objective:MissionObjective;phases:MissionPhase[];progress:ProgressScore;recent_timeline:TimelineEvent[];counts:{hosts:number;services:number;findings:number;evidence:number;reports:number}}

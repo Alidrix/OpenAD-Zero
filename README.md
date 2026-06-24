@@ -349,3 +349,19 @@ evidence/<mission_id>/reports/<report_id>/
 5. Download report.md or report.html.
 
 Next step: Lab Operations Center with phases, timeline and progress score.
+
+## Lab Operations Center
+
+OpenAD Zero includes a Lab Operations Center to track mission objectives, phases, timeline events and progress score.
+
+This feature helps operators follow a Windows/AD assessment from scope validation to reporting.
+
+## Mission Timeline
+
+Important events such as mission creation, Nmap completion, NetExec completion, Nuclei completion, BloodHound imports, evidence imports and report generation are persisted as timeline events.
+
+## Progress Score
+
+The progress score is calculated from completed mission phases and existing data such as hosts, services, SMB facts, web targets, BloodHound collections, findings, evidence and reports.
+
+Next step: Worker and Event Bus hardening.

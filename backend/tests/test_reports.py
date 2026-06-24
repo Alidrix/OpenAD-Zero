@@ -70,3 +70,17 @@ def test_empty_report(db_session, monkeypatch, tmp_path):
     db_session.add(m); db_session.commit(); db_session.refresh(m)
     r=generate_report(db_session, m.id)
     assert Path(r.markdown_path).read_text().count('No SMB facts available.') == 1
+
+
+def test_report_includes_operations_sections(db_session):
+    from app.db.models import Mission
+    from app.operations.service import initialize_operations_for_mission
+    from app.reports.service import generate_report
+    m=Mission(name='ops',scenario='windows_ad_internal',mode='safe',status='scope_validated',raw_scope='10.0.0.1',validated_targets=['10.0.0.1']); db_session.add(m); db_session.commit(); db_session.refresh(m)
+    initialize_operations_for_mission(db_session,m.id)
+    r=generate_report(db_session,m.id)
+    md=open(r.markdown_path,encoding='utf-8').read()
+    assert '## Mission Objective' in md
+    assert '## Mission Progress' in md
+    assert '## Mission Phases' in md
+    assert '## Timeline' in md

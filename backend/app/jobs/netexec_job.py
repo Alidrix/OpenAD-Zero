@@ -64,6 +64,10 @@ async def run_netexec_job(mission_id: str, job_id: str, action_id: str):
         findings_path.write_text(json.dumps([{'title':f.title,'severity':f.severity,'source':f.source,'confidence':f.confidence} for f in findings], indent=2))
         for f in findings: await publish(MissionEvent(type='finding.created',mission_id=mission_id,payload={'title':f.title,'severity':f.severity,'source':f.source,'confidence':f.confidence}))
         for a in actions: await publish(MissionEvent(type='planner.next_action',mission_id=mission_id,payload={'id':a.id,'title':a.title,'risk_level':a.risk_level,'requires_approval':a.requires_approval,'command_template_id':a.command_template_id,'status':a.status,'reason':a.reason}))
+        try:
+            from app.operations.service import safe_sync
+            safe_sync(db, mission_id)
+        except Exception: pass
         db.commit()
     except Exception as e:
         if job: job.status='failed'; job.completed_at=datetime.utcnow()

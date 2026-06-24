@@ -45,3 +45,13 @@ export const generateReport=(missionId:string,payload?:{include_sections?:string
 export const getLatestReport=(missionId:string)=>req<{report:Report|null}>(`/api/missions/${missionId}/report`);
 export const getReportPreview=(missionId:string,format:'markdown'|'html')=>req<ReportPreview>(`/api/missions/${missionId}/report/preview?format=${format}`);
 export const getReportDownloadUrl=(missionId:string,format:'markdown'|'html')=>`${API}/api/missions/${missionId}/report/download?format=${format}`;
+import type {MissionObjective,MissionPhase,TimelineEvent,ProgressScore,OperationsSummary} from '../types/operations';
+export const getMissionObjective=(missionId:string)=>req<MissionObjective>(`/api/missions/${missionId}/objective`);
+export const updateMissionObjective=(missionId:string,payload:Partial<MissionObjective>)=>req<MissionObjective>(`/api/missions/${missionId}/objective`,{method:'PATCH',body:JSON.stringify(payload)});
+export const getMissionPhases=(missionId:string)=>req<MissionPhase[]>(`/api/missions/${missionId}/phases`);
+export const updateMissionPhase=(missionId:string,phaseId:string,payload:{status?:string;summary?:string})=>req<MissionPhase>(`/api/missions/${missionId}/phases/${phaseId}`,{method:'PATCH',body:JSON.stringify(payload)});
+export const getMissionTimeline=(missionId:string,filters?:{source?:string;severity?:string;limit?:number})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,String(v))});return req<TimelineEvent[]>(`/api/missions/${missionId}/timeline${qs.toString()?`?${qs}`:''}`)};
+export const createTimelineEvent=(missionId:string,payload:Partial<TimelineEvent>)=>req<TimelineEvent>(`/api/missions/${missionId}/timeline`,{method:'POST',body:JSON.stringify(payload)});
+export const getMissionProgress=(missionId:string)=>req<ProgressScore>(`/api/missions/${missionId}/progress`);
+export const getOperationsSummary=(missionId:string)=>req<OperationsSummary>(`/api/missions/${missionId}/operations/summary`);
+export const syncOperations=(missionId:string)=>req<ProgressScore>(`/api/missions/${missionId}/operations/sync`,{method:'POST',body:JSON.stringify({})});
