@@ -324,3 +324,28 @@ Uploaded evidence is never executed. Files are stored under evidence/<mission_id
 7. Link evidence to a finding or host.
 
 Next step: Reporting Engine using findings and evidence.
+
+## Reporting Engine V1
+
+OpenAD Zero can generate Markdown and HTML reports from mission data.
+
+Reports include mission scope, methodology, hosts, services, SMB enumeration, web findings, BloodHound collections, BloodHound path findings, evidence metadata and recommended next steps.
+
+Generated files are stored under:
+
+```text
+evidence/<mission_id>/reports/<report_id>/
+├── report.md
+├── report.html
+└── report_metadata.json
+```
+
+### Reporting workflow
+
+1. Open a mission.
+2. Go to Report.
+3. Click Generate report.
+4. Preview Markdown or HTML.
+5. Download report.md or report.html.
+
+Next step: Lab Operations Center with phases, timeline and progress score.

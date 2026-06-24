@@ -20,7 +20,8 @@ def test_expected_capabilities_present_with_statuses():
     assert get_capability("netexec_smb_safe_enum").status == "implemented"
     assert get_capability("nuclei_web_exposure_scan").status == "implemented"
     assert get_capability("bloodhound_explorer").status == "implemented"
-    assert get_capability("report_markdown_html").status == "planned"
+    assert get_capability("report_markdown_html").status == "implemented"
+    assert get_capability("reporting_engine_v1").status == "implemented"
 
 
 def test_capabilities_endpoint():
