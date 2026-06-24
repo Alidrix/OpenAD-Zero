@@ -177,3 +177,62 @@ def list_web_targets(mission_id:str, db:Session=Depends(get_db)):
 def list_findings(mission_id:str, db:Session=Depends(get_db)):
     if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
     return [{'id':f.id,'title':f.title,'severity':f.severity,'description':f.description,'source':f.source,'template_id':f.template_id,'template_name':f.template_name,'matched_at':f.matched_at,'host':f.host,'ip':f.ip,'port':f.port,'tags':f.tags,'references':f.references,'raw_json':f.raw_json,'evidence_path':f.evidence_path} for f in db.query(Finding).filter_by(mission_id=mission_id).all()]
+
+from typing import Optional
+from app.integrations.bloodhound.explorer import BloodHoundExplorer
+from app.integrations.bloodhound.query_catalog import QueryCatalog, QueryCatalogError
+from app.integrations.bloodhound.errors import BloodHoundError
+
+class PathfindingPayload(BaseModel):
+    source_object_id: str
+    target: str = 'Domain Admins'
+    max_depth: int = 8
+
+def _explorer(db:Session): return BloodHoundExplorer(db)
+def _bh_exc(e:Exception):
+    if isinstance(e, QueryCatalogError): raise HTTPException(400,str(e))
+    if isinstance(e, BloodHoundError): raise HTTPException(503,str(e))
+    raise e
+
+@router.get('/{mission_id}/bloodhound/explorer/status')
+async def bloodhound_explorer_status(mission_id:str, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    data=await _explorer(db).status(mission_id)
+    await publish(MissionEvent(type='bloodhound.explorer.ready',mission_id=mission_id,payload={'enabled':data['enabled'],'reachable':data['reachable'],'ingested':data['ingested']}))
+    return data
+
+@router.get('/{mission_id}/bloodhound/query-catalog')
+def bloodhound_query_catalog(mission_id:str, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    return QueryCatalog().list_public()
+
+@router.get('/{mission_id}/bloodhound/objects/search')
+async def bloodhound_search_objects(mission_id:str, q:str, types:Optional[str]=None, limit:int=20, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    try: return await _explorer(db).search_objects(mission_id,q,min(limit,50),[x for x in (types or '').split(',') if x])
+    except Exception as e: _bh_exc(e)
+
+@router.get('/{mission_id}/bloodhound/objects/{object_id}')
+async def bloodhound_object_detail(mission_id:str, object_id:str, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    try: return await _explorer(db).object_detail(mission_id,object_id)
+    except Exception as e: _bh_exc(e)
+
+@router.get('/{mission_id}/bloodhound/objects/{object_id}/relations')
+async def bloodhound_object_relations(mission_id:str, object_id:str, direction:str='outbound', limit:int=100, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    if direction not in ('outbound','inbound'): raise HTTPException(400,'direction must be inbound or outbound')
+    try: return await _explorer(db).relations(mission_id,object_id,direction,min(limit,200))
+    except Exception as e: _bh_exc(e)
+
+@router.get('/{mission_id}/bloodhound/objects/{object_id}/permissions')
+async def bloodhound_object_permissions(mission_id:str, object_id:str, limit:int=100, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    try: return await _explorer(db).permissions(mission_id,object_id,min(limit,200))
+    except Exception as e: _bh_exc(e)
+
+@router.post('/{mission_id}/bloodhound/pathfinding')
+async def bloodhound_pathfinding(mission_id:str, payload:PathfindingPayload, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    try: return await _explorer(db).pathfinding(mission_id,payload.source_object_id,payload.target,min(payload.max_depth,12))
+    except Exception as e: _bh_exc(e)

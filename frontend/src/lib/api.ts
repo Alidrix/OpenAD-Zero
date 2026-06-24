@@ -19,3 +19,9 @@ export const getBloodHoundCommand=(id:string)=>req<any>(`/api/missions/${id}/blo
 export const getBloodHoundStatus=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/status`);
 export const getBloodHoundCollections=(id:string)=>req<any[]>(`/api/missions/${id}/bloodhound/collections`);
 export async function uploadBloodHoundZip(id:string,file:File){const fd=new FormData();fd.append('file',file);const r=await fetch(API+`/api/missions/${id}/bloodhound/upload`,{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());return r.json()}
+export const getBloodHoundExplorerStatus=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/explorer/status`);
+export const searchBloodHoundObjects=(id:string,q:string,types:string,limit=20)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/search?q=${encodeURIComponent(q)}&types=${encodeURIComponent(types)}&limit=${limit}`);
+export const getBloodHoundObject=(id:string,oid:string)=>req<any>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}`);
+export const getBloodHoundRelations=(id:string,oid:string,direction:string,limit=100)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}/relations?direction=${direction}&limit=${limit}`);
+export const getBloodHoundPermissions=(id:string,oid:string,limit=100)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}/permissions?limit=${limit}`);
+export const runBloodHoundPathfinding=(id:string,p:any)=>req<any>(`/api/missions/${id}/bloodhound/pathfinding`,{method:'POST',body:JSON.stringify(p)});

@@ -1,0 +1,9 @@
+- id: important_permissions
+  name: Important permissions
+  description: Read important BloodHound permissions and traversable relations for one object.
+  risk_level: 1
+  read_only: true
+  parameters:
+    - {name: object_id, type: string, required: true}
+    - {name: limit, type: integer, required: true, min: 1, max: 200}
+  cypher: "MATCH (s)-[r]->(t) WHERE (s.objectid = '{{object_id}}' OR s.object_id = '{{object_id}}') AND type(r) IN ['GenericAll','GenericWrite','WriteDacl','WriteOwner','AddMember','ForceChangePassword','AllowedToDelegate','CanRDP','CanPSRemote','AdminTo','HasSession','MemberOf','Owns'] RETURN s,r,t LIMIT {{limit}}"

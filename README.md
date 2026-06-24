@@ -213,3 +213,50 @@ evidence/<mission_id>/bloodhound/<collection_id>/
 ```
 
 Le SHA256 peut être vérifié avec `sha256sum evidence/<mission_id>/bloodhound/<collection_id>/original.zip` et comparé à `sha256.txt`.
+
+## Étape 5 — BloodHound Explorer V1
+
+BloodHound Explorer V1 ajoute une couche cockpit read-only au-dessus de BloodHound CE. OpenAD Zero utilise BloodHound CE comme source de vérité du graphe AD et ne duplique pas les données brutes dans PostgreSQL ; seules les preuves, snapshots de requêtes importantes et findings descriptifs sont conservés.
+
+### Objectif
+
+Cette étape permet de rechercher des objets Active Directory, d’ouvrir la fiche d’un User, Computer, Group, Domain, OU ou GPO, de consulter les propriétés BloodHound brutes, les relations entrantes/sortantes et les permissions importantes, puis d’exécuter un pathfinding read-only contrôlé vers Domain Admins.
+
+### Prérequis
+
+- BloodHound CE doit être configuré dans les variables backend.
+- Un ZIP SharpHound valide doit avoir été importé dans une mission OpenAD Zero.
+- Les données doivent avoir été ingérées dans BloodHound CE pour que l’explorateur retourne des résultats.
+
+Si BloodHound CE est désactivé ou indisponible, la page Explorer reste accessible et affiche un message clair indiquant que l’exploration nécessite BloodHound CE configuré, joignable et alimenté.
+
+### Fonctionnalités V1
+
+- Recherche d’objets par nom partiel avec filtres User, Computer, Group, Domain, OU et GPO.
+- Fiche détail objet avec badges High Value, Owned, Enabled, AdminCount et HasSPN lorsque les propriétés existent.
+- Affichage JSON des propriétés BloodHound brutes.
+- Relations entrantes et sortantes avec risque et indicateur de traversabilité.
+- Vue permissions limitée aux relations importantes : GenericAll, GenericWrite, WriteDacl, WriteOwner, AddMember, ForceChangePassword, AllowedToDelegate, CanRDP, CanPSRemote, AdminTo, HasSession, MemberOf et Owns.
+- Pathfinding read-only vers un groupe dont le nom contient `DOMAIN ADMINS` ou dont l’identifiant se termine par `-512` lorsque disponible.
+- Graphe simplifié React Flow pour visualiser les nœuds et edges d’un chemin retourné.
+- Création d’un finding descriptif `Potential path to Domain Admins detected` lorsqu’un chemin critique est trouvé, sans doublon pour une signature de chemin identique.
+- Stockage d’evidence sous `evidence/<mission_id>/bloodhound/queries/` et `evidence/<mission_id>/bloodhound/pathfinding/`.
+
+### Sécurité et limites V1
+
+BloodHound Explorer V1 est strictement safe-by-design : seules des requêtes Cypher prédéfinies, cataloguées côté backend et marquées read-only sont exécutées. Le frontend n’envoie jamais de Cypher brut, seulement des paramètres métier. Aucune exploitation, aucun mouvement latéral, aucune modification AD, aucun dump de secrets et aucune commande d’abus ne sont générés ou exécutés.
+
+Les limites de V1 sont volontaires : pas d’éditeur de requêtes custom, pas de scoring avancé complet, pas de reporting PDF et pas de réplication complète de l’interface BloodHound.
+
+### Workflow exemple
+
+1. Lancer une mission Windows/AD.
+2. Importer un ZIP SharpHound.
+3. Vérifier que BloodHound CE est activé et ingéré.
+4. Aller dans BloodHound Explorer.
+5. Rechercher un utilisateur ou une machine.
+6. Ouvrir la fiche détail.
+7. Consulter relations et permissions.
+8. Lancer un pathfinding vers Domain Admins.
+9. Consulter le graphe simplifié.
+10. Vérifier le finding créé si un chemin est détecté.
