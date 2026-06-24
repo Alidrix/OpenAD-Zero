@@ -1,0 +1,1 @@
+export function BloodHoundIngestionStatus({collection}:{collection:any}){return <div className='card'><h2 className='font-bold'>Ingestion</h2><p>Statut : {collection?.ingestion_status||'Non disponible'}</p>{collection?.ingestion_error&&<p className='text-red-400'>{collection.ingestion_error}</p>}</div>}

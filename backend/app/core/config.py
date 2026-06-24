@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     nuclei_timeout: int = 10
     nuclei_job_timeout_seconds: int = 900
     cors_origins: str = 'http://localhost:5173,http://localhost:3000'
+    bloodhound_enabled: bool = False
+    bloodhound_base_url: str = 'http://bloodhound:8080'
+    bloodhound_api_token: str = ''
+    bloodhound_verify_tls: bool = False
+    bloodhound_ingest_timeout: int = 300
+    bloodhound_max_upload_mb: int = 250
 
 @lru_cache
 def get_settings() -> Settings:

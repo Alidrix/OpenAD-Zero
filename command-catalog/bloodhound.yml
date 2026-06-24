@@ -1,0 +1,29 @@
+- id: bloodhound_prepare_collection
+  name: "Préparer la collecte BloodHound / SharpHound"
+  tool: "sharphound"
+  risk_level: 3
+  requires_approval: true
+  execution_mode: "manual"
+  description: >
+    Génère une commande SharpHound CE à exécuter manuellement dans un contexte
+    utilisateur domaine autorisé. OpenAD Zero ne lance pas SharpHound automatiquement.
+  output_expected:
+    - "sharphound_zip"
+  next_actions:
+    - "bloodhound_upload_zip"
+- id: bloodhound_upload_zip
+  name: "Uploader un ZIP SharpHound"
+  tool: "openadzero"
+  risk_level: 1
+  requires_approval: false
+  execution_mode: "backend"
+  description: >
+    Permet d'uploader un ZIP SharpHound, de le stocker comme preuve, de calculer
+    son SHA256, de le valider et d'essayer de l'ingérer dans BloodHound CE si configuré.
+- id: bloodhound_analyze_imported_data
+  name: "Analyser les données BloodHound importées"
+  tool: "openadzero"
+  risk_level: 1
+  requires_approval: false
+  execution_mode: "manual"
+  description: "Prépare l'analyse future des relations AD importées."

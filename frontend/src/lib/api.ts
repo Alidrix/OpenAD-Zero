@@ -14,3 +14,8 @@ export const health=()=>req<{status:string}>('/api/health');
 export const toolHealth=()=>req<any>('/api/health/tools');
 
 export const getWebTargets=(id:string)=>req<any[]>(`/api/missions/${id}/web-targets`);
+
+export const getBloodHoundCommand=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/sharphound-command`);
+export const getBloodHoundStatus=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/status`);
+export const getBloodHoundCollections=(id:string)=>req<any[]>(`/api/missions/${id}/bloodhound/collections`);
+export async function uploadBloodHoundZip(id:string,file:File){const fd=new FormData();fd.append('file',file);const r=await fetch(API+`/api/missions/${id}/bloodhound/upload`,{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());return r.json()}

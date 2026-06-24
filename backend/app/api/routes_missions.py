@@ -1,18 +1,24 @@
 import asyncio
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.scope import validate_scope, ScopeValidationError
 from app.db.session import get_db
-from app.db.models import Mission, Job, Host, Service, Finding, NextAction, SMBFact, SMBShare, WebTarget
+from app.db.models import Mission, Job, Host, Service, Finding, NextAction, SMBFact, SMBShare, WebTarget, BloodHoundCollection
 from app.events.publisher import publish
 from app.events.schemas import MissionEvent
 from app.jobs.nmap_job import run_nmap_job
 from app.jobs.netexec_job import run_netexec_job, ALLOWED_TEMPLATES as NETEXEC_TEMPLATES
 from app.jobs.nuclei_job import run_nuclei_job, ALLOWED_TEMPLATES as NUCLEI_TEMPLATES
 from app.integrations.nuclei.targets import ensure_web_targets_for_mission
+from app.integrations.bloodhound.zip_inspector import inspect_sharphound_zip, sha256_file
+from app.integrations.bloodhound.ingest import ingest_collection
+from app.integrations.bloodhound.stats import empty_stats
+from app.planner.next_actions import plan_after_bloodhound_upload
+from pathlib import Path
+import json
 
 router=APIRouter(prefix='/missions')
 class MissionCreate(BaseModel):
@@ -23,6 +29,78 @@ def serialize_mission(db:Session, m:Mission):
     by_host={h.id:[] for h in hosts}
     for s in services: by_host.setdefault(s.host_id,[]).append({'id':s.id,'port':s.port,'protocol':s.protocol,'name':s.name,'product':s.product,'version':s.version,'state':s.state})
     return {'id':m.id,'name':m.name,'scenario':m.scenario,'mode':m.mode,'status':m.status,'raw_scope':m.raw_scope,'validated_targets':m.validated_targets,'created_at':m.created_at,'started_at':m.started_at,'completed_at':m.completed_at, 'jobs':[{'id':j.id,'mission_id':j.mission_id,'type':j.type,'tool':j.tool,'status':j.status,'command_preview':j.command_preview,'started_at':j.started_at,'completed_at':j.completed_at,'return_code':j.return_code,'stdout_path':j.stdout_path,'stderr_path':j.stderr_path,'output_path':j.output_path} for j in db.query(Job).filter_by(mission_id=m.id).all()], 'hosts':[{'id':h.id,'ip':h.ip,'hostname':h.hostname,'status':h.status,'os_guess':h.os_guess,'is_domain_controller_candidate':h.is_domain_controller_candidate,'services':by_host.get(h.id,[]), 'smb_facts':[{'hostname':sf.hostname,'domain':sf.domain,'os':sf.os,'smb_signing_required':sf.smb_signing_required,'smbv1_enabled':sf.smbv1_enabled,'null_session_possible':sf.null_session_possible,'source':sf.source} for sf in db.query(SMBFact).filter_by(mission_id=m.id, ip=h.ip).all()], 'smb_shares':[{'name':sh.name,'access':sh.access,'remark':sh.remark,'anonymous':sh.anonymous,'source':sh.source} for sh in db.query(SMBShare).filter_by(mission_id=m.id, ip=h.ip).all()]} for h in hosts], 'web_targets':[{'id':w.id,'url':w.url,'ip':w.ip,'port':w.port,'scheme':w.scheme,'source':w.source} for w in db.query(WebTarget).filter_by(mission_id=m.id).all()], 'findings':[{'id':f.id,'host_id':f.host_id,'title':f.title,'severity':f.severity,'description':f.description,'source':f.source,'confidence':f.confidence,'template_id':f.template_id,'template_name':f.template_name,'matched_at':f.matched_at,'host':f.host,'ip':f.ip,'port':f.port,'scheme':f.scheme,'tags':f.tags,'references':f.references,'raw_json':f.raw_json,'evidence_path':f.evidence_path} for f in db.query(Finding).filter_by(mission_id=m.id).all()], 'next_actions':[{'id':a.id,'title':a.title,'description':a.description,'reason':a.reason,'risk_level':a.risk_level,'requires_approval':a.requires_approval,'status':a.status,'command_template_id':a.command_template_id} for a in db.query(NextAction).filter_by(mission_id=m.id).all()]}
+
+
+def _bh_command(mission_id:str)->dict:
+    safe=''.join(c if c.isalnum() or c in '-_' else '_' for c in mission_id)[:80]
+    cmd=f'SharpHound.exe -c Default --ZipFileName openadzero_{safe}_sharphound.zip'
+    return {'command':cmd,'execution_mode':'manual','risk_level':3,'requires_domain_user_context':True,'notes':['Exécuter uniquement dans un environnement autorisé.','SharpHound doit être lancé dans un contexte utilisateur domaine.','Importer le ZIP généré dans OpenAD Zero.']}
+
+def _ser_collection(c:BloodHoundCollection):
+    return {'id':c.id,'mission_id':c.mission_id,'status':c.status,'source':c.source,'filename':c.filename,'stored_path':c.stored_path,'sha256':c.sha256,'size_bytes':c.size_bytes,'zip_valid':c.zip_valid,'zip_summary_json':c.zip_summary_json,'ingestion_enabled':c.ingestion_enabled,'ingestion_status':c.ingestion_status,'ingestion_job_id':c.ingestion_job_id,'ingestion_error':c.ingestion_error,'created_at':c.created_at,'uploaded_at':c.uploaded_at,'validated_at':c.validated_at,'ingested_at':c.ingested_at}
+
+def _write_readme(base:Path,c:BloodHoundCollection,enabled:bool):
+    (base/'README.txt').write_text(f'Mission ID: {c.mission_id}\nCollection ID: {c.id}\nFilename: {c.filename}\nSHA256: {c.sha256}\nUpload timestamp: {c.uploaded_at}\nValidation status: {c.zip_valid}\nIngestion status: {c.ingestion_status}\nBloodHound enabled: {enabled}\n')
+
+@router.get('/{mission_id}/bloodhound/sharphound-command')
+async def sharphound_command(mission_id:str, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    data=_bh_command(mission_id)
+    await publish(MissionEvent(type='bloodhound.command.generated',mission_id=mission_id,payload={'command':data['command']}))
+    return data
+
+@router.get('/{mission_id}/bloodhound/status')
+def bloodhound_status(mission_id:str, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    return {'enabled':get_settings().bloodhound_enabled,'status':'disabled' if not get_settings().bloodhound_enabled else 'enabled','base_url':get_settings().bloodhound_base_url,'checked_at':datetime.utcnow(),'stats':empty_stats()}
+
+@router.get('/{mission_id}/bloodhound/collections')
+def list_bh_collections(mission_id:str, db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    return [_ser_collection(c) for c in db.query(BloodHoundCollection).filter_by(mission_id=mission_id).order_by(BloodHoundCollection.created_at.desc()).all()]
+
+@router.get('/{mission_id}/bloodhound/collections/{collection_id}')
+def get_bh_collection(mission_id:str, collection_id:str, db:Session=Depends(get_db)):
+    c=db.get(BloodHoundCollection, collection_id)
+    if not c or c.mission_id!=mission_id: raise HTTPException(404,'Collection not found')
+    return _ser_collection(c)
+
+@router.post('/{mission_id}/bloodhound/upload')
+async def upload_bh_zip(mission_id:str, file:UploadFile=File(...), db:Session=Depends(get_db)):
+    if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
+    if not file.filename or not file.filename.lower().endswith('.zip'): raise HTTPException(400,'Only .zip files are accepted')
+    c=BloodHoundCollection(mission_id=mission_id,status='created',source='upload',filename=file.filename,ingestion_enabled=get_settings().bloodhound_enabled); db.add(c); db.commit(); db.refresh(c)
+    base=Path(get_settings().evidence_dir)/mission_id/'bloodhound'/c.id; base.mkdir(parents=True, exist_ok=True); dest=base/'original.zip'
+    max_bytes=get_settings().bloodhound_max_upload_mb*1024*1024; size=0
+    await publish(MissionEvent(type='bloodhound.upload.started',mission_id=mission_id,payload={'filename':file.filename}))
+    with dest.open('wb') as out:
+        while True:
+            chunk=await file.read(1024*1024)
+            if not chunk: break
+            size+=len(chunk)
+            if size>max_bytes: raise HTTPException(413,'ZIP upload too large')
+            out.write(chunk)
+    if size==0: raise HTTPException(400,'Empty ZIP file refused')
+    c.stored_path=str(dest); c.size_bytes=size; c.uploaded_at=datetime.utcnow(); c.status='uploaded'; c.sha256=sha256_file(dest); (base/'sha256.txt').write_text(c.sha256+'\n')
+    summary=inspect_sharphound_zip(dest); c.zip_summary_json=summary; c.zip_valid=summary['valid']; c.validated_at=datetime.utcnow(); c.status='validated' if c.zip_valid else 'invalid'; (base/'zip_summary.json').write_text(json.dumps(summary,indent=2))
+    await publish(MissionEvent(type='bloodhound.zip.validated',mission_id=mission_id,payload={'collection_id':c.id,'valid':c.zip_valid,'json_files_count':summary['json_files_count'],'sha256':c.sha256}))
+    result={'status':'not_attempted'}
+    if c.zip_valid:
+        await publish(MissionEvent(type='bloodhound.ingestion.started',mission_id=mission_id,payload={'collection_id':c.id,'provider':'bloodhound-ce'}))
+        result=await ingest_collection(c)
+        event='bloodhound.ingestion.completed' if c.ingestion_status=='ingested' or c.ingestion_status=='bloodhound_disabled' else 'bloodhound.ingestion.failed'
+        await publish(MissionEvent(type=event,mission_id=mission_id,payload={'collection_id':c.id,'status':c.ingestion_status,'error':c.ingestion_error}))
+        plan_after_bloodhound_upload(db, mission_id, c.zip_valid)
+    (base/'ingestion_result.json').write_text(json.dumps(result,indent=2)); (base/'stats.json').write_text(json.dumps(empty_stats(),indent=2)); _write_readme(base,c,get_settings().bloodhound_enabled)
+    db.add(c); db.commit(); db.refresh(c)
+    return _ser_collection(c)
+
+@router.post('/{mission_id}/bloodhound/collections/{collection_id}/ingest')
+async def reingest_bh_collection(mission_id:str, collection_id:str, db:Session=Depends(get_db)):
+    c=db.get(BloodHoundCollection, collection_id)
+    if not c or c.mission_id!=mission_id: raise HTTPException(404,'Collection not found')
+    if not c.zip_valid: raise HTTPException(400,'Collection ZIP is not valid')
+    res=await ingest_collection(c); db.commit(); return {'collection':_ser_collection(c),'result':res}
 
 @router.post('')
 def create_mission(payload:MissionCreate, db:Session=Depends(get_db)):

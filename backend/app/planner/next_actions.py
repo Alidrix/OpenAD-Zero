@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import Host, Finding, NextAction
+from app.db.models import Host, Finding, NextAction, SMBFact
 from app.integrations.nuclei.targets import build_web_targets_for_mission
 WINDOWS_PORTS={445,389,88,3389,5985,5986}
 def plan_for_mission(db: Session, mission_id: str) -> tuple[list[Finding], list[NextAction]]:
@@ -16,8 +16,8 @@ def plan_for_mission(db: Session, mission_id: str) -> tuple[list[Finding], list[
             f=Finding(mission_id=mission_id, host_id=host.id, title='RDP exposed on internal host', severity='medium', description=f'{host.ip} exposes RDP.', source='planner', confidence='medium'); db.add(f); findings.append(f)
         if 5985 in ports or 5986 in ports or 'wsman' in names:
             f=Finding(mission_id=mission_id, host_id=host.id, title='WinRM exposed on internal host', severity='medium', description=f'{host.ip} exposes WinRM.', source='planner', confidence='medium'); db.add(f); findings.append(f)
-    if bh:
-        a=NextAction(mission_id=mission_id,title='Préparer la collecte BloodHound / SharpHound',description='Afficher une étape préparatoire sans exécution en V1.',reason='Un candidat contrôleur de domaine a été détecté.',risk_level=3,requires_approval=True,command_template_id='bloodhound_collection_prepare'); db.add(a); actions.append(a)
+    if bh and not db.query(NextAction).filter_by(mission_id=mission_id, command_template_id='bloodhound_prepare_collection').first():
+        a=NextAction(mission_id=mission_id,title='Préparer la collecte BloodHound / SharpHound',description='Un environnement Active Directory probable a été détecté. Une collecte BloodHound permettra d’analyser les relations AD, les comptes, les machines, les groupes et les chemins potentiels vers les privilèges élevés.',reason='Un candidat contrôleur de domaine a été détecté.',risk_level=3,requires_approval=True,command_template_id='bloodhound_prepare_collection'); db.add(a); actions.append(a)
     if web and not db.query(NextAction).filter_by(mission_id=mission_id, command_template_id='nuclei_web_exposure_scan').first():
         a=NextAction(mission_id=mission_id,title='Scanner les expositions web avec Nuclei',description='Des services HTTP/HTTPS ont été détectés. Lancer Nuclei en mode safe pour identifier panels, misconfigurations et expositions connues.',reason='Services HTTP/HTTPS détectés par Nmap.',risk_level=2,requires_approval=True,status='proposed',command_template_id='nuclei_web_exposure_scan'); db.add(a); actions.append(a)
     if smb:
@@ -28,7 +28,7 @@ def plan_for_mission(db: Session, mission_id: str) -> tuple[list[Finding], list[
 
 def plan_after_netexec(db: Session, mission_id: str, facts: list[dict], shares: list[dict], action_type: str) -> tuple[list[Finding], list[NextAction]]:
     findings=[]; actions=[]
-    if action_type == 'netexec_smb_fingerprint' and any(f.get('domain') or (f.get('hostname') or '').upper().startswith('DC') for f in facts):
+    if action_type == 'netexec_smb_fingerprint' and any(f.get('domain') or (f.get('hostname') or '').upper().startswith('DC') for f in facts) and not db.query(NextAction).filter_by(mission_id=mission_id, command_template_id='bloodhound_prepare_collection').first():
         a=NextAction(mission_id=mission_id,title='Préparer la collecte BloodHound / SharpHound',description='Action préparée uniquement; exécution automatique désactivée en V2.',reason='NetExec a détecté un domaine ou un contrôleur de domaine probable.',risk_level=3,requires_approval=True,command_template_id='bloodhound_prepare_collection'); db.add(a); actions.append(a)
     if action_type == 'netexec_smb_null_session_check' and any(f.get('null_session_possible') for f in facts):
         a=NextAction(mission_id=mission_id,title='Lister les partages accessibles anonymement',description='Lister uniquement les partages visibles anonymement, sans téléchargement ni spidering.',reason='Une null session SMB semble possible.',risk_level=2,requires_approval=True,command_template_id='netexec_smb_null_session_shares'); db.add(a); actions.append(a)
@@ -47,3 +47,11 @@ def plan_after_nuclei(db: Session, mission_id: str, findings: list[Finding]) -> 
     if 'medium' in severities and not db.query(NextAction).filter_by(mission_id=mission_id,title='Ajouter les findings web au rapport').first():
         a=NextAction(mission_id=mission_id,title='Ajouter les findings web au rapport',description='Documenter les findings web Nuclei dans le rapport.',reason='Nuclei a remonté un finding medium.',risk_level=1,requires_approval=False,status='proposed',command_template_id=None); db.add(a); actions.append(a)
     db.commit(); return [], actions
+
+
+def plan_after_bloodhound_upload(db: Session, mission_id: str, zip_valid: bool) -> list[NextAction]:
+    actions=[]
+    if zip_valid and not db.query(NextAction).filter_by(mission_id=mission_id, command_template_id='bloodhound_analyze_imported_data').first():
+        a=NextAction(mission_id=mission_id,title='Analyser les données BloodHound importées',description='Un ZIP SharpHound valide a été importé. Les données peuvent être utilisées pour préparer l’analyse des relations et des chemins AD.',reason='ZIP SharpHound valide importé.',risk_level=1,requires_approval=False,status='proposed',command_template_id='bloodhound_analyze_imported_data')
+        db.add(a); actions.append(a); db.commit()
+    return actions
