@@ -14,3 +14,10 @@ def db_session():
         yield db
     finally:
         db.close(); Base.metadata.drop_all(engine)
+
+@pytest.fixture
+def client():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as c:
+        yield c

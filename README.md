@@ -1,5 +1,46 @@
 # OpenAD Zero
 
+OpenAD Zero is a safe-by-default Active Directory lab operations platform with a FastAPI backend, React/Vite UI, PostgreSQL, Redis, RQ worker, evidence/reporting workflows, findings, timeline/progress views, and capability metadata.
+
+## Quick start
+
+```bash
+cp .env.example .env
+make up-build
+make migrate
+```
+
+Then open:
+
+- UI: http://localhost:5173
+- API: http://localhost:8000
+- API health: http://localhost:8000/api/health
+
+## DevOps and database lifecycle
+
+```bash
+make up              # start services
+make up-build        # rebuild and start services
+make migrate         # apply Alembic migrations inside the API container
+make backend-test    # run backend tests
+make frontend-build  # build frontend
+make smoke           # simple local health smoke checks
+make up-bloodhound   # optional BloodHound CE profile
+```
+
+BloodHound CE is optional and is not required for normal OpenAD Zero startup. Change all `change-me-*` BloodHound values in `.env` before any non-local use.
+
+## Documentation
+
+- [Install](docs/INSTALL.md)
+- [Development](docs/DEV.md)
+- [Migrations](docs/MIGRATIONS.md)
+- [Docker](docs/DOCKER.md)
+- [BloodHound profile](docs/BLOODHOUND_PROFILE.md)
+
+---
+
+
 OpenAD Zero is a modular Windows / Active Directory pentest copilot for authorized environments.
 
 ## Current capabilities

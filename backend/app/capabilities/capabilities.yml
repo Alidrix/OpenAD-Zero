@@ -180,3 +180,33 @@
   execution: backend
   description: Provide controlled retry and best-effort cancellation for queued or failed jobs.
   evidence: true
+- id: alembic_migrations
+  name: Alembic migrations
+  category: platform
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Manage database schema through versioned Alembic migrations.
+  evidence: false
+- id: docker_profiles
+  name: Docker Compose profiles
+  category: platform
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Provide optional Docker Compose profiles such as BloodHound CE.
+  evidence: false
+- id: system_healthchecks
+  name: System healthchecks
+  category: platform
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Expose API, DB, Redis, worker and tool health checks.
+  evidence: false

@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     external_evidence_max_upload_mb: int = 100
     external_evidence_allowed_extensions: str = '.txt,.log,.json,.jsonl,.xml,.csv,.zip,.png,.jpg,.jpeg,.md'
     external_evidence_preview_max_bytes: int = 200000
+    openadzero_auto_create_tables: bool = False
+    openadzero_run_migrations_on_startup: bool = False
     openadzero_default_mode: str = 'safe'
     openadzero_enable_assisted_mode: bool = True
     openadzero_enable_ctf_lab_mode: bool = False
