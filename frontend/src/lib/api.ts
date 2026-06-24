@@ -31,3 +31,12 @@ export const getCapabilities=(filters?:{status?:string;category?:string;mode?:st
 export const getCapability=(id:string)=>req<Capability>(`/api/capabilities/${encodeURIComponent(id)}`);
 export const getCapabilitiesConfig=()=>req<CapabilityConfig>('/api/capabilities/config');
 export const getCapabilityConfig=getCapabilitiesConfig;
+import type {Evidence,EvidenceLink,EvidencePreview} from '../types/evidence';
+export const listEvidence=(missionId:string,filters?:{category?:string;q?:string;source?:string})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,v)});return req<Evidence[]>(`/api/missions/${missionId}/evidence${qs.toString()?`?${qs}`:''}`)};
+export const getEvidence=(missionId:string,evidenceId:string)=>req<Evidence>(`/api/missions/${missionId}/evidence/${evidenceId}`);
+export const getEvidencePreview=(missionId:string,evidenceId:string)=>req<EvidencePreview>(`/api/missions/${missionId}/evidence/${evidenceId}/preview`);
+export async function importEvidence(missionId:string,formData:FormData){const r=await fetch(API+`/api/missions/${missionId}/evidence/import`,{method:'POST',body:formData});if(!r.ok)throw new Error(await r.text());return r.json() as Promise<Evidence>}
+export const deleteEvidence=(missionId:string,evidenceId:string)=>req<{deleted:boolean}>(`/api/missions/${missionId}/evidence/${evidenceId}`,{method:'DELETE'});
+export const createEvidenceLink=(missionId:string,evidenceId:string,payload:{target_type:string;target_id:string})=>req<EvidenceLink>(`/api/missions/${missionId}/evidence/${evidenceId}/links`,{method:'POST',body:JSON.stringify(payload)});
+export const listEvidenceLinks=(missionId:string,evidenceId:string)=>req<EvidenceLink[]>(`/api/missions/${missionId}/evidence/${evidenceId}/links`);
+export const deleteEvidenceLink=(missionId:string,evidenceId:string,linkId:string)=>req<{deleted:boolean}>(`/api/missions/${missionId}/evidence/${evidenceId}/links/${linkId}`,{method:'DELETE'});

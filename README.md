@@ -306,3 +306,21 @@ Les limites de V1 sont volontaires : pas d’éditeur de requêtes custom, pas d
 8. Lancer un pathfinding vers Domain Admins.
 9. Consulter le graphe simplifié.
 10. Vérifier le finding créé si un chemin est détecté.
+
+## Evidence Manager
+
+OpenAD Zero includes an Evidence Manager to import external files into a mission, calculate SHA256 hashes, store metadata and link evidence to mission objects such as hosts, services, jobs, findings and BloodHound collections.
+
+Uploaded evidence is never executed. Files are stored under evidence/<mission_id>/external/<evidence_id>/ with metadata.json and sha256.txt.
+
+### Evidence workflow
+
+1. Open a mission.
+2. Go to Evidence.
+3. Import a file.
+4. Provide label, category and description.
+5. Verify SHA256.
+6. Preview supported text-based formats.
+7. Link evidence to a finding or host.
+
+Next step: Reporting Engine using findings and evidence.

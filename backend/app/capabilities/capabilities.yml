@@ -71,12 +71,12 @@
 - id: evidence_manager
   name: Evidence Manager
   category: evidence
-  status: planned
+  status: implemented
   mode: safe
   risk_level: 1
   requires_approval: false
   execution: backend
-  description: Import, store, hash and link evidence files to mission objects.
+  description: Import, store, hash, preview and link evidence files to mission objects.
   evidence: true
 - id: lab_operations_center
   name: Lab Operations Center
@@ -107,4 +107,14 @@
   requires_approval: false
   execution: manual_card
   description: Document actions performed outside OpenAD Zero in an authorized lab or CTF.
+  evidence: true
+- id: external_evidence_import
+  name: External Evidence Import
+  category: evidence
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Upload external files as mission evidence without executing them.
   evidence: true
