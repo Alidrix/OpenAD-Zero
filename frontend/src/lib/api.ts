@@ -11,7 +11,9 @@ export const startMission=(id:string)=>req<{mission_id:string;status:string;job_
 export const getMission=(id:string)=>req<Mission>(`/api/missions/${id}`);
 export const approveAction=(missionId:string,actionId:string,note:string)=>req<{mission_id:string;action_id:string;status:string;job_id:string}>(`/api/missions/${missionId}/actions/${actionId}/approve`,{method:'POST',body:JSON.stringify({approved:true,note})});
 export const ignoreAction=(missionId:string,actionId:string,reason:string)=>req<{status:string}>(`/api/missions/${missionId}/actions/${actionId}/ignore`,{method:'POST',body:JSON.stringify({reason})});
-export const health=()=>req<{status:string}>('/api/health');
+export const health=()=>req<{status:string;service?:string}>('/api/health');
+export const dbHealth=()=>req<any>('/api/health/db');
+export const redisHealth=()=>req<any>('/api/health/redis');
 export const toolHealth=()=>req<any>('/api/health/tools');
 
 export const getWebTargets=(id:string)=>req<any[]>(`/api/missions/${id}/web-targets`);

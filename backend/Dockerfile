@@ -8,6 +8,8 @@ RUN pipx install git+https://github.com/Pennyw0rth/NetExec
 ENV GOPATH=/go
 ENV PATH="/go/bin:/root/.local/bin:${PATH}"
 RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+COPY alembic.ini /app/alembic.ini
+COPY alembic /app/alembic
 COPY app /app/app
 COPY nuclei-templates-safe /app/nuclei-templates-safe
 CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
