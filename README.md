@@ -151,3 +151,65 @@ evidence/<mission_id>/jobs/<job_id>/
 ### Limites V3
 
 Cette étape ne fait pas de scan Internet massif, pas de fuzzing, pas de headless browser, pas de code templates, pas d'authentification web, pas de proxy, pas de cookies/headers personnalisés, pas d'interactsh, pas de crawling avancé, pas de Katana/httpx, pas de rapport PDF et aucune exploitation automatique. Les actions suivantes proposées après Nuclei sont défensives ou de validation manuelle uniquement.
+
+## Étape 4 — BloodHound CE / SharpHound
+
+OpenAD Zero ajoute une base BloodHound CE / SharpHound safe-by-design. Quand Nmap ou NetExec indiquent un environnement Active Directory probable, le planner propose **Préparer la collecte BloodHound / SharpHound**. Cette action ouvre une page dédiée qui affiche les prérequis, génère une commande SharpHound CE prête à copier et permet d’uploader le ZIP SharpHound obtenu manuellement.
+
+### Ce qui est fait en V4
+
+- génération de commande manuelle : `SharpHound.exe -c Default --ZipFileName openadzero_<mission_id>_sharphound.zip` ;
+- upload ZIP côté GUI ;
+- stockage preuve dans `evidence/<mission_id>/bloodhound/<collection_id>/` ;
+- calcul SHA256 dans `sha256.txt` ;
+- inspection sûre du ZIP sans extraction arbitraire ;
+- statut d’ingestion BloodHound CE ;
+- ingestion optionnelle si BloodHound CE est activé ;
+- premières cartes statistiques AD, affichées comme `Non disponible` quand l’API BloodHound ne fournit pas encore ces compteurs.
+
+### Ce qui n’est pas fait
+
+OpenAD Zero ne lance pas SharpHound automatiquement, ne stocke pas de credentials AD, n’exécute aucun runner Windows, ne fait pas de DCSync, dump, pass-the-hash, mouvement latéral, exploitation ni pathfinding avancé. La recherche d’objets, relations, permissions, Cypher prédéfini et pathfinding sont réservés aux prochaines étapes.
+
+### Configuration BloodHound CE
+
+Par défaut, BloodHound CE est désactivé et OpenAD Zero continue de fonctionner normalement :
+
+```env
+BLOODHOUND_ENABLED=false
+BLOODHOUND_BASE_URL=http://bloodhound:8080
+BLOODHOUND_API_TOKEN=
+BLOODHOUND_VERIFY_TLS=false
+BLOODHOUND_INGEST_TIMEOUT=300
+```
+
+Pour tenter l’ingestion, configurez ces variables dans `.env` avec l’URL et le token adaptés. Aucun token n’est hardcodé. Si BloodHound CE est désactivé ou indisponible, l’upload, le SHA256, la validation ZIP et le stockage des preuves restent disponibles.
+
+### Workflow V4
+
+1. Lancer une mission Windows/AD.
+2. Attendre la détection d’un DC probable.
+3. Aller dans **Actions**.
+4. Ouvrir **Préparer la collecte BloodHound / SharpHound**.
+5. Copier la commande SharpHound.
+6. Exécuter la commande manuellement dans un contexte domaine autorisé.
+7. Récupérer le ZIP généré.
+8. Aller dans la page **BloodHound**.
+9. Uploader le ZIP.
+10. Vérifier SHA256, validation ZIP et statut ingestion.
+
+### Preuves
+
+Chaque collection écrit :
+
+```text
+evidence/<mission_id>/bloodhound/<collection_id>/
+├── original.zip
+├── sha256.txt
+├── zip_summary.json
+├── ingestion_result.json
+├── stats.json
+└── README.txt
+```
+
+Le SHA256 peut être vérifié avec `sha256sum evidence/<mission_id>/bloodhound/<collection_id>/original.zip` et comparé à `sha256.txt`.

@@ -1,3 +1,3 @@
-# bloodhound
+# BloodHound CE / SharpHound
 
-Reserved for a future safe integration. Not implemented in V1.
+Safe foundation only: manual SharpHound command generation, ZIP upload, ZIP inspection, evidence storage and optional BloodHound CE upload when configured. No credentials, remote execution or exploitation logic lives here.

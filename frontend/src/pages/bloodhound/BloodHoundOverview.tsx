@@ -1,0 +1,1 @@
+export function BloodHoundOverview(){return <div className='card'><h2 className='font-bold'>Prochaines étapes</h2><p className='text-sm text-slate-400'>Cette V4 prépare l’import. La recherche d’objets, relations, permissions, pathfinding et Cypher arriveront dans l’étape suivante.</p></div>}
