@@ -24,3 +24,15 @@ Default startup includes API, UI, PostgreSQL, Redis, and worker. BloodHound serv
 docker compose up --build
 docker compose --profile bloodhound up --build
 ```
+
+### NetExec Docker build requirements
+
+NetExec is installed via pipx from its GitHub repository. Some dependencies, such as aardwolf, may require a Rust toolchain and native build tools when no compatible wheel is available.
+
+The backend image therefore includes:
+
+- rustc
+- cargo
+- build-essential
+- python3-dev
+- pkg-config
