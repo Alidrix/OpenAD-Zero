@@ -1,5 +1,7 @@
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
@@ -35,6 +37,7 @@ class Settings(BaseSettings):
     openadzero_enable_reporting: bool = False
     openadzero_enable_ai_planner: bool = False
     openadzero_enable_advanced_automation: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:

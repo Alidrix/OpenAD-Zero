@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from pydantic import BaseModel
+
 
 class EvidenceResponse(BaseModel):
     id: str
@@ -17,9 +19,11 @@ class EvidenceResponse(BaseModel):
     metadata_json: dict | None
     created_at: datetime
 
+
 class EvidenceLinkCreate(BaseModel):
     target_type: str
     target_id: str
+
 
 class EvidenceLinkResponse(BaseModel):
     id: str

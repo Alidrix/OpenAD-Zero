@@ -2,13 +2,39 @@ import os
 import shlex
 
 BLOCKED_TOKENS = {
-    '-x','-X','--exec-method','--sam','--lsa','--ntds','--dpapi','--mkfile','--get-file','--put-file','--spider','-M',
+    '-x',
+    '-X',
+    '--exec-method',
+    '--sam',
+    '--lsa',
+    '--ntds',
+    '--dpapi',
+    '--mkfile',
+    '--get-file',
+    '--put-file',
+    '--spider',
+    '-M',
 }
-BLOCKED_WORDS = {'lsassy','mimikatz','nanodump','dcsync','secrets','hash','spray','brute','psexec','smbexec','wmiexec','atexec'}
+BLOCKED_WORDS = {
+    'lsassy',
+    'mimikatz',
+    'nanodump',
+    'dcsync',
+    'secrets',
+    'hash',
+    'spray',
+    'brute',
+    'psexec',
+    'smbexec',
+    'wmiexec',
+    'atexec',
+}
 ALLOWED_BINARIES = {'nxc'}
+
 
 class CommandPolicyError(ValueError):
     pass
+
 
 def validate_netexec_command(command: list[str]) -> None:
     if not command:

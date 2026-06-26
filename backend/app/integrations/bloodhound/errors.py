@@ -1,1 +1,2 @@
-class BloodHoundError(Exception): pass
+class BloodHoundError(Exception):
+    pass

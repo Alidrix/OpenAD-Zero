@@ -1,11 +1,11 @@
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
-CapabilityStatus = Literal[
-    "implemented", "partial", "planned", "manual_only", "lab_only", "disabled", "out_of_scope"
-]
-CapabilityMode = Literal["safe", "assisted", "ctf_lab", "none"]
-CapabilityExecution = Literal["backend", "manual", "manual_card", "external_import", "none"]
+CapabilityStatus = Literal['implemented', 'partial', 'planned', 'manual_only', 'lab_only', 'disabled', 'out_of_scope']
+CapabilityMode = Literal['safe', 'assisted', 'ctf_lab', 'none']
+CapabilityExecution = Literal['backend', 'manual', 'manual_card', 'external_import', 'none']
+
 
 class Capability(BaseModel):
     id: str
@@ -18,6 +18,7 @@ class Capability(BaseModel):
     execution: CapabilityExecution
     description: str
     evidence: bool
+
 
 class CapabilityConfig(BaseModel):
     default_mode: str

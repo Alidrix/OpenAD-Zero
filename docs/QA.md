@@ -1,18 +1,37 @@
-# QA
+# QA Guide
 
-## Backend tests
+## Local quick check
 
 ```bash
-cd backend
-pytest
+cp .env.example .env
+make up-build
+make migrate
+make smoke
 ```
 
-### Evidence directory
+## Backend
 
-OpenAD Zero stores generated evidence under `EVIDENCE_DIR`.
+```bash
+make backend-lint
+make backend-test
+make backend-format-check
+```
 
-- Docker default: `/app/evidence`
-- Local/CI default: `./evidence`
-- CI should set `EVIDENCE_DIR` to a writable temporary directory.
+## Frontend
 
-The backend refuses path traversal and creates evidence directories through a centralized path helper.
+```bash
+make frontend-build
+make e2e
+```
+
+## Full QA
+
+```bash
+make qa
+```
+
+## Notes
+
+* E2E tests must not launch real scans.
+* Backend tests use isolated temporary evidence directories.
+* Docker smoke validates API, DB, Redis, worker and frontend health.

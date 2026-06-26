@@ -2,12 +2,15 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
+
 from sqlalchemy import inspect, text
+
 from app.core.config import get_settings
-from app.db.session import Base, engine
 from app.db import models  # noqa: F401
+from app.db.session import Base, engine
 
 logger = logging.getLogger(__name__)
+
 
 def init_db_dev_only() -> None:
     Base.metadata.create_all(bind=engine)
@@ -15,9 +18,13 @@ def init_db_dev_only() -> None:
         insp = inspect(engine)
         cols = {c['name'] for c in insp.get_columns('jobs')}
         additions = {
-            'rq_job_id': 'VARCHAR(255)', 'queued_at': 'TIMESTAMP', 'cancel_requested_at': 'TIMESTAMP',
-            'last_heartbeat_at': 'TIMESTAMP', 'attempts': 'INTEGER DEFAULT 0', 'max_attempts': 'INTEGER DEFAULT 1',
-            'error_message': 'TEXT'
+            'rq_job_id': 'VARCHAR(255)',
+            'queued_at': 'TIMESTAMP',
+            'cancel_requested_at': 'TIMESTAMP',
+            'last_heartbeat_at': 'TIMESTAMP',
+            'attempts': 'INTEGER DEFAULT 0',
+            'max_attempts': 'INTEGER DEFAULT 1',
+            'error_message': 'TEXT',
         }
         with engine.begin() as conn:
             for name, ddl in additions.items():
@@ -26,9 +33,11 @@ def init_db_dev_only() -> None:
     except Exception:
         logger.exception('dev-only schema hardening skipped')
 
+
 def run_migrations() -> None:
     backend_dir = Path(__file__).resolve().parents[2]
     subprocess.run([sys.executable, '-m', 'alembic', 'upgrade', 'head'], cwd=backend_dir, check=True)
+
 
 def init_db() -> None:
     settings = get_settings()

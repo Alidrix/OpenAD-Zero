@@ -210,3 +210,33 @@
   execution: backend
   description: Expose API, DB, Redis, worker and tool health checks.
   evidence: false
+- id: quality_gate
+  name: Quality Gate
+  category: qa
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Backend lint, backend tests, frontend build, smoke tests and E2E checks.
+  evidence: false
+- id: dependency_review
+  name: Dependency Review
+  category: security
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: GitHub Actions dependency review blocks high severity vulnerable dependencies in pull requests.
+  evidence: false
+- id: accessibility_smoke_tests
+  name: Accessibility smoke tests
+  category: qa
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Basic Playwright and axe accessibility checks for key pages.
+  evidence: false
