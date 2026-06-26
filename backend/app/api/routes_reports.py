@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from app.core.paths import EvidencePathError
 from app.db.session import get_db
 from app.db.models import Mission, Report
 from app.events.publisher import publish
@@ -29,6 +30,9 @@ async def generate(mission_id:str, payload:ReportGenerateRequest|None=None, db:S
         except Exception: log.exception('operations report hook failed')
         await publish(MissionEvent(type='report.generated',mission_id=mission_id,payload={'report_id':r.id,'markdown_path':r.markdown_path,'html_path':r.html_path}))
         return _ser(r)
+    except EvidencePathError as e:
+        await publish(MissionEvent(type='report.failed',mission_id=mission_id,payload={'error':str(e)}))
+        raise HTTPException(500, 'Evidence directory is not writable. Set EVIDENCE_DIR to a writable path.') from e
     except Exception as e:
         await publish(MissionEvent(type='report.failed',mission_id=mission_id,payload={'error':str(e)}))
         raise

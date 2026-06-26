@@ -33,7 +33,10 @@ def test_mapper_objects_and_edges():
 
 def test_explorer_search_detail_relations_permissions_path(db_session, tmp_path, monkeypatch):
     async def run():
-        monkeypatch.setenv('EVIDENCE_DIR', str(tmp_path)); mission(db_session)
+        monkeypatch.setenv('EVIDENCE_DIR', str(tmp_path))
+        from app.core.config import get_settings
+        get_settings.cache_clear()
+        mission(db_session)
         row={'n':{'labels':['User'],'properties':{'objectid':'S-1','name':'USER@LAB','enabled':True}}}
         e=BloodHoundExplorer(db_session, FakeClient({'rows':[row]}))
         assert (await e.search_objects('mx','user'))[0]['type']=='User'

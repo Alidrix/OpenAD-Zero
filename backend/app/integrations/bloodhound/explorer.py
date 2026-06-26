@@ -1,14 +1,15 @@
-import json, uuid
+import json, logging, uuid
 from datetime import datetime
-from pathlib import Path
 from sqlalchemy.orm import Session
-from app.core.config import get_settings
+from app.core.paths import EvidencePathError, mission_evidence_dir
 from app.db.models import BloodHoundCollection, Finding
 from app.events.publisher import publish
 from app.events.schemas import MissionEvent
 from .client import BloodHoundClient, BloodHoundUnavailable
 from .query_catalog import QueryCatalog
 from .mapper import map_object, map_relation, IMPORTANT_EDGE_TYPES
+
+log=logging.getLogger(__name__)
 
 class BloodHoundExplorer:
     def __init__(self,db:Session,client=None,catalog=None): self.db=db; self.client=client or BloodHoundClient(); self.catalog=catalog or QueryCatalog()
@@ -18,7 +19,11 @@ class BloodHoundExplorer:
         return {'enabled':enabled,'reachable':reachable,'ingested':bool(c),'last_collection_id':c.id if c else None,'message':'BloodHound Explorer ready' if enabled and reachable and c else 'BloodHound Explorer requires BloodHound CE configured, reachable, and ingested data.'}
     def _rows(self,res): return res.get('data') or res.get('rows') or res.get('results') or ([] if not isinstance(res,list) else res)
     def _evidence(self,mission_id,query_id,params,result,summary):
-        base=Path(get_settings().evidence_dir)/mission_id/'bloodhound'/'queries'/str(uuid.uuid4()); base.mkdir(parents=True,exist_ok=True)
+        try:
+            base=mission_evidence_dir(mission_id, 'bloodhound', 'queries', str(uuid.uuid4()))
+        except EvidencePathError:
+            log.warning('failed to create BloodHound query evidence directory', exc_info=True)
+            return None
         (base/'query_id.txt').write_text(query_id+'\n'); (base/'parameters.json').write_text(json.dumps(params,indent=2,default=str)); (base/'result.json').write_text(json.dumps(result,indent=2,default=str)); (base/'summary.json').write_text(json.dumps(summary,indent=2,default=str)); (base/'README.txt').write_text('OpenAD Zero BloodHound Explorer V1 read-only predefined query evidence. No free-form Cypher or exploitation was executed.\n')
         return str(base)
     async def _run(self,mission_id,qid,params):
@@ -48,6 +53,10 @@ class BloodHoundExplorer:
         f=Finding(mission_id=mission_id,title='Potential path to Domain Admins detected',severity='critical',source='bloodhound',confidence='0.9',description=f"A read-only BloodHound pathfinding query identified a potential path from {path['source']} to Domain Admins. This is an analysis finding only; no exploitation was performed.",raw_json={'signature':sig,'path':path,'raw_query_result':res,'timestamp':datetime.utcnow().isoformat()})
         self.db.add(f); self.db.commit(); self.db.refresh(f); return f
     def _path_evidence(self,mission_id,path,finding):
-        base=Path(get_settings().evidence_dir)/mission_id/'bloodhound'/'pathfinding'/str(uuid.uuid4()); base.mkdir(parents=True,exist_ok=True)
+        try:
+            base=mission_evidence_dir(mission_id, 'bloodhound', 'pathfinding', str(uuid.uuid4()))
+        except EvidencePathError:
+            log.warning('failed to create BloodHound pathfinding evidence directory', exc_info=True)
+            return
         for name,data in {'source':path.get('source'), 'target':path.get('target'), 'path':path, 'graph':{'nodes':path.get('nodes'), 'edges':path.get('edges')}, 'finding':(finding.raw_json if finding else None)}.items(): (base/f'{name}.json').write_text(json.dumps(data,indent=2,default=str))
         (base/'README.txt').write_text('Read-only pathfinding evidence. No offensive action was executed.\n')
