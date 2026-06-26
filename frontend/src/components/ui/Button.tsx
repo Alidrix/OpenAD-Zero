@@ -1,0 +1,2 @@
+import type {ButtonHTMLAttributes} from 'react';
+export function Button({className='',variant='primary',...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:'primary'|'secondary'|'danger'}){const styles={primary:'btn',secondary:'rounded-lg border border-slate-600 px-3 py-2 hover:bg-slate-800',danger:'rounded-lg bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-500'};return <button className={`${styles[variant]} ${className}`} {...props}/>}

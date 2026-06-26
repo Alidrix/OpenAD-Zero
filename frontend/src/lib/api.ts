@@ -1,11 +1,35 @@
 import type {Capability, CapabilityConfig} from '../types/capabilities';
-export const API=(import.meta.env.VITE_API_URL as string)||'';
+export const API_URL=(import.meta.env.VITE_API_URL as string)||'';
+export const API=API_URL;
+
+export class ApiError extends Error {
+  status: number
+  details?: unknown
+
+  constructor(message: string, status: number, details?: unknown) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.details = details
+  }
+}
+
 export type Service={id?:string;port:number;protocol:string;name:string;product:string;version:string;state:string};
 export type SMBFact={hostname?:string;domain?:string;os?:string;smb_signing_required?:boolean;smbv1_enabled?:boolean;null_session_possible?:boolean;source?:string};
 export type SMBShare={name:string;access?:string;remark?:string;anonymous:boolean;source?:string};
 export type Host={id:string;ip:string;hostname?:string;status:string;is_domain_controller_candidate:boolean;services:Service[];smb_facts?:SMBFact[];smb_shares?:SMBShare[]};
 export type Mission={id:string;name:string;status:string;validated_targets:string[];jobs:any[];hosts:Host[];findings:any[];next_actions:any[];web_targets?:any[]};
-async function req<T>(url:string,init?:RequestInit):Promise<T>{const r=await fetch(API+url,{headers:{'Content-Type':'application/json'},...init}); if(!r.ok) throw new Error(await r.text()); return r.json();}
+async function request<T>(path:string,options?:RequestInit):Promise<T>{
+  const response=await fetch(`${API_URL}${path}`,{headers:{'Content-Type':'application/json'},...options});
+  if(!response.ok){
+    let details:unknown=null;
+    try{details=await response.json()}catch{details=await response.text()}
+    throw new ApiError(`API request failed: ${response.status}`, response.status, details);
+  }
+  if(response.status===204)return undefined as T;
+  return response.json() as Promise<T>;
+}
+const req=request;
 export const createMission=(p:{name:string;scope:string;mode:string;scenario:string})=>req<{mission_id:string;status:string;validated_targets:string[]}>('/api/missions',{method:'POST',body:JSON.stringify(p)});
 export const startMission=(id:string)=>req<{mission_id:string;status:string;job_id:string}>(`/api/missions/${id}/start`,{method:'POST',body:JSON.stringify({mission_id:id,action:'start_scenario'})});
 export const getMission=(id:string)=>req<Mission>(`/api/missions/${id}`);
@@ -21,7 +45,7 @@ export const getWebTargets=(id:string)=>req<any[]>(`/api/missions/${id}/web-targ
 export const getBloodHoundCommand=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/sharphound-command`);
 export const getBloodHoundStatus=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/status`);
 export const getBloodHoundCollections=(id:string)=>req<any[]>(`/api/missions/${id}/bloodhound/collections`);
-export async function uploadBloodHoundZip(id:string,file:File){const fd=new FormData();fd.append('file',file);const r=await fetch(API+`/api/missions/${id}/bloodhound/upload`,{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());return r.json()}
+export async function uploadBloodHoundZip(id:string,file:File){const fd=new FormData();fd.append('file',file);const r=await fetch(API_URL+`/api/missions/${id}/bloodhound/upload`,{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());return r.json()}
 export const getBloodHoundExplorerStatus=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/explorer/status`);
 export const searchBloodHoundObjects=(id:string,q:string,types:string,limit=20)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/search?q=${encodeURIComponent(q)}&types=${encodeURIComponent(types)}&limit=${limit}`);
 export const getBloodHoundObject=(id:string,oid:string)=>req<any>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}`);
@@ -37,7 +61,7 @@ import type {Evidence,EvidenceLink,EvidencePreview} from '../types/evidence';
 export const listEvidence=(missionId:string,filters?:{category?:string;q?:string;source?:string})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,v)});return req<Evidence[]>(`/api/missions/${missionId}/evidence${qs.toString()?`?${qs}`:''}`)};
 export const getEvidence=(missionId:string,evidenceId:string)=>req<Evidence>(`/api/missions/${missionId}/evidence/${evidenceId}`);
 export const getEvidencePreview=(missionId:string,evidenceId:string)=>req<EvidencePreview>(`/api/missions/${missionId}/evidence/${evidenceId}/preview`);
-export async function importEvidence(missionId:string,formData:FormData){const r=await fetch(API+`/api/missions/${missionId}/evidence/import`,{method:'POST',body:formData});if(!r.ok)throw new Error(await r.text());return r.json() as Promise<Evidence>}
+export async function importEvidence(missionId:string,formData:FormData){const r=await fetch(API_URL+`/api/missions/${missionId}/evidence/import`,{method:'POST',body:formData});if(!r.ok)throw new Error(await r.text());return r.json() as Promise<Evidence>}
 export const deleteEvidence=(missionId:string,evidenceId:string)=>req<{deleted:boolean}>(`/api/missions/${missionId}/evidence/${evidenceId}`,{method:'DELETE'});
 export const createEvidenceLink=(missionId:string,evidenceId:string,payload:{target_type:string;target_id:string})=>req<EvidenceLink>(`/api/missions/${missionId}/evidence/${evidenceId}/links`,{method:'POST',body:JSON.stringify(payload)});
 export const listEvidenceLinks=(missionId:string,evidenceId:string)=>req<EvidenceLink[]>(`/api/missions/${missionId}/evidence/${evidenceId}/links`);

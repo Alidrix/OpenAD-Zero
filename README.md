@@ -41,6 +41,16 @@ OpenAD Zero stores generated evidence under `EVIDENCE_DIR`.
 
 The backend refuses path traversal and creates evidence directories through a centralized path helper.
 
+
+## Release candidate checks
+
+```bash
+make release-check
+make security-check
+```
+
+See `docs/RELEASE_CANDIDATE.md`.
+
 ## Documentation
 
 - [Install](docs/INSTALL.md)

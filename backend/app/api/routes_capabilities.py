@@ -4,6 +4,7 @@ from app.capabilities.catalog import CapabilityCatalogError, get_capability, loa
 from app.capabilities.policy import disabled_reason, is_executable, is_visible
 from app.capabilities.schemas import Capability, CapabilityConfig
 from app.core.config import get_settings
+from app.core.errors import error_response
 
 router = APIRouter(prefix='/capabilities', tags=['capabilities'])
 
@@ -75,5 +76,5 @@ def capability(capability_id: str):
     except CapabilityCatalogError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     if item is None:
-        raise HTTPException(status_code=404, detail='Capability not found')
+        raise HTTPException(status_code=404, detail=error_response('capability_not_found', 'Capability not found'))
     return _serialize(item, include_reason=True)

@@ -1,0 +1,2 @@
+import {Badge} from './Badge';
+export function StatusBadge({status}:{status?:string}){const s=(status||'unknown').toLowerCase();const tone=s.includes('fail')||s.includes('error')?'red':s.includes('complete')||s.includes('ready')||s.includes('success')?'green':s.includes('run')||s.includes('progress')?'blue':s.includes('pending')||s.includes('queued')?'amber':'slate';return <Badge tone={tone}>{status||'unknown'}</Badge>}
