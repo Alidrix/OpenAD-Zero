@@ -1,29 +1,282 @@
 from collections import Counter, defaultdict
+
 from sqlalchemy.orm import Session
-from app.db.models import Mission, Job, Host, Service, Finding, NextAction, SMBFact, SMBShare, WebTarget, BloodHoundCollection, BloodHoundStat, Evidence, EvidenceLink, MissionObjective, MissionPhase, MissionTimelineEvent
 
-SEVERITIES=('critical','high','medium','low','info')
+from app.db.models import (
+    BloodHoundCollection,
+    BloodHoundStat,
+    Evidence,
+    EvidenceLink,
+    Finding,
+    Host,
+    Job,
+    Mission,
+    MissionObjective,
+    MissionPhase,
+    MissionTimelineEvent,
+    NextAction,
+    Service,
+    SMBFact,
+    SMBShare,
+    WebTarget,
+)
 
-def _dt(v): return v.isoformat() if v else None
+SEVERITIES = ('critical', 'high', 'medium', 'low', 'info')
+
+
+def _dt(v):
+    return v.isoformat() if v else None
+
 
 def collect_report_data(db: Session, mission_id: str) -> dict:
-    m=db.get(Mission, mission_id)
-    if not m: raise ValueError('Mission not found')
-    hosts=db.query(Host).filter_by(mission_id=mission_id).all(); host_map={h.id:h for h in hosts}
-    services=db.query(Service).filter_by(mission_id=mission_id).all(); svc_by_host=defaultdict(list)
+    m = db.get(Mission, mission_id)
+    if not m:
+        raise ValueError('Mission not found')
+    hosts = db.query(Host).filter_by(mission_id=mission_id).all()
+    services = db.query(Service).filter_by(mission_id=mission_id).all()
+    svc_by_host = defaultdict(list)
     for s in services:
-        d={'id':s.id,'port':s.port,'protocol':s.protocol,'name':s.name,'product':s.product,'version':s.version,'state':s.state,'host_id':s.host_id}
+        d = {
+            'id': s.id,
+            'port': s.port,
+            'protocol': s.protocol,
+            'name': s.name,
+            'product': s.product,
+            'version': s.version,
+            'state': s.state,
+            'host_id': s.host_id,
+        }
         svc_by_host[s.host_id].append(d)
-    findings=db.query(Finding).filter_by(mission_id=mission_id).all(); risk={k:0 for k in SEVERITIES}; by_sev=defaultdict(list); by_src=defaultdict(list)
-    frows=[]
+    findings = db.query(Finding).filter_by(mission_id=mission_id).all()
+    risk = {k: 0 for k in SEVERITIES}
+    by_sev = defaultdict(list)
+    by_src = defaultdict(list)
+    frows = []
     for f in findings:
-        sev=(f.severity or 'info').lower(); risk[sev if sev in risk else 'info']+=1
-        row={'id':f.id,'title':f.title,'severity':f.severity,'description':f.description,'source':f.source,'confidence':f.confidence,'template_id':f.template_id,'template_name':f.template_name,'matched_at':f.matched_at,'host':f.host,'ip':f.ip,'port':f.port,'scheme':f.scheme,'tags':f.tags,'references':f.references,'evidence_path':f.evidence_path,'host_id':f.host_id}
-        frows.append(row); by_sev[sev].append(row); by_src[f.source or 'unknown'].append(row)
-    jobs=[{'id':j.id,'type':j.type,'tool':j.tool,'status':j.status,'command_preview':j.command_preview,'started_at':_dt(j.started_at),'completed_at':_dt(j.completed_at),'return_code':j.return_code,'stdout_path':j.stdout_path,'stderr_path':j.stderr_path,'output_path':j.output_path} for j in db.query(Job).filter_by(mission_id=mission_id).all()]
-    evidence=[{'id':e.id,'label':e.label,'category':e.category,'description':e.description,'filename':e.filename,'stored_path':e.stored_path,'sha256':e.sha256,'size_bytes':e.size_bytes,'mime_type':e.mime_type,'source':e.source,'metadata_json':e.metadata_json,'created_at':_dt(e.created_at)} for e in db.query(Evidence).filter_by(mission_id=mission_id).all()]
-    collections=[{'id':c.id,'status':c.status,'source':c.source,'filename':c.filename,'stored_path':c.stored_path,'sha256':c.sha256,'size_bytes':c.size_bytes,'zip_valid':c.zip_valid,'zip_summary_json':c.zip_summary_json,'ingestion_status':c.ingestion_status,'ingestion_job_id':c.ingestion_job_id,'created_at':_dt(c.created_at),'uploaded_at':_dt(c.uploaded_at)} for c in db.query(BloodHoundCollection).filter_by(mission_id=mission_id).all()]
-    stats=[{'collection_id':s.collection_id,'domain_name':s.domain_name,'users_count':s.users_count,'computers_count':s.computers_count,'groups_count':s.groups_count,'ous_count':s.ous_count,'gpos_count':s.gpos_count,'domains_count':s.domains_count,'edges_count':s.edges_count,'raw_stats_json':s.raw_stats_json} for s in db.query(BloodHoundStat).filter_by(mission_id=mission_id).all()]
-    tools=Counter(j['tool'] for j in jobs)
+        sev = (f.severity or 'info').lower()
+        risk[sev if sev in risk else 'info'] += 1
+        row = {
+            'id': f.id,
+            'title': f.title,
+            'severity': f.severity,
+            'description': f.description,
+            'source': f.source,
+            'confidence': f.confidence,
+            'template_id': f.template_id,
+            'template_name': f.template_name,
+            'matched_at': f.matched_at,
+            'host': f.host,
+            'ip': f.ip,
+            'port': f.port,
+            'scheme': f.scheme,
+            'tags': f.tags,
+            'references': f.references,
+            'evidence_path': f.evidence_path,
+            'host_id': f.host_id,
+        }
+        frows.append(row)
+        by_sev[sev].append(row)
+        by_src[f.source or 'unknown'].append(row)
+    jobs = [
+        {
+            'id': j.id,
+            'type': j.type,
+            'tool': j.tool,
+            'status': j.status,
+            'command_preview': j.command_preview,
+            'started_at': _dt(j.started_at),
+            'completed_at': _dt(j.completed_at),
+            'return_code': j.return_code,
+            'stdout_path': j.stdout_path,
+            'stderr_path': j.stderr_path,
+            'output_path': j.output_path,
+        }
+        for j in db.query(Job).filter_by(mission_id=mission_id).all()
+    ]
+    evidence = [
+        {
+            'id': e.id,
+            'label': e.label,
+            'category': e.category,
+            'description': e.description,
+            'filename': e.filename,
+            'stored_path': e.stored_path,
+            'sha256': e.sha256,
+            'size_bytes': e.size_bytes,
+            'mime_type': e.mime_type,
+            'source': e.source,
+            'metadata_json': e.metadata_json,
+            'created_at': _dt(e.created_at),
+        }
+        for e in db.query(Evidence).filter_by(mission_id=mission_id).all()
+    ]
+    collections = [
+        {
+            'id': c.id,
+            'status': c.status,
+            'source': c.source,
+            'filename': c.filename,
+            'stored_path': c.stored_path,
+            'sha256': c.sha256,
+            'size_bytes': c.size_bytes,
+            'zip_valid': c.zip_valid,
+            'zip_summary_json': c.zip_summary_json,
+            'ingestion_status': c.ingestion_status,
+            'ingestion_job_id': c.ingestion_job_id,
+            'created_at': _dt(c.created_at),
+            'uploaded_at': _dt(c.uploaded_at),
+        }
+        for c in db.query(BloodHoundCollection).filter_by(mission_id=mission_id).all()
+    ]
+    stats = [
+        {
+            'collection_id': s.collection_id,
+            'domain_name': s.domain_name,
+            'users_count': s.users_count,
+            'computers_count': s.computers_count,
+            'groups_count': s.groups_count,
+            'ous_count': s.ous_count,
+            'gpos_count': s.gpos_count,
+            'domains_count': s.domains_count,
+            'edges_count': s.edges_count,
+            'raw_stats_json': s.raw_stats_json,
+        }
+        for s in db.query(BloodHoundStat).filter_by(mission_id=mission_id).all()
+    ]
+    tools = Counter(j['tool'] for j in jobs)
     tools.update(f['source'] for f in frows)
-    return {'mission':{'id':m.id,'name':m.name,'scenario':m.scenario,'mode':m.mode,'status':m.status,'raw_scope':m.raw_scope,'validated_targets':m.validated_targets,'created_at':_dt(m.created_at),'started_at':_dt(m.started_at),'completed_at':_dt(m.completed_at)},'jobs':jobs,'hosts':[{'id':h.id,'ip':h.ip,'hostname':h.hostname,'status':h.status,'os_guess':h.os_guess,'is_domain_controller_candidate':h.is_domain_controller_candidate,'services':svc_by_host.get(h.id,[])} for h in hosts],'services':list(svc_by_host.values()),'findings':frows,'findings_by_severity':dict(by_sev),'findings_by_source':dict(by_src),'next_actions':[{'id':a.id,'title':a.title,'description':a.description,'reason':a.reason,'risk_level':a.risk_level,'status':a.status} for a in db.query(NextAction).filter_by(mission_id=mission_id).all()],'smb_facts':[{'id':sf.id,'host_id':sf.host_id,'ip':sf.ip,'hostname':sf.hostname,'domain':sf.domain,'os':sf.os,'smb_signing_required':sf.smb_signing_required,'smbv1_enabled':sf.smbv1_enabled,'null_session_possible':sf.null_session_possible,'source':sf.source,'created_at':_dt(sf.created_at)} for sf in db.query(SMBFact).filter_by(mission_id=mission_id).all()],'smb_shares':[{'id':sh.id,'host_id':sh.host_id,'ip':sh.ip,'name':sh.name,'access':sh.access,'remark':sh.remark,'anonymous':sh.anonymous,'source':sh.source,'created_at':_dt(sh.created_at)} for sh in db.query(SMBShare).filter_by(mission_id=mission_id).all()],'web_targets':[{'id':w.id,'url':w.url,'ip':w.ip,'port':w.port,'scheme':w.scheme,'source':w.source} for w in db.query(WebTarget).filter_by(mission_id=mission_id).all()],'bloodhound_collections':collections,'bloodhound_stats':stats,'evidence':evidence,'evidence_links':[{'id':l.id,'evidence_id':l.evidence_id,'target_type':l.target_type,'target_id':l.target_id} for l in db.query(EvidenceLink).filter_by(mission_id=mission_id).all()],'tool_summary':{'nmap':bool(tools.get('nmap')),'netexec':bool(tools.get('netexec')),'nuclei':bool(tools.get('nuclei')),'bloodhound':bool(collections or tools.get('bloodhound'))},'risk_summary':risk,'objective':({'id':o.id,'objective_name':o.objective_name,'objective_type':o.objective_type,'objective_target':o.objective_target,'objective_status':o.objective_status,'objective_description':o.objective_description,'operator_note':o.operator_note} if (o:=db.query(MissionObjective).filter_by(mission_id=mission_id).first()) else None),'phases':[{'order_index':p.order_index,'name':p.name,'phase_key':p.phase_key,'status':p.status,'summary':p.summary} for p in db.query(MissionPhase).filter_by(mission_id=mission_id).order_by(MissionPhase.order_index.asc()).all()],'timeline':[{'created_at':_dt(t.created_at),'source':t.source,'severity':t.severity,'title':t.title,'event_type':t.event_type} for t in db.query(MissionTimelineEvent).filter_by(mission_id=mission_id).order_by(MissionTimelineEvent.created_at.desc()).limit(50).all()]}
+    return {
+        'mission': {
+            'id': m.id,
+            'name': m.name,
+            'scenario': m.scenario,
+            'mode': m.mode,
+            'status': m.status,
+            'raw_scope': m.raw_scope,
+            'validated_targets': m.validated_targets,
+            'created_at': _dt(m.created_at),
+            'started_at': _dt(m.started_at),
+            'completed_at': _dt(m.completed_at),
+        },
+        'jobs': jobs,
+        'hosts': [
+            {
+                'id': h.id,
+                'ip': h.ip,
+                'hostname': h.hostname,
+                'status': h.status,
+                'os_guess': h.os_guess,
+                'is_domain_controller_candidate': h.is_domain_controller_candidate,
+                'services': svc_by_host.get(h.id, []),
+            }
+            for h in hosts
+        ],
+        'services': list(svc_by_host.values()),
+        'findings': frows,
+        'findings_by_severity': dict(by_sev),
+        'findings_by_source': dict(by_src),
+        'next_actions': [
+            {
+                'id': a.id,
+                'title': a.title,
+                'description': a.description,
+                'reason': a.reason,
+                'risk_level': a.risk_level,
+                'status': a.status,
+            }
+            for a in db.query(NextAction).filter_by(mission_id=mission_id).all()
+        ],
+        'smb_facts': [
+            {
+                'id': sf.id,
+                'host_id': sf.host_id,
+                'ip': sf.ip,
+                'hostname': sf.hostname,
+                'domain': sf.domain,
+                'os': sf.os,
+                'smb_signing_required': sf.smb_signing_required,
+                'smbv1_enabled': sf.smbv1_enabled,
+                'null_session_possible': sf.null_session_possible,
+                'source': sf.source,
+                'created_at': _dt(sf.created_at),
+            }
+            for sf in db.query(SMBFact).filter_by(mission_id=mission_id).all()
+        ],
+        'smb_shares': [
+            {
+                'id': sh.id,
+                'host_id': sh.host_id,
+                'ip': sh.ip,
+                'name': sh.name,
+                'access': sh.access,
+                'remark': sh.remark,
+                'anonymous': sh.anonymous,
+                'source': sh.source,
+                'created_at': _dt(sh.created_at),
+            }
+            for sh in db.query(SMBShare).filter_by(mission_id=mission_id).all()
+        ],
+        'web_targets': [
+            {'id': w.id, 'url': w.url, 'ip': w.ip, 'port': w.port, 'scheme': w.scheme, 'source': w.source}
+            for w in db.query(WebTarget).filter_by(mission_id=mission_id).all()
+        ],
+        'bloodhound_collections': collections,
+        'bloodhound_stats': stats,
+        'evidence': evidence,
+        'evidence_links': [
+            {
+                'id': link.id,
+                'evidence_id': link.evidence_id,
+                'target_type': link.target_type,
+                'target_id': link.target_id,
+            }
+            for link in db.query(EvidenceLink).filter_by(mission_id=mission_id).all()
+        ],
+        'tool_summary': {
+            'nmap': bool(tools.get('nmap')),
+            'netexec': bool(tools.get('netexec')),
+            'nuclei': bool(tools.get('nuclei')),
+            'bloodhound': bool(collections or tools.get('bloodhound')),
+        },
+        'risk_summary': risk,
+        'objective': (
+            {
+                'id': o.id,
+                'objective_name': o.objective_name,
+                'objective_type': o.objective_type,
+                'objective_target': o.objective_target,
+                'objective_status': o.objective_status,
+                'objective_description': o.objective_description,
+                'operator_note': o.operator_note,
+            }
+            if (o := db.query(MissionObjective).filter_by(mission_id=mission_id).first())
+            else None
+        ),
+        'phases': [
+            {
+                'order_index': p.order_index,
+                'name': p.name,
+                'phase_key': p.phase_key,
+                'status': p.status,
+                'summary': p.summary,
+            }
+            for p in db.query(MissionPhase)
+            .filter_by(mission_id=mission_id)
+            .order_by(MissionPhase.order_index.asc())
+            .all()
+        ],
+        'timeline': [
+            {
+                'created_at': _dt(t.created_at),
+                'source': t.source,
+                'severity': t.severity,
+                'title': t.title,
+                'event_type': t.event_type,
+            }
+            for t in db.query(MissionTimelineEvent)
+            .filter_by(mission_id=mission_id)
+            .order_by(MissionTimelineEvent.created_at.desc())
+            .limit(50)
+            .all()
+        ],
+    }

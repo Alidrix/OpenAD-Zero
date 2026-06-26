@@ -26,6 +26,7 @@ def test_mission_evidence_dir_stays_under_root(tmp_path, monkeypatch):
 
 def test_safe_join_blocks_path_traversal(tmp_path, monkeypatch):
     import pytest
+
     from app.core.config import get_settings
     from app.core.paths import EvidencePathError, get_evidence_root, safe_join_under_root
 
@@ -40,6 +41,7 @@ def test_safe_join_blocks_path_traversal(tmp_path, monkeypatch):
 
 def test_evidence_root_refuses_filesystem_root(monkeypatch):
     import pytest
+
     from app.core.config import get_settings
     from app.core.paths import EvidencePathError, get_evidence_root
 

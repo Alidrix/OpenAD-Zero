@@ -25,8 +25,7 @@ def get_evidence_root(create: bool = True) -> Path:
             root.chmod(0o750)
         except PermissionError as exc:
             raise EvidencePathError(
-                f'Evidence directory is not writable: {root}. '
-                'Set EVIDENCE_DIR to a writable path.'
+                f'Evidence directory is not writable: {root}. Set EVIDENCE_DIR to a writable path.'
             ) from exc
 
     if not root.exists():
@@ -59,8 +58,7 @@ def mission_evidence_dir(mission_id: str, *parts: str, create: bool = True) -> P
             path.mkdir(parents=True, exist_ok=True)
         except PermissionError as exc:
             raise EvidencePathError(
-                f'Evidence directory is not writable: {root}. '
-                'Set EVIDENCE_DIR to a writable path.'
+                f'Evidence directory is not writable: {root}. Set EVIDENCE_DIR to a writable path.'
             ) from exc
 
     return path

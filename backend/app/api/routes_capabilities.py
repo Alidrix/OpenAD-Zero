@@ -5,7 +5,7 @@ from app.capabilities.policy import disabled_reason, is_executable, is_visible
 from app.capabilities.schemas import Capability, CapabilityConfig
 from app.core.config import get_settings
 
-router = APIRouter(prefix="/capabilities", tags=["capabilities"])
+router = APIRouter(prefix='/capabilities', tags=['capabilities'])
 
 
 def _config() -> CapabilityConfig:
@@ -25,10 +25,10 @@ def _config() -> CapabilityConfig:
 def _serialize(capability: Capability, include_reason: bool = False) -> dict:
     config = _config()
     data = capability.model_dump()
-    data["executable"] = is_executable(capability, config)
-    data["visible"] = is_visible(capability, config)
+    data['executable'] = is_executable(capability, config)
+    data['visible'] = is_visible(capability, config)
     if include_reason:
-        data["disabled_reason"] = disabled_reason(capability, config)
+        data['disabled_reason'] = disabled_reason(capability, config)
     return data
 
 
@@ -39,7 +39,7 @@ def _catalog_or_500() -> list[Capability]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.get("")
+@router.get('')
 def capabilities(
     status: str | None = Query(default=None),
     category: str | None = Query(default=None),
@@ -55,21 +55,25 @@ def capabilities(
         capabilities = [c for c in capabilities if c.mode == mode]
     if q:
         needle = q.lower()
-        capabilities = [c for c in capabilities if needle in c.name.lower() or needle in c.description.lower() or needle in c.id.lower()]
+        capabilities = [
+            c
+            for c in capabilities
+            if needle in c.name.lower() or needle in c.description.lower() or needle in c.id.lower()
+        ]
     return [_serialize(c) for c in capabilities]
 
 
-@router.get("/config")
+@router.get('/config')
 def capabilities_config() -> CapabilityConfig:
     return _config()
 
 
-@router.get("/{capability_id}")
+@router.get('/{capability_id}')
 def capability(capability_id: str):
     try:
         item = get_capability(capability_id)
     except CapabilityCatalogError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     if item is None:
-        raise HTTPException(status_code=404, detail="Capability not found")
+        raise HTTPException(status_code=404, detail='Capability not found')
     return _serialize(item, include_reason=True)

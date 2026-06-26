@@ -137,15 +137,29 @@ make frontend-build
 
 The frontend never submits shell commands. The backend builds Nmap commands from validated internal templates, refuses invalid/public/too-large scopes by default, stores evidence, logs command previews, handles missing Nmap, and only displays data from user missions, backend events and Nmap XML.
 
-## Next steps
+## Quality gate
 
-1. Evidence Manager.
-2. Reporting Engine.
-3. Lab Operations Center.
-4. Timeline and progress score.
-5. Worker and event-bus hardening.
-6. Database migrations.
-7. Docker BloodHound profile.
+```bash
+make backend-lint
+make backend-test
+make frontend-build
+make smoke
+make e2e
+make qa
+```
+
+## CI
+
+The CI workflow runs backend tests, backend lint, frontend build, dependency review and Docker smoke checks.
+
+## Remaining work before final release
+
+1. Quality gate and CI hardening.
+2. UX polish and accessibility pass.
+3. Dependency pinning and reproducible builds.
+4. Final security review.
+5. Final documentation review.
+6. Release tagging.
 
 ## Étape 2 — NetExec safe SMB enum
 

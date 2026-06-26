@@ -1,8 +1,11 @@
 from datetime import datetime
+
 from pydantic import BaseModel
+
 
 class ReportGenerateRequest(BaseModel):
     include_sections: list[str] | None = None
+
 
 class ReportResponse(BaseModel):
     id: str
@@ -14,6 +17,7 @@ class ReportResponse(BaseModel):
     metadata_path: str | None
     sections_json: dict | None
     generated_at: datetime
+
 
 class ReportPreviewResponse(BaseModel):
     format: str
