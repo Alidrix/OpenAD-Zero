@@ -1,0 +1,18 @@
+# OpenAD Zero ownership
+
+* @Alidrix
+
+# Security-sensitive areas
+/backend/app/core/ @Alidrix
+/backend/app/api/ @Alidrix
+/backend/app/jobs/ @Alidrix
+/backend/app/integrations/ @Alidrix
+/backend/app/evidence/ @Alidrix
+/backend/app/reports/ @Alidrix
+/backend/app/queue/ @Alidrix
+/backend/app/events/ @Alidrix
+/backend/Dockerfile @Alidrix
+/docker-compose.yml @Alidrix
+/.github/workflows/ @Alidrix
+/scripts/ @Alidrix
+/SECURITY.md @Alidrix

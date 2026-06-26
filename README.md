@@ -28,8 +28,21 @@ See:
 
 - `CHANGELOG.md`
 - `docs/releases/v0.1.0-rc1.md`
+- `docs/releases/github-release-draft-v0.1.0-rc1.md`
 - `docs/RELEASE_CANDIDATE.md`
+- `docs/RELEASE_PROCESS.md`
 - `docs/DEMO.md`
+
+## Project governance
+
+See:
+
+- `SECURITY.md`
+- `docs/GOVERNANCE.md`
+- `docs/GITHUB_PROJECT.md`
+- `docs/SCOPE_MATRIX.md`
+- `docs/RELEASE_PROCESS.md`
+- `docs/backlog/v0.2.0.md`
 
 ## Safety model
 
@@ -75,5 +88,11 @@ make version         # print the current application version
 - [Demo guide](docs/DEMO.md)
 - [Release candidate](docs/RELEASE_CANDIDATE.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Release process](docs/RELEASE_PROCESS.md)
+- [Security policy](SECURITY.md)
+- [Governance](docs/GOVERNANCE.md)
+- [GitHub project setup](docs/GITHUB_PROJECT.md)
+- [Scope matrix](docs/SCOPE_MATRIX.md)
+- [v0.2.0 backlog](docs/backlog/v0.2.0.md)
 - [BloodHound profile](docs/BLOODHOUND_PROFILE.md)
 - [Migrations](docs/MIGRATIONS.md)
