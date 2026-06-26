@@ -280,3 +280,53 @@
   execution: none
   description: Frontend dependencies are resolved through package-lock.json and CI uses npm ci.
   evidence: false
+- id: version_endpoint
+  name: Version endpoint
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Expose OpenAD Zero version and release stage through /api/version.
+  evidence: false
+- id: changelog
+  name: Changelog
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Track notable project changes by release version.
+  evidence: false
+- id: release_notes
+  name: Release notes
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Provide release notes for v0.1.0-rc1.
+  evidence: false
+- id: github_templates
+  name: GitHub templates
+  category: project_management
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Provide issue templates and pull request checklist.
+  evidence: false
+- id: demo_guide
+  name: Demo guide
+  category: documentation
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Provide a safe demonstration guide for OpenAD Zero.
+  evidence: false

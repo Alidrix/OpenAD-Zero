@@ -1,0 +1,24 @@
+name: Feature request
+description: Propose an improvement within OpenAD Zero's safe-by-default scope.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: summary
+    attributes: {label: Summary}
+    validations: {required: true}
+  - type: textarea
+    id: use-case
+    attributes: {label: Use case}
+    validations: {required: true}
+  - type: textarea
+    id: proposed-behavior
+    attributes: {label: Proposed behavior}
+    validations: {required: true}
+  - type: textarea
+    id: alternatives
+    attributes: {label: Alternatives considered}
+  - type: textarea
+    id: safety
+    attributes: {label: Safety considerations, description: Confirm the request does not add exploitation, credential dumping, arbitrary shell commands, or offensive automation.}
+    validations: {required: true}

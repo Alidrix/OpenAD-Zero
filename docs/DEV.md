@@ -2,22 +2,25 @@
 
 ## Structure
 
-- `backend/`: FastAPI, SQLAlchemy models, RQ worker, Alembic migrations.
-- `frontend/`: React, TypeScript, Vite, Tailwind.
-- `scripts/`: migration, reset, seed, and smoke helpers.
+- `backend/`: FastAPI, SQLAlchemy models, RQ worker, Alembic migrations, integrations, evidence and reporting services.
+- `frontend/`: React, TypeScript, Vite, Tailwind cockpit.
+- `scripts/`: migration, reset, seed, smoke, security and release helpers.
+- `VERSION`: centralized release candidate version.
 
 ## Backend
 
 ```bash
-cd backend
-pytest
+make backend-install
+make backend-lint
+make backend-format-check
+make backend-test
 ```
 
 ## Frontend
 
 ```bash
-cd frontend
-npm run build
+make frontend-install
+make frontend-build
 ```
 
 ## Worker
@@ -32,12 +35,12 @@ Seed data is explicit only:
 make seed-dev
 ```
 
-### Evidence directory
+## Evidence directory
 
 OpenAD Zero stores generated evidence under `EVIDENCE_DIR`.
 
-- Docker default: `/app/evidence`
-- Local/CI default: `./evidence`
+- Docker default: `/app/evidence`.
+- Local/CI default: `./evidence`.
 - CI should set `EVIDENCE_DIR` to a writable temporary directory.
 
 The backend refuses path traversal and creates evidence directories through a centralized path helper.

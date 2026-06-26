@@ -39,6 +39,16 @@ export const health=()=>req<{status:string;service?:string}>('/api/health');
 export const dbHealth=()=>req<any>('/api/health/db');
 export const redisHealth=()=>req<any>('/api/health/redis');
 export const toolHealth=()=>req<any>('/api/health/tools');
+export interface VersionInfo {
+  name: string
+  version: string
+  release_stage: string
+}
+
+export async function getVersion(): Promise<VersionInfo> {
+  return request<VersionInfo>('/api/version')
+}
+
 
 export const getWebTargets=(id:string)=>req<any[]>(`/api/missions/${id}/web-targets`);
 

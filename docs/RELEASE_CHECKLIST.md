@@ -2,41 +2,37 @@
 
 ## Code quality
 
-- [ ] Backend lint passes
-- [ ] Backend tests pass
-- [ ] Frontend build passes
-- [ ] E2E tests pass
-- [ ] Smoke tests pass
+- [ ] `make backend-lint` passes.
+- [ ] `make backend-format-check` passes.
+- [ ] `make backend-test` passes.
+- [ ] `make frontend-build` passes.
+- [ ] `make e2e` passes.
+- [ ] `make smoke` passes.
+- [ ] `make release-check` passes.
 
 ## Security
 
-- [ ] Dependency review passes
-- [ ] `make security-check` passes
-- [ ] Backend Docker containers run as non-root
-- [ ] Frontend dependencies are installed with `npm ci` from `package-lock.json`
-- [ ] No secrets committed
-- [ ] No arbitrary shell command added
-- [ ] Evidence paths remain under EVIDENCE_DIR
-- [ ] Uploaded files are not executed
-
-## Docker
-
-- [ ] docker compose up --build works
-- [ ] API healthcheck passes
-- [ ] Worker healthcheck passes
-- [ ] Redis healthcheck passes
-- [ ] PostgreSQL healthcheck passes
-- [ ] Optional BloodHound profile remains optional
+- [ ] Dependency review passes.
+- [ ] `make security-check` passes.
+- [ ] Backend Docker containers run as non-root.
+- [ ] Frontend dependencies are installed with `npm ci` from `package-lock.json`.
+- [ ] No secrets committed.
+- [ ] No arbitrary shell command added.
+- [ ] Evidence paths remain under `EVIDENCE_DIR`.
+- [ ] Uploaded files are not executed.
 
 ## Documentation
 
-- [ ] README updated
-- [ ] Release candidate guide reviewed (`docs/RELEASE_CANDIDATE.md`)
-- [ ] docs/QA.md updated
-- [ ] docs/DOCKER.md updated if Docker changed
-- [ ] capabilities.yml updated if capabilities changed
+- [ ] `VERSION` contains `0.1.0-rc1`.
+- [ ] `CHANGELOG.md` is complete.
+- [ ] `docs/releases/v0.1.0-rc1.md` is complete.
+- [ ] `docs/DEMO.md` is reviewed.
+- [ ] README quick start and safety model are current.
+- [ ] Capabilities metadata is current.
 
-## Release
+## Tag release
 
-- [ ] Version tag created
-- [ ] Release notes written
+- [ ] Confirm current branch is clean after commit.
+- [ ] Create annotated tag: `git tag -a v0.1.0-rc1 -m "OpenAD Zero v0.1.0-rc1"`.
+- [ ] Push branch and tag: `git push && git push origin v0.1.0-rc1`.
+- [ ] Publish GitHub release using `docs/releases/v0.1.0-rc1.md`.

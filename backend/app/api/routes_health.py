@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from sqlalchemy import text
 
 from app.core.config import get_settings
+from app.core.version import get_app_version
 from app.db.session import engine
 from app.queue.connection import get_redis_connection
 
@@ -14,6 +15,11 @@ router = APIRouter()
 @router.get('/health')
 def health():
     return {'status': 'ok', 'service': 'openadzero-api'}
+
+
+@router.get('/version')
+def version():
+    return {'name': 'OpenAD Zero', 'version': get_app_version(), 'release_stage': 'release-candidate'}
 
 
 @router.get('/health/db')
