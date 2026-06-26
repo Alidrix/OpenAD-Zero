@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     openadzero_enable_reporting: bool = False
     openadzero_enable_ai_planner: bool = False
     openadzero_enable_advanced_automation: bool = False
+    openadzero_enable_demo_endpoint: bool = False
 
 @lru_cache
 def get_settings() -> Settings:

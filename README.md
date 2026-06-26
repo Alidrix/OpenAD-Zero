@@ -38,6 +38,43 @@ BloodHound CE is optional and is not required for normal OpenAD Zero startup. Ch
 - [Docker](docs/DOCKER.md)
 - [BloodHound profile](docs/BLOODHOUND_PROFILE.md)
 
+## Implemented status
+
+The current build includes the FastAPI backend, React/TypeScript/Vite UI, Docker Compose, PostgreSQL, Redis, RQ worker, persistent event bus, Alembic, Nmap discovery, NetExec SMB safe enum, Nuclei safe web scan, BloodHound/SharpHound upload, BloodHound Explorer, capabilities, Evidence Manager, Markdown/HTML reporting, Lab Operations Center, Timeline, Progress Score, Docker healthchecks and the optional BloodHound profile.
+
+## Demo scenario
+
+```bash
+make up-build
+make migrate
+make seed-demo
+```
+
+Then open the UI and navigate through the seeded mission.
+
+## QA
+
+```bash
+make backend-test
+make frontend-build
+make e2e
+make smoke
+```
+
+See `docs/QA.md` and `docs/RELEASE_CHECKLIST.md`.
+
+## CI
+
+GitHub Actions runs backend tests with PostgreSQL/Redis services, builds the frontend, and performs a Docker smoke check that migrates the database, seeds the demo mission and verifies health endpoints without launching real network scans.
+
+## Remaining work before final release
+
+1. UX polish and accessibility.
+2. Dependency pinning and reproducible builds.
+3. Final security review.
+4. Final documentation review.
+5. Release tagging.
+
 ---
 
 
@@ -125,16 +162,6 @@ make frontend-build
 ## Security
 
 The frontend never submits shell commands. The backend builds Nmap commands from validated internal templates, refuses invalid/public/too-large scopes by default, stores evidence, logs command previews, handles missing Nmap, and only displays data from user missions, backend events and Nmap XML.
-
-## Next steps
-
-1. Evidence Manager.
-2. Reporting Engine.
-3. Lab Operations Center.
-4. Timeline and progress score.
-5. Worker and event-bus hardening.
-6. Database migrations.
-7. Docker BloodHound profile.
 
 ## Étape 2 — NetExec safe SMB enum
 

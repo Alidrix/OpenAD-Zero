@@ -1,0 +1,1 @@
+{"template-id":"http-missing-security-headers","info":{"name":"Example Nuclei web exposure","severity":"low","tags":["exposure","demo"]},"type":"http","matcher-name":"header","matched-at":"http://192.168.56.30","host":"192.168.56.30","ip":"192.168.56.30","port":80}
