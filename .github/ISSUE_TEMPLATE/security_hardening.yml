@@ -1,0 +1,23 @@
+name: Security hardening
+description: Suggest a defensive hardening change.
+title: "[Hardening]: "
+labels: [security, hardening]
+body:
+  - type: textarea
+    id: area
+    attributes: {label: Area}
+    validations: {required: true}
+  - type: textarea
+    id: risk
+    attributes: {label: Risk}
+    validations: {required: true}
+  - type: textarea
+    id: proposed-hardening
+    attributes: {label: Proposed hardening}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: Evidence}
+  - type: textarea
+    id: compatibility-impact
+    attributes: {label: Compatibility impact}

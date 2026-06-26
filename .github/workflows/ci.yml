@@ -42,6 +42,14 @@ jobs:
       OPENADZERO_RUN_MIGRATIONS_ON_STARTUP: "false"
     steps:
       - uses: actions/checkout@v4
+      - name: Check version file
+        run: test -s VERSION
+      - name: Check changelog
+        run: test -s CHANGELOG.md
+      - name: Check release notes
+        run: test -s docs/releases/v0.1.0-rc1.md
+      - name: Release check script syntax
+        run: bash -n scripts/release-check.sh
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

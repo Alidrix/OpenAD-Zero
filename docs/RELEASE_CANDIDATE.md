@@ -1,8 +1,11 @@
 # Release Candidate Guide
 
-## Goal
+## Current candidate
 
-This document describes the checks required before tagging an OpenAD Zero release candidate.
+- Version: `0.1.0-rc1`.
+- Version endpoint: `GET /api/version`.
+- Release notes: `docs/releases/v0.1.0-rc1.md`.
+- Changelog: `CHANGELOG.md`.
 
 ## Local checks
 
@@ -28,19 +31,20 @@ docker compose run --rm openadzero-api nuclei -version
 
 ## Security checks
 
-* Backend containers must run as non-root.
-* No secret must be exposed in frontend/src.
-* Only `VITE_*` variables are visible to client-side Vite code.
-* Backend-only secrets such as `BLOODHOUND_API_TOKEN`, `DATABASE_URL` and `REDIS_URL` must never be referenced in frontend/src.
-* No `.env.local` file must be committed.
-* No `shell=True` is allowed in backend/app.
-* Evidence paths must go through `app.core.paths`.
+- Backend containers must run as non-root.
+- No secret must be exposed in `frontend/src`.
+- Only `VITE_*` variables are visible to client-side Vite code.
+- Backend-only secrets such as `BLOODHOUND_API_TOKEN`, `DATABASE_URL` and `REDIS_URL` must never be referenced in `frontend/src`.
+- No `.env.local` file must be committed.
+- No `shell=True` is allowed in `backend/app`.
+- Evidence paths must go through `app.core.paths`.
 
-## Release candidate acceptance
+## Acceptance
 
-* CI green.
-* Docker smoke green.
-* Backend tests green.
-* Frontend build green.
-* Security check green.
-* README and docs updated.
+- CI green.
+- Docker smoke green.
+- Backend tests green.
+- Frontend build green.
+- Security check green.
+- Release check green.
+- README, changelog, release notes, demo guide and release checklist reviewed.

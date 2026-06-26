@@ -1,5 +1,5 @@
 COMPOSE ?= docker compose
-.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check security-check release-check docker-security-check qa health clean
+.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check security-check release-check version docker-security-check qa health clean
 
 up:
 	$(COMPOSE) up
@@ -58,12 +58,9 @@ format-check:
 security-check:
 	./scripts/security-check.sh
 release-check:
-	make backend-lint
-	make backend-format-check
-	make backend-test
-	make frontend-build
-	make security-check
-	make smoke
+	./scripts/release-check.sh
+version:
+	@cat VERSION
 docker-security-check:
 	$(COMPOSE) run --rm openadzero-api id
 	$(COMPOSE) run --rm openadzero-worker id

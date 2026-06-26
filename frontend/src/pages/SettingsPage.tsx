@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {health,dbHealth,redisHealth,toolHealth,workerHealth,getCapabilitiesConfig} from '../lib/api';
+import {health,dbHealth,redisHealth,toolHealth,workerHealth,getCapabilitiesConfig,getVersion,type VersionInfo} from '../lib/api';
 
 const value = (v:any) => v === undefined || v === null || v === '' ? 'unavailable' : String(v);
 const available = (ok:boolean|undefined) => ok ? 'available' : 'unavailable';
@@ -12,6 +12,8 @@ export function SettingsPage(){
   const [tools,setTools]=useState<any>();
   const [worker,setWorker]=useState<any>();
   const [cfg,setCfg]=useState<any>();
+  const [version,setVersion]=useState<VersionInfo|null>(null);
+  const [versionUnavailable,setVersionUnavailable]=useState(false);
   useEffect(()=>{document.documentElement.classList.toggle('dark',theme==='dark');localStorage.theme=theme},[theme]);
   useEffect(()=>{
     health().then(setApi).catch(()=>setApi({status:'unreachable'}));
@@ -20,9 +22,12 @@ export function SettingsPage(){
     toolHealth().then(setTools).catch(()=>setTools({error:'unreachable'}));
     workerHealth().then(setWorker).catch(()=>setWorker({redis_available:false,queues:{}}));
     getCapabilitiesConfig().then(setCfg).catch(()=>setCfg(undefined));
+    getVersion().then(setVersion).catch(()=>setVersionUnavailable(true));
   },[]);
   return <div className='card max-w-3xl'>
     <h1 className='text-3xl font-bold'>Settings</h1>
+    <h2 className='mt-5 font-bold'>Application Version</h2>
+    {version?<div className='mt-2 grid gap-2 md:grid-cols-3'><p>Name: <b>{version.name}</b></p><p>Version: <b>{version.version}</b></p><p>Release stage: <b>{version.release_stage}</b></p></div>:<p className='mt-2 text-amber-400'>{versionUnavailable?'Version unavailable':'Loading version...'}</p>}
     <h2 className='mt-5 font-bold'>System Health</h2>
     <div className='mt-2 grid gap-2 md:grid-cols-2'>
       <p>API health: <b>{value(api.status)}</b></p>
