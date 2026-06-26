@@ -56,7 +56,7 @@ jobs:
           test -s .github/workflows/codeql.yml
       - name: Release check script syntax
         run: bash -n scripts/release-check.sh
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Prepare evidence directory
