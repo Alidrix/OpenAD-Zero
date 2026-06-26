@@ -5,6 +5,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app.core.logging import redact_dict
 from app.db.models import MissionEvent
 from app.events.websocket_manager import manager
 
@@ -27,7 +28,7 @@ def _event_dict(event: MissionEvent) -> dict:
 async def publish_mission_event(
     db: Session, mission_id: str, event_type: str, payload: dict, source: str = 'system'
 ) -> MissionEvent:
-    payload = payload or {}
+    payload = redact_dict(payload or {})
     if payload.get('job_id') and ('log' in event_type or payload.get('line')):
         try:
             from app.db.models import JobLog

@@ -11,6 +11,9 @@
 ## Security
 
 - [ ] Dependency review passes
+- [ ] `make security-check` passes
+- [ ] Backend Docker containers run as non-root
+- [ ] Frontend dependencies are installed with `npm ci` from `package-lock.json`
 - [ ] No secrets committed
 - [ ] No arbitrary shell command added
 - [ ] Evidence paths remain under EVIDENCE_DIR
@@ -28,6 +31,7 @@
 ## Documentation
 
 - [ ] README updated
+- [ ] Release candidate guide reviewed (`docs/RELEASE_CANDIDATE.md`)
 - [ ] docs/QA.md updated
 - [ ] docs/DOCKER.md updated if Docker changed
 - [ ] capabilities.yml updated if capabilities changed

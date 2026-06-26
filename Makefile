@@ -1,5 +1,5 @@
 COMPOSE ?= docker compose
-.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check qa health clean
+.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check security-check release-check docker-security-check qa health clean
 
 up:
 	$(COMPOSE) up
@@ -44,7 +44,7 @@ backend-format:
 backend-format-check:
 	cd backend && ruff format --check app tests
 frontend-install:
-	cd frontend && npm install
+	cd frontend && npm ci
 frontend-build:
 	cd frontend && npm run build
 frontend-e2e:
@@ -55,10 +55,23 @@ format:
 	make backend-format
 format-check:
 	make backend-format-check
+security-check:
+	./scripts/security-check.sh
+release-check:
+	make backend-lint
+	make backend-format-check
+	make backend-test
+	make frontend-build
+	make security-check
+	make smoke
+docker-security-check:
+	$(COMPOSE) run --rm openadzero-api id
+	$(COMPOSE) run --rm openadzero-worker id
 qa:
 	make backend-lint
 	make backend-test
 	make frontend-build
+	make security-check
 	make smoke
 	make e2e
 health:

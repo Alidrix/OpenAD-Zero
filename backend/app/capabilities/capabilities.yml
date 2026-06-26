@@ -240,3 +240,43 @@
   execution: none
   description: Basic Playwright and axe accessibility checks for key pages.
   evidence: false
+- id: release_candidate_hardening
+  name: Release Candidate Hardening
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Final hardening checks for Docker, dependencies, frontend environment variables, logging and release readiness.
+  evidence: false
+- id: docker_non_root_runtime
+  name: Docker non-root runtime
+  category: security
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: API and worker containers run as a dedicated non-root user at runtime.
+  evidence: false
+- id: secure_logging_redaction
+  name: Secure logging redaction
+  category: security
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: backend
+  description: Sensitive keys such as tokens, passwords and connection strings are redacted before logging or event serialization.
+  evidence: false
+- id: frontend_dependency_pinning
+  name: Frontend dependency pinning
+  category: supply_chain
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Frontend dependencies are resolved through package-lock.json and CI uses npm ci.
+  evidence: false
