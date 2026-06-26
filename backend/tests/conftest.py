@@ -4,6 +4,18 @@ from sqlalchemy.orm import sessionmaker
 from app.db.session import Base
 from app.db import models  # noqa
 
+@pytest.fixture(autouse=True)
+def isolated_evidence_dir(tmp_path, monkeypatch):
+    from app.core.config import get_settings
+
+    evidence_root = tmp_path / 'evidence'
+    monkeypatch.setenv('EVIDENCE_DIR', str(evidence_root))
+    monkeypatch.setenv('TESTING', 'true')
+
+    get_settings.cache_clear()
+    yield evidence_root
+    get_settings.cache_clear()
+
 @pytest.fixture
 def db_session():
     engine=create_engine('sqlite:///:memory:')

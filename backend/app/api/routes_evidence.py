@@ -1,10 +1,10 @@
 from datetime import datetime
-from pathlib import Path
 import mimetypes, shutil
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.core.config import get_settings
+from app.core.paths import EvidencePathError, mission_evidence_dir
 from app.db.session import get_db
 from app.db.models import Mission, Evidence, EvidenceLink
 from app.evidence.storage import safe_extension, sanitize_filename, compute_sha256, write_metadata, EvidenceStorageError
@@ -37,7 +37,11 @@ async def import_evidence(mission_id:str, file:UploadFile=File(...), label:str=F
     except EvidenceStorageError as exc: raise HTTPException(400,str(exc))
     e=Evidence(mission_id=mission_id,label=label[:255],category=(category or 'external')[:100],description=description,filename=original,stored_path='',sha256='',size_bytes=0,mime_type=file.content_type or mimetypes.guess_type(original)[0],source='external_upload',preview_available=False,metadata_json={})
     db.add(e); db.commit(); db.refresh(e)
-    base=Path(get_settings().evidence_dir)/mission_id/'external'/e.id; base.mkdir(parents=True, exist_ok=True); dest=base/f'original{ext}'
+    try:
+        base=mission_evidence_dir(mission_id, 'external', e.id)
+    except EvidencePathError as exc:
+        db.delete(e); db.commit(); raise HTTPException(500, 'Evidence directory is not writable. Set EVIDENCE_DIR to a writable path.') from exc
+    dest=base/f'original{ext}'
     max_bytes=get_settings().external_evidence_max_upload_mb*1024*1024; size=0
     with dest.open('wb') as out:
         while True:

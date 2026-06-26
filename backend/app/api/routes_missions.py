@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.config import get_settings
+from app.core.paths import EvidencePathError, mission_evidence_dir
 from app.core.scope import validate_scope, ScopeValidationError
 from app.db.session import get_db
 from app.db.models import Mission, Job, Host, Service, Finding, NextAction, SMBFact, SMBShare, WebTarget, BloodHoundCollection, ManualActionCard, Evidence
@@ -76,7 +77,11 @@ async def upload_bh_zip(mission_id:str, file:UploadFile=File(...), db:Session=De
     if not db.get(Mission, mission_id): raise HTTPException(404,'Mission not found')
     if not file.filename or not file.filename.lower().endswith('.zip'): raise HTTPException(400,'Only .zip files are accepted')
     c=BloodHoundCollection(mission_id=mission_id,status='created',source='upload',filename=file.filename,ingestion_enabled=get_settings().bloodhound_enabled); db.add(c); db.commit(); db.refresh(c)
-    base=Path(get_settings().evidence_dir)/mission_id/'bloodhound'/c.id; base.mkdir(parents=True, exist_ok=True); dest=base/'original.zip'
+    try:
+        base=mission_evidence_dir(mission_id, 'bloodhound', c.id)
+    except EvidencePathError as exc:
+        raise HTTPException(500, 'Evidence directory is not writable. Set EVIDENCE_DIR to a writable path.') from exc
+    dest=base/'original.zip'
     max_bytes=get_settings().bloodhound_max_upload_mb*1024*1024; size=0
     await publish(MissionEvent(type='bloodhound.upload.started',mission_id=mission_id,payload={'filename':file.filename}))
     with dest.open('wb') as out:

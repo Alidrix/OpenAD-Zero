@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from sqlalchemy.orm import Session
-from app.core.config import get_settings
+from app.core.paths import mission_evidence_dir
 from app.db.models import Report
 from app.reports.collector import collect_report_data
 from app.reports.markdown import render_markdown_report
@@ -15,7 +15,7 @@ def generate_report(db: Session, mission_id: str, include_sections: list[str] | 
     sections=include_sections or DEFAULT_SECTIONS
     report=Report(mission_id=mission_id,status='generating',title=f"OpenAD Zero Report - {data['mission']['name']}",sections_json={'sections':sections})
     db.add(report); db.commit(); db.refresh(report)
-    base=Path(get_settings().evidence_dir)/mission_id/'reports'/report.id; base.mkdir(parents=True, exist_ok=True)
+    base=mission_evidence_dir(mission_id, 'reports', report.id)
     md=render_markdown_report(data); html=render_html_report(md, data)
     md_path=base/'report.md'; html_path=base/'report.html'; meta_path=base/'report_metadata.json'
     md_path.write_text(md, encoding='utf-8'); html_path.write_text(html, encoding='utf-8')

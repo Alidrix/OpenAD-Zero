@@ -30,6 +30,17 @@ make up-bloodhound   # optional BloodHound CE profile
 
 BloodHound CE is optional and is not required for normal OpenAD Zero startup. Change all `change-me-*` BloodHound values in `.env` before any non-local use.
 
+
+## Evidence directory
+
+OpenAD Zero stores generated evidence under `EVIDENCE_DIR`.
+
+- Docker default: `/app/evidence`
+- Local/CI default: `./evidence`
+- CI should set `EVIDENCE_DIR` to a writable temporary directory.
+
+The backend refuses path traversal and creates evidence directories through a centralized path helper.
+
 ## Documentation
 
 - [Install](docs/INSTALL.md)
