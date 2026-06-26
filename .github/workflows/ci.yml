@@ -48,6 +48,12 @@ jobs:
         run: test -s CHANGELOG.md
       - name: Check release notes
         run: test -s docs/releases/v0.1.0-rc1.md
+      - name: Check GitHub metadata files
+        run: |
+          test -s SECURITY.md
+          test -s .github/CODEOWNERS
+          test -s .github/dependabot.yml
+          test -s .github/workflows/codeql.yml
       - name: Release check script syntax
         run: bash -n scripts/release-check.sh
       - uses: actions/setup-python@v5
@@ -65,6 +71,8 @@ jobs:
         run: cd backend && ruff format --check app tests
       - name: Run backend tests
         run: cd backend && pytest
+      - name: Release docs check
+        run: cd backend && pytest tests/test_release_docs.py
       - name: Security check
         run: ./scripts/security-check.sh
 

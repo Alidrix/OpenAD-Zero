@@ -330,3 +330,57 @@
   execution: none
   description: Provide a safe demonstration guide for OpenAD Zero.
   evidence: false
+- id: security_policy
+  name: Security policy
+  category: governance
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: SECURITY.md documents vulnerability reporting and project security scope.
+  evidence: false
+
+- id: codeql_workflow
+  name: CodeQL workflow
+  category: security
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: GitHub CodeQL workflow scans Python and JavaScript/TypeScript code.
+  evidence: false
+
+- id: dependabot_config
+  name: Dependabot configuration
+  category: supply_chain
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Dependabot monitors frontend, backend, Docker and GitHub Actions dependencies.
+  evidence: false
+
+- id: release_process
+  name: Release process
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Release process documentation explains validation, tagging and GitHub release creation.
+  evidence: false
+
+- id: v020_backlog
+  name: v0.2.0 backlog
+  category: project_management
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: v0.2.0 backlog documents candidate post-release improvements.
+  evidence: false
