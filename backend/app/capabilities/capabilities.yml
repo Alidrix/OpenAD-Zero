@@ -384,3 +384,36 @@
   execution: none
   description: v0.2.0 backlog documents candidate post-release improvements.
   evidence: false
+
+- id: release_readiness_report
+  name: Release Readiness Report
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Documents validation status and blockers before tagging v0.1.0-rc1.
+  evidence: false
+
+- id: post_release_checklist
+  name: Post-release checklist
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Documents actions to perform after publishing v0.1.0-rc1.
+  evidence: false
+
+- id: known_issues
+  name: Known issues
+  category: release
+  status: implemented
+  mode: safe
+  risk_level: 1
+  requires_approval: false
+  execution: none
+  description: Tracks known limitations of the release candidate.
+  evidence: false
