@@ -54,3 +54,39 @@ gh release create v0.1.0-rc1 \
 * Verify README links.
 * Create v0.1.0 milestone if needed.
 * Create v0.2.0 milestone if needed.
+
+## Final manual release steps
+
+Run all checks:
+
+```bash
+make qa
+make release-check
+```
+
+Confirm version:
+
+```bash
+cat VERSION
+```
+
+Create tag manually:
+
+```bash
+git checkout main
+git pull
+git status
+git tag -a v0.1.0-rc1 -m "OpenAD Zero v0.1.0-rc1"
+git push origin v0.1.0-rc1
+```
+
+Create GitHub pre-release:
+
+```bash
+gh release create v0.1.0-rc1 \
+  --title "OpenAD Zero v0.1.0-rc1" \
+  --notes-file docs/releases/github-release-draft-v0.1.0-rc1.md \
+  --prerelease
+```
+
+Do not publish as latest stable release.

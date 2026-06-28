@@ -33,6 +33,10 @@ See:
 - `docs/RELEASE_PROCESS.md`
 - `docs/DEMO.md`
 
+## Release status
+
+`v0.1.0-rc1` is a release candidate. It is intended for controlled validation before a stable `v0.1.0`.
+
 ## Project governance
 
 See:
@@ -89,6 +93,9 @@ make version         # print the current application version
 - [Release candidate](docs/RELEASE_CANDIDATE.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Release process](docs/RELEASE_PROCESS.md)
+- [Release readiness](docs/RELEASE_READINESS.md)
+- [Known issues](docs/KNOWN_ISSUES.md)
+- [Post-release](docs/POST_RELEASE.md)
 - [Security policy](SECURITY.md)
 - [Governance](docs/GOVERNANCE.md)
 - [GitHub project setup](docs/GITHUB_PROJECT.md)
