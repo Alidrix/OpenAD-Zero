@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -89,3 +90,9 @@ def test_readme_links_final_release_docs() -> None:
     assert 'RELEASE_READINESS' in readme
     assert 'KNOWN_ISSUES' in readme
     assert 'POST_RELEASE' in readme
+
+
+def test_frontend_tailwind_policy() -> None:
+    pkg = json.loads((REPO_ROOT / 'frontend' / 'package.json').read_text(encoding='utf-8'))
+    version = pkg.get('devDependencies', {}).get('tailwindcss') or pkg.get('dependencies', {}).get('tailwindcss')
+    assert version == '3.4.17'

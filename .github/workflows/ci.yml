@@ -94,6 +94,8 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+      - name: Frontend dependency policy
+        run: ./scripts/check-frontend-deps.sh
       - name: Build frontend
         working-directory: frontend
         run: npm run build
