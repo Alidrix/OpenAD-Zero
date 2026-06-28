@@ -36,3 +36,7 @@
 | Arbitrary shell command from frontend | Yes |
 | PDF export | Yes |
 | Multi-user auth | Yes |
+
+## Tool automation safety gate
+
+Human approval is a safety gate for approved read-only templates. Manual-only and blocked automation categories are not executed by OpenAD Zero, even after approval.

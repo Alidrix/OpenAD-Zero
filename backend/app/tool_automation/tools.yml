@@ -1,0 +1,56 @@
+- id: nmap_safe_discovery
+  name: Nmap safe discovery
+  integration_status: assisted_safe
+  notes: "Safe discovery only against validated in-scope targets."
+- id: netexec_smb_fingerprint
+  name: NetExec SMB fingerprint
+  integration_status: assisted_safe
+  notes: "Read-only SMB fingerprinting after preview and approval."
+- id: netexec_smb_signing_check
+  name: NetExec SMB signing check
+  integration_status: assisted_safe
+  notes: "Read-only SMB signing checks after preview and approval."
+- id: netexec_smb_null_session_check
+  name: NetExec SMB null session check
+  integration_status: assisted_safe
+  notes: "Read-only SMB null-session checks after preview and approval."
+- id: nuclei_safe_templates
+  name: Nuclei safe templates
+  integration_status: assisted_safe
+  notes: "Safe template execution after preview and approval."
+- id: enum4linux_ng_basic
+  name: enum4linux-ng basic JSON quick
+  integration_status: assisted_safe
+  notes: "Basic read-only JSON/quick enumeration when enum4linux-ng is installed."
+- id: impacket_sensitive
+  name: Sensitive Impacket scripts
+  integration_status: manual_only
+  notes: "Sensitive Impacket scripts such as secretsdump, psexec, wmiexec, smbexec and atexec are not executed by OpenAD Zero."
+- id: responder
+  name: Responder
+  integration_status: manual_only
+  notes: "Responder poisoning/capture workflows are not executed by OpenAD Zero."
+- id: coercer
+  name: Coercer
+  integration_status: manual_only
+  notes: "Coercion workflows are not executed by OpenAD Zero."
+- id: donpapi
+  name: DonPAPI
+  integration_status: manual_only
+  notes: "DPAPI dumping workflows are not executed by OpenAD Zero."
+- id: gmsadumper
+  name: gMSADumper
+  integration_status: manual_only
+  notes: "gMSA credential dumping workflows are not executed by OpenAD Zero."
+- id: kerbrute
+  name: Kerbrute
+  integration_status: manual_only
+  notes: "User enumeration, brute force and password spraying are not executed by OpenAD Zero."
+- id: bloodyad
+  name: bloodyAD
+  integration_status: manual_only
+  notes: "AD object modification and privilege escalation workflows are not executed by OpenAD Zero."
+- id: mimikatz
+  name: Mimikatz
+  integration_status: manual_only
+  notes: "Credential dumping and LSASS workflows are not executed by OpenAD Zero."

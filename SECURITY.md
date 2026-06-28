@@ -69,3 +69,7 @@ Evidence paths must remain constrained under EVIDENCE_DIR.
 This is a community / release-candidate project.
 
 The maintainer will try to acknowledge valid reports and prioritize fixes based on severity, exploitability and impact.
+
+## Tool automation approval boundary
+
+Human approval is a safety gate for approved read-only templates. Human approval is required for assisted safe actions, but human approval does not allow OpenAD Zero to execute blocked actions.
