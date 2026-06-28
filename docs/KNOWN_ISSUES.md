@@ -25,3 +25,9 @@ Nmap, NetExec and Nuclei availability depends on the backend Docker image or loc
 ### Release candidate status
 
 This is not a stable v1.0 release. It is intended for controlled validation.
+
+## Tailwind CSS v4 migration
+
+OpenAD Zero v0.1.0-rc1 intentionally stays on Tailwind CSS v3.4.17.
+
+Tailwind CSS v4 changes the PostCSS integration and requires a dedicated migration. This migration is deferred to v0.2.0 to keep the release candidate stable.

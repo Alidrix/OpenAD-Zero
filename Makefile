@@ -1,5 +1,5 @@
 COMPOSE ?= docker compose
-.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check security-check release-docs-check release-check version docker-security-check qa health clean
+.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check security-check release-docs-check frontend-deps-check release-check version docker-security-check qa health clean
 
 up:
 	$(COMPOSE) up
@@ -47,6 +47,8 @@ frontend-install:
 	cd frontend && npm ci
 frontend-build:
 	cd frontend && npm run build
+frontend-deps-check:
+	./scripts/check-frontend-deps.sh
 frontend-e2e:
 	cd frontend && npm run test:e2e
 e2e: frontend-e2e
@@ -70,6 +72,7 @@ docker-security-check:
 qa:
 	make backend-lint
 	make backend-test
+	make frontend-deps-check
 	make frontend-build
 	make security-check
 	make smoke

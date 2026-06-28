@@ -4,6 +4,7 @@ set -euo pipefail
 make backend-lint
 make backend-format-check
 make backend-test
+make frontend-deps-check
 make frontend-build
 make security-check
 make smoke
