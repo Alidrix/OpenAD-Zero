@@ -103,3 +103,7 @@ make version         # print the current application version
 - [v0.2.0 backlog](docs/backlog/v0.2.0.md)
 - [BloodHound profile](docs/BLOODHOUND_PROFILE.md)
 - [Migrations](docs/MIGRATIONS.md)
+
+## Tool automation approval boundary
+
+Human approval is a safety gate for approved read-only templates. OpenAD Zero can document manual actions and import external evidence, but it does not execute blocked automation categories.
