@@ -46,7 +46,7 @@ jobs:
       OPENADZERO_AUTO_CREATE_TABLES: "false"
       OPENADZERO_RUN_MIGRATIONS_ON_STARTUP: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check version file
         run: test -s VERSION
       - name: Check changelog
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -103,7 +103,7 @@ jobs:
     timeout-minutes: 35
     needs: [backend, frontend]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Create env file
         run: cp .env.example .env
       - name: Build and start stack
@@ -128,7 +128,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
