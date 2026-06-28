@@ -79,3 +79,18 @@ make release-check
 ## Blockers
 
 List blockers here if any.
+
+## Tool execution model
+
+OpenAD-Zero now distinguishes documented tools from runnable tools with the `executable_after_human_approval` integration status. Advanced AD/Pentest workflows such as Kerbrute, gMSADumper, DonPAPI, Coercer, BloodyAD, controlled Impacket workflows and Responder analyze mode are usable only through declared templates and explicit operator gates.
+
+An OpenAD-Zero tool is executable only when:
+1. the tool is declared in `tools.yml`;
+2. the selected template is declared in `command_templates.py`;
+3. the selected template is referenced by the tool;
+4. the target is inside the validated scope;
+5. the command preview has been generated;
+6. human approval is confirmed;
+7. explicit terms are accepted.
+
+The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.

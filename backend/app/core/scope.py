@@ -16,7 +16,7 @@ def _split(raw: str) -> list[str]:
     return [p.strip() for p in re.split(r'[\s,]+', raw or '') if p.strip()]
 
 
-def validate_scope(raw_scope: str, allow_public: bool = False, max_prefix: int = 24) -> ScopeValidationResult:
+def validate_scope(raw_scope: str, allow_public: bool = False, max_prefix: int = 16) -> ScopeValidationResult:
     seen = set()
     out = []
     for token in _split(raw_scope):

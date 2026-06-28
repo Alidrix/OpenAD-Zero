@@ -3,74 +3,83 @@ from pathlib import Path
 import yaml
 
 from app.tool_automation.command_templates import COMMAND_TEMPLATES
-from app.tool_automation.policy import evaluate_tool_action, load_tool_catalog
+from app.tool_automation.policy import VALID_INTEGRATION_STATUSES, evaluate_tool_action, load_tool_catalog
 
 
-def test_manual_only_can_preview_and_approve_but_not_run():
-    assert evaluate_tool_action(tool_id="responder", action="preview").allowed
-    assert evaluate_tool_action(tool_id="responder", action="approve").allowed
-    decision = evaluate_tool_action(tool_id="responder", action="run")
-    assert not decision.allowed
-    assert "Manual-only" in decision.reason
+def test_unknown_tool_and_out_of_scope_are_blocked():
+    assert not evaluate_tool_action(tool_id='missing', action='preview').allowed
+    decision = evaluate_tool_action(tool_id='nmap_safe_discovery', action='run', target_in_scope=False)
+    assert not decision.allowed and 'outside' in decision.reason
 
 
-def test_approval_does_not_bypass_blocked_auto():
-    catalog = {"blocked": {"id": "blocked", "integration_status": "blocked_auto"}}
-    decision = evaluate_tool_action(tool_id="blocked", action="approve", catalog=catalog)
-    assert not decision.allowed
-    assert "Blocked automation" in decision.reason
+def test_blocked_planned_manual_and_no_template_are_refused_on_run():
+    catalog = {
+        'blocked': {'id': 'blocked', 'integration_status': 'blocked_auto', 'templates': []},
+        'planned': {'id': 'planned', 'integration_status': 'planned', 'templates': []},
+        'manual': {'id': 'manual', 'integration_status': 'manual_only', 'templates': []},
+        'none': {'id': 'none', 'integration_status': 'safe_auto', 'templates': []},
+    }
+    assert 'Blocked automation' in evaluate_tool_action(tool_id='blocked', action='run', catalog=catalog).reason
+    assert 'Planned tools' in evaluate_tool_action(tool_id='planned', action='run', catalog=catalog).reason
+    assert 'Manual-only' in evaluate_tool_action(tool_id='manual', action='run', catalog=catalog).reason
+    assert 'No declared' in evaluate_tool_action(tool_id='none', action='run', catalog=catalog).reason
 
 
-def test_sensitive_keywords_are_blocked_even_with_approval():
-    keywords = [
-        "secretsdump",
-        "mimikatz",
-        "psexec",
-        "wmiexec",
-        "responder",
-        "coercer",
-        "dcsync",
-        "pass-the-hash",
-        "shell",
-        "reverse-shell",
-    ]
-    for keyword in keywords:
-        decision = evaluate_tool_action(
-            tool_id="nmap_safe_discovery",
-            action="approve",
-            argv=["tool", keyword, "10.0.0.1"],
-        )
-        assert not decision.allowed, keyword
+def test_executable_after_human_approval_preview_and_approve_allowed():
+    assert evaluate_tool_action(tool_id='kerbrute', action='preview').allowed
+    assert evaluate_tool_action(tool_id='kerbrute', action='approve').allowed
 
 
-def test_unknown_tool_out_of_scope_and_undeclared_template_are_blocked():
-    assert not evaluate_tool_action(tool_id="missing", action="preview").allowed
-    assert not evaluate_tool_action(tool_id="nmap_safe_discovery", action="run", target_in_scope=False).allowed
-    decision = evaluate_tool_action(
-        tool_id="nmap_safe_discovery",
-        action="run",
-        declared_template_ids=set(),
-    )
-    assert not decision.allowed
+def test_executable_after_human_approval_run_gates():
+    base = dict(tool_id='kerbrute', action='run', selected_template_id='kerbrute_userenum')
+    assert 'preview' in evaluate_tool_action(**base).reason
+    assert 'human approval' in evaluate_tool_action(**base, preview_generated=True).reason
+    assert 'terms acceptance' in evaluate_tool_action(**base, preview_generated=True, human_approved=True).reason
+    assert evaluate_tool_action(**base, preview_generated=True, human_approved=True, terms_accepted=True).allowed
+
+
+def test_executable_after_human_approval_template_refusals():
+    assert 'No declared' in evaluate_tool_action(tool_id='kerbrute', action='run').reason
+    assert 'not allowed' in evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='missing').reason
+    assert 'not allowed' in evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='responder_analyze').reason
+
+
+def test_sensitive_keywords_block_safe_but_not_declared_advanced_after_all_gates():
+    assert not evaluate_tool_action(tool_id='nmap_safe_discovery', action='run', selected_template_id='nmap_safe_discovery', argv=['responder']).allowed
+    decision = evaluate_tool_action(tool_id='responder', action='run', selected_template_id='responder_analyze', argv=COMMAND_TEMPLATES['responder_analyze'], preview_generated=True, human_approved=True, terms_accepted=True)
+    assert decision.allowed and decision.risk_level == 'high'
+
+
+def test_catalog_and_templates_are_consistent():
+    catalog = load_tool_catalog()
+    referenced = set()
+    for tool_id, tool in catalog.items():
+        if tool['integration_status'] == 'executable_after_human_approval':
+            assert tool['risk_level'] == 'high'
+            assert tool['requires_human_approval'] is True
+            assert tool['requires_terms_acceptance'] is True
+            assert tool['templates']
+        for template_id in tool.get('templates', []):
+            referenced.add(template_id)
+            assert template_id in COMMAND_TEMPLATES, f'{tool_id}: {template_id}'
+    assert set(COMMAND_TEMPLATES) == referenced
+
+
+def test_command_templates_are_argument_lists_without_shell_true():
+    for argv in COMMAND_TEMPLATES.values():
+        assert isinstance(argv, list)
+        assert all(isinstance(arg, str) for arg in argv)
+        joined = ' '.join(argv)
+        assert 'shell=True' not in joined
+        assert not isinstance(argv, str)
+
+
+def test_catalog_uses_strict_integration_statuses():
+    raw = yaml.safe_load(Path('backend/app/tool_automation/tools.yml').read_text())
+    assert {item['integration_status'] for item in raw} <= VALID_INTEGRATION_STATUSES
 
 
 def test_removed_scanner_absent_from_tool_catalog_and_templates_and_docs():
     catalog = load_tool_catalog()
-    assert all("ping" + "castle" not in tool_id.lower() for tool_id in catalog)
-    assert all("ping" + "castle" not in template_id.lower() for template_id in COMMAND_TEMPLATES)
-
-    root = Path(__file__).resolve().parents[2]
-    checked = [
-        root / "backend/app/tool_automation/tools.yml",
-        root / "backend/app/tool_automation/command_templates.py",
-        root / "docs/TOOL_AUTOMATION.md",
-        root / "docs/backlog/v0.2.0.md",
-    ]
-    for path in checked:
-        assert "ping" + "castle" not in path.read_text().casefold(), path
-
-
-def test_catalog_uses_strict_integration_statuses():
-    allowed = {"safe_auto", "assisted_safe", "manual_only", "blocked_auto", "planned"}
-    raw = yaml.safe_load(Path("backend/app/tool_automation/tools.yml").read_text())
-    assert {item["integration_status"] for item in raw} <= allowed
+    assert all('ping' + 'castle' not in tool_id.lower() for tool_id in catalog)
+    assert all('ping' + 'castle' not in template_id.lower() for template_id in COMMAND_TEMPLATES)

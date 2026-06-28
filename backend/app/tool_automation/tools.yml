@@ -1,56 +1,112 @@
 - id: nmap_safe_discovery
   name: Nmap safe discovery
   integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [nmap_safe_discovery]
   notes: "Safe discovery only against validated in-scope targets."
 - id: netexec_smb_fingerprint
   name: NetExec SMB fingerprint
   integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [netexec_smb_fingerprint]
   notes: "Read-only SMB fingerprinting after preview and approval."
 - id: netexec_smb_signing_check
   name: NetExec SMB signing check
   integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [netexec_smb_signing_check]
   notes: "Read-only SMB signing checks after preview and approval."
 - id: netexec_smb_null_session_check
   name: NetExec SMB null session check
   integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [netexec_smb_null_session_check]
   notes: "Read-only SMB null-session checks after preview and approval."
 - id: nuclei_safe_templates
   name: Nuclei safe templates
   integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [nuclei_safe_templates]
   notes: "Safe template execution after preview and approval."
 - id: enum4linux_ng_basic
   name: enum4linux-ng basic JSON quick
   integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [enum4linux_ng_basic]
   notes: "Basic read-only JSON/quick enumeration when enum4linux-ng is installed."
 - id: impacket_sensitive
-  name: Sensitive Impacket scripts
-  integration_status: manual_only
-  notes: "Sensitive Impacket scripts such as secretsdump, psexec, wmiexec, smbexec and atexec are not executed by OpenAD Zero."
+  name: Impacket controlled workflows
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [impacket_getnpusers, impacket_getuserspns, impacket_lookupsid, impacket_smbclient_list]
+  notes: "Controlled Impacket AD workflows requiring scope validation, command preview, human approval and explicit terms acceptance."
 - id: responder
   name: Responder
-  integration_status: manual_only
-  notes: "Responder poisoning/capture workflows are not executed by OpenAD Zero."
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [responder_analyze]
+  notes: "Analyze-mode capture workflow requiring validated scope, preview, human approval and explicit terms acceptance."
 - id: coercer
   name: Coercer
-  integration_status: manual_only
-  notes: "Coercion workflows are not executed by OpenAD Zero."
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [coercer_check]
+  notes: "Controlled coercion check requiring validated scope, command preview, human approval and explicit terms acceptance."
 - id: donpapi
   name: DonPAPI
-  integration_status: manual_only
-  notes: "DPAPI dumping workflows are not executed by OpenAD Zero."
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [donpapi_collect_authorized]
+  notes: "Authorized DPAPI review workflow requiring validated scope, preview, human approval and explicit terms acceptance."
 - id: gmsadumper
   name: gMSADumper
-  integration_status: manual_only
-  notes: "gMSA credential dumping workflows are not executed by OpenAD Zero."
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [gmsadumper_assessment]
+  notes: "gMSA assessment workflow requiring validated scope, command preview, human approval and explicit terms acceptance."
 - id: kerbrute
   name: Kerbrute
-  integration_status: manual_only
-  notes: "User enumeration, brute force and password spraying are not executed by OpenAD Zero."
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [kerbrute_userenum]
+  notes: "Active Directory user enumeration workflow requiring validated scope, command preview, human approval and explicit terms acceptance."
 - id: bloodyad
-  name: bloodyAD
-  integration_status: manual_only
-  notes: "AD object modification and privilege escalation workflows are not executed by OpenAD Zero."
+  name: BloodyAD
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [bloodyad_get_object, bloodyad_get_membership]
+  notes: "Controlled BloodyAD read-oriented workflows requiring validated scope, preview and human approval."
 - id: mimikatz
   name: Mimikatz
   integration_status: manual_only
+  risk_level: high
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: []
   notes: "Credential dumping and LSASS workflows are not executed by OpenAD Zero."
