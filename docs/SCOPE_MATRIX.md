@@ -20,11 +20,6 @@
 | RQ worker | Yes |
 | CI | Yes |
 | Security checks | Yes |
-
-## Excluded from v0.1.0-rc1
-
-| Area | Excluded |
-| --- | --- |
 | Automatic exploitation | Yes |
 | Credential dumping | Yes |
 | LSASS dump | Yes |
