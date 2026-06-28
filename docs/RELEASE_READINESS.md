@@ -71,20 +71,6 @@ make release-check
 * Docker Compose.
 * CI / QA / release docs.
 
-## Explicitly excluded
-
-* Automatic exploitation.
-* Credential dumping.
-* LSASS dump.
-* DCSync.
-* Pass-the-hash.
-* Persistence.
-* EDR bypass.
-* Lateral movement automation.
-* Arbitrary shell from frontend.
-* PDF export.
-* Multi-user authentication.
-
 ## Release decision
 
 * [ ] Ready to tag.
