@@ -24,6 +24,20 @@ make frontend-build
 make e2e
 ```
 
+## E2E prerequisites
+
+`make e2e` requires the frontend to be reachable at http://localhost:5173.
+
+Before running E2E tests locally:
+
+```bash
+cp .env.example .env
+make up-build
+make migrate
+make smoke
+make e2e
+```
+
 ## Release candidate validation
 
 ```bash

@@ -10,6 +10,9 @@ REQUIRED_RELEASE_FILES = [
     'docs/GITHUB_PROJECT.md',
     'docs/SCOPE_MATRIX.md',
     'docs/RELEASE_PROCESS.md',
+    'docs/RELEASE_READINESS.md',
+    'docs/POST_RELEASE.md',
+    'docs/KNOWN_ISSUES.md',
     'docs/backlog/v0.2.0.md',
     'docs/releases/github-release-draft-v0.1.0-rc1.md',
     '.github/CODEOWNERS',
@@ -59,3 +62,30 @@ def test_scope_matrix_lists_sensitive_exclusions() -> None:
 
 def test_release_process_marks_github_release_as_prerelease() -> None:
     assert '--prerelease' in read_repo_file('docs/RELEASE_PROCESS.md')
+
+
+def test_final_release_execution_docs_are_present() -> None:
+    release_process = read_repo_file('docs/RELEASE_PROCESS.md')
+    assert 'gh release create' in release_process
+    assert '--prerelease' in release_process
+    assert 'git tag -a v0.1.0-rc1' in release_process
+
+
+def test_known_issues_documents_release_candidate_limitations() -> None:
+    known_issues = read_repo_file('docs/KNOWN_ISSUES.md')
+    assert 'release candidate' in known_issues.lower()
+    assert 'E2E prerequisites' in known_issues
+
+
+def test_v020_backlog_is_prioritized() -> None:
+    backlog = read_repo_file('docs/backlog/v0.2.0.md')
+    assert 'P0' in backlog
+    assert 'P1' in backlog
+    assert 'P2' in backlog
+
+
+def test_readme_links_final_release_docs() -> None:
+    readme = read_repo_file('README.md')
+    assert 'RELEASE_READINESS' in readme
+    assert 'KNOWN_ISSUES' in readme
+    assert 'POST_RELEASE' in readme
