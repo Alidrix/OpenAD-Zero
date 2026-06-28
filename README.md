@@ -19,3 +19,5 @@ Then open:
 - API: http://localhost:8000
 - API health: http://localhost:8000/api/health
 - Version: http://localhost:8000/api/version
+
+SUPPORTED BY HTB - © 2026 Hack The Box
