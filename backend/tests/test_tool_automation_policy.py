@@ -97,3 +97,48 @@ def test_metasploit_templates_forbid_payload_sessions_and_background_exploit():
 def test_preview_hash_mismatch_refused():
     decision = evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='kerbrute_userenum', preview_generated=True, human_approved=True, terms_accepted=True, command_hash='new', preview_command_hash='old')
     assert not decision.allowed and 'hash' in decision.reason
+
+import json
+
+
+def test_preview_masks_password_in_command(client):
+    response = client.post('/api/tool-automation/preview', json={
+        'tool_id': 'bloodyad',
+        'template_id': 'bloodyad_get_object',
+        'target': '10.10.10.5',
+        'params': {'dc_ip': '10.10.10.5', 'domain': 'LAB.LOCAL', 'username': 'alice', 'password': 'SuperSecretPassword123', 'object': 'Domain Admins'},
+    })
+    assert response.status_code == 200
+    body = response.json()
+    serialized = json.dumps(body)
+    assert 'SuperSecretPassword123' not in serialized
+    assert '********' in serialized
+    assert 'masked_command' in body
+    assert body.get('command') == body['masked_command']
+    assert 'preview_command_hash' in body
+    assert 'command_hash' not in body
+
+
+def test_run_recalculates_preview_hash_and_rejects_mismatch(client):
+    payload = {'tool_id': 'bloodyad', 'template_id': 'bloodyad_get_object', 'target': '10.10.10.5', 'params': {'dc_ip': '10.10.10.5', 'domain': 'LAB.LOCAL', 'username': 'alice', 'password': 'SuperSecretPassword123', 'object': 'Domain Admins'}}
+    preview = client.post('/api/tool-automation/preview', json=payload).json()
+    bad = client.post('/api/tool-automation/run', json={**payload, 'human_approved': True, 'terms_accepted': True, 'preview_generated': True, 'preview_command_hash': 'bad'})
+    assert bad.status_code == 403
+    ok = client.post('/api/tool-automation/run', json={**payload, 'human_approved': True, 'terms_accepted': True, 'preview_generated': True, 'preview_command_hash': preview['preview_command_hash']})
+    assert ok.status_code == 200
+    serialized = json.dumps(ok.json())
+    assert 'SuperSecretPassword123' not in serialized
+    assert 'masked_command' in ok.json()
+
+
+def test_preview_masks_hash_token_secret_key_and_no_secret_command_field(client):
+    cases = [
+        ('gmsadumper', 'gmsadumper_assessment_hash', {'username': 'alice', 'ntlm_hash': '8846f7eaee8fb117ad06bdd830b7586c', 'domain': 'LAB.LOCAL', 'dc_ip': '10.10.10.5'}, '8846f7eaee8fb117ad06bdd830b7586c'),
+        ('kerbrute', 'kerbrute_passwordspray_safe_preview', {'dc_ip': '10.10.10.5', 'domain': 'LAB.LOCAL', 'userlist': 'users.txt', 'password': 'SpraySecret123'}, 'SpraySecret123'),
+    ]
+    for tool_id, template_id, params, secret in cases:
+        r = client.post('/api/tool-automation/preview', json={'tool_id': tool_id, 'template_id': template_id, 'target': '10.10.10.5', 'params': params})
+        assert r.status_code == 200
+        body = r.json()
+        assert secret not in json.dumps(body)
+        assert body.get('command') == body['masked_command']
