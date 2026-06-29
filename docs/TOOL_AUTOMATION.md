@@ -66,9 +66,16 @@ An OpenAD-Zero tool is executable only when:
 
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
 
+
+## Evidence storage
+
+Tool automation persists run records, parsed findings, and generated artifacts under `EVIDENCE_DIR`. In Docker, `EVIDENCE_DIR` defaults to `/app/evidence`; the API and worker entrypoint creates `/app/evidence`, `/app/evidence/tool-runs`, `/app/evidence/findings`, and `/app/evidence/artifacts` before the application starts.
+
+The entrypoint corrects permissions for Docker volumes when it starts as root and then drops to the application user `10001:10001`, so operators normally do not need to run manual `chown` or `chmod` commands. The recommended local Compose configuration uses the named volume `openadzero-evidence` to avoid host bind-mount permission problems. If you choose a bind mount such as `./evidence:/app/evidence` to export artifacts, host filesystem permissions can still vary by OS and may need to be managed outside the container.
+
 ## Local controlled execution model
 
-`/api/tool-automation/preview`, `/approve`, and `/run` rebuild commands from backend allowlisted argv templates only. The frontend must not send raw commands. Preview returns a masked command and a SHA-256 hash computed over the canonical real argv. Run reconstructs the argv, revalidates scope, checks policy gates, compares the preview hash, executes with `subprocess.run(..., shell=False, timeout=300)`, redacts stdout/stderr, invokes parsers, and stores run/findings JSON under `data/tool-runs/` and `data/findings/`.
+`/api/tool-automation/preview`, `/approve`, and `/run` rebuild commands from backend allowlisted argv templates only. The frontend must not send raw commands. Preview returns a masked command and a SHA-256 hash computed over the canonical real argv. Run reconstructs the argv, revalidates scope, checks policy gates, compares the preview hash, executes with `subprocess.run(..., shell=False, timeout=300)`, redacts stdout/stderr, invokes parsers, and stores run/findings JSON under `EVIDENCE_DIR/tool-runs/` and `EVIDENCE_DIR/findings/`.
 
 `GET /api/tool-automation/tool-health` reports installed/missing binaries. Metasploit controlled exploit is gated by `backend/app/tool_automation/metasploit_allowlist.yml`; disabled modules, unknown options, missing payload allowlist entries, missing successful checks, and missing final confirmation are refused. No exploit-all or arbitrary msfconsole strings are supported.
 

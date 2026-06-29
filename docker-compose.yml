@@ -25,8 +25,12 @@ services:
       DATABASE_URL: postgresql+psycopg://openadzero:openadzero@openadzero-postgres:5432/openadzero
       REDIS_URL: redis://openadzero-redis:6379/0
       EVIDENCE_DIR: /app/evidence
+      APP_UID: "10001"
+      APP_GID: "10001"
     ports: ['8000:8000']
-    volumes: ['./evidence:/app/evidence']
+    # Named volume is recommended to avoid host bind-mount permission issues.
+    # Use a local override with ./evidence:/app/evidence only when you need exported artifacts.
+    volumes: ['openadzero-evidence:/app/evidence']
     depends_on:
       openadzero-postgres:
         condition: service_healthy
@@ -44,9 +48,13 @@ services:
       DATABASE_URL: postgresql+psycopg://openadzero:openadzero@openadzero-postgres:5432/openadzero
       REDIS_URL: redis://openadzero-redis:6379/0
       EVIDENCE_DIR: /app/evidence
+      APP_UID: "10001"
+      APP_GID: "10001"
     command: ["python", "-m", "app.worker"]
+    # Named volume is recommended to avoid host bind-mount permission issues.
+    # Use a local override with ./evidence:/app/evidence only when you need exported artifacts.
     volumes:
-      - ./evidence:/app/evidence
+      - openadzero-evidence:/app/evidence
     depends_on:
       openadzero-postgres:
         condition: service_healthy
@@ -95,6 +103,7 @@ services:
     ports: ['8080:8080']
     depends_on: [bloodhound-postgres, bloodhound-neo4j]
 volumes:
+  openadzero-evidence:
   postgres-data:
   bloodhound-postgres-data:
   bloodhound-neo4j-data:
