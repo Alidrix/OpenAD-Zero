@@ -13,7 +13,7 @@
   requires_human_approval: false
   requires_terms_acceptance: false
   templates: [netexec_smb_fingerprint]
-  notes: "Read-only SMB fingerprinting after preview and approval."
+  notes: "Read-only SMB fingerprinting after preview."
 - id: netexec_smb_signing_check
   name: NetExec SMB signing check
   integration_status: assisted_safe
@@ -21,7 +21,7 @@
   requires_human_approval: false
   requires_terms_acceptance: false
   templates: [netexec_smb_signing_check]
-  notes: "Read-only SMB signing checks after preview and approval."
+  notes: "Read-only SMB signing checks after preview."
 - id: netexec_smb_null_session_check
   name: NetExec SMB null session check
   integration_status: assisted_safe
@@ -29,7 +29,7 @@
   requires_human_approval: false
   requires_terms_acceptance: false
   templates: [netexec_smb_null_session_check]
-  notes: "Read-only SMB null-session checks after preview and approval."
+  notes: "Read-only SMB null-session checks after preview."
 - id: nuclei_safe_templates
   name: Nuclei safe templates
   integration_status: assisted_safe
@@ -37,7 +37,7 @@
   requires_human_approval: false
   requires_terms_acceptance: false
   templates: [nuclei_safe_templates]
-  notes: "Safe template execution after preview and approval."
+  notes: "Safe template execution after preview."
 - id: enum4linux_ng_basic
   name: enum4linux-ng basic JSON quick
   integration_status: assisted_safe
@@ -46,13 +46,37 @@
   requires_terms_acceptance: false
   templates: [enum4linux_ng_basic]
   notes: "Basic read-only JSON/quick enumeration when enum4linux-ng is installed."
+- id: bloodhound_sharphound_upload
+  name: BloodHound SharpHound upload
+  integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [bloodhound_sharphound_upload]
+  notes: "Import existing BloodHound/SharpHound artifacts."
+- id: bloodhound_explorer
+  name: BloodHound explorer
+  integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [bloodhound_explorer]
+  notes: "Explore imported BloodHound data."
+- id: bloodhound_pathfinding
+  name: BloodHound pathfinding
+  integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [bloodhound_pathfinding]
+  notes: "Pathfinding over imported BloodHound data only."
 - id: impacket_sensitive
   name: Impacket controlled workflows
   integration_status: executable_after_human_approval
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [impacket_getnpusers, impacket_getuserspns, impacket_lookupsid, impacket_smbclient_list]
+  templates: [impacket_getnpusers, impacket_getnpusers_auth, impacket_getuserspns, impacket_lookupsid, impacket_smbclient_list, impacket_rpcdump, impacket_samrdump]
   notes: "Controlled Impacket AD workflows requiring scope validation, command preview, human approval and explicit terms acceptance."
 - id: responder
   name: Responder
@@ -60,31 +84,31 @@
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [responder_analyze]
-  notes: "Analyze-mode capture workflow requiring validated scope, preview, human approval and explicit terms acceptance."
+  templates: [responder_analyze, responder_lab_capture]
+  notes: "Analyze and explicit LAB capture workflows requiring validated scope, preview, human approval and explicit terms acceptance."
 - id: coercer
   name: Coercer
   integration_status: executable_after_human_approval
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [coercer_check]
-  notes: "Controlled coercion check requiring validated scope, command preview, human approval and explicit terms acceptance."
+  templates: [coercer_list_methods, coercer_check_single_target]
+  notes: "Controlled coercion review requiring validated scope, command preview, human approval and explicit terms acceptance."
 - id: donpapi
   name: DonPAPI
   integration_status: executable_after_human_approval
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [donpapi_collect_authorized]
-  notes: "Authorized DPAPI review workflow requiring validated scope, preview, human approval and explicit terms acceptance."
+  templates: [donpapi_collect_target, donpapi_collect_target_hash]
+  notes: "Authorized bounded DPAPI review workflow requiring validated scope, preview, human approval and explicit terms acceptance."
 - id: gmsadumper
   name: gMSADumper
   integration_status: executable_after_human_approval
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [gmsadumper_assessment]
+  templates: [gmsadumper_assessment_password, gmsadumper_assessment_hash]
   notes: "gMSA assessment workflow requiring validated scope, command preview, human approval and explicit terms acceptance."
 - id: kerbrute
   name: Kerbrute
@@ -92,16 +116,24 @@
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [kerbrute_userenum]
-  notes: "Active Directory user enumeration workflow requiring validated scope, command preview, human approval and explicit terms acceptance."
+  templates: [kerbrute_userenum, kerbrute_passwordspray_safe_preview]
+  notes: "Active Directory Kerberos workflows requiring validated scope, command preview, human approval and explicit terms acceptance."
 - id: bloodyad
   name: BloodyAD
   integration_status: executable_after_human_approval
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [bloodyad_get_object, bloodyad_get_membership]
+  templates: [bloodyad_get_object, bloodyad_get_membership, bloodyad_get_children, bloodyad_get_acl]
   notes: "Controlled BloodyAD read-oriented workflows requiring validated scope, preview and human approval."
+- id: metasploit
+  name: Metasploit research
+  integration_status: executable_after_human_approval
+  risk_level: high
+  requires_human_approval: true
+  requires_terms_acceptance: true
+  templates: [metasploit_db_status, metasploit_search_by_cve, metasploit_search_by_service, metasploit_search_by_platform_windows, metasploit_search_smb, metasploit_search_ldap, metasploit_search_kerberos, metasploit_info_module, metasploit_check_ms17_010, metasploit_smb_version]
+  notes: "Search/info and explicitly allowed non-destructive checks only; no payloads, sessions or automatic exploitation."
 - id: mimikatz
   name: Mimikatz
   integration_status: manual_only

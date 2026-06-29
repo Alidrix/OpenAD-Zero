@@ -1,0 +1,21 @@
+- id: recon_initial
+  name: Initial network recon
+  templates: [nmap_safe_discovery, netexec_smb_fingerprint, netexec_smb_signing_check, enum4linux_ng_basic]
+- id: ad_user_discovery
+  name: AD user discovery
+  templates: [kerbrute_userenum, impacket_lookupsid, impacket_samrdump]
+- id: kerberos_collection
+  name: Kerberos collection
+  templates: [impacket_getnpusers, impacket_getuserspns]
+- id: smb_collection
+  name: SMB collection
+  templates: [netexec_smb_fingerprint, netexec_smb_signing_check, netexec_smb_null_session_check, impacket_smbclient_list]
+- id: ad_acl_review
+  name: AD ACL and membership review
+  templates: [bloodyad_get_object, bloodyad_get_membership, bloodyad_get_acl]
+- id: coercion_review
+  name: Coercion review
+  templates: [coercer_list_methods, coercer_check_single_target]
+- id: exploit_research
+  name: Metasploit exploit research
+  templates: [metasploit_db_status, metasploit_search_by_cve, metasploit_search_by_service, metasploit_search_smb, metasploit_search_ldap, metasploit_search_kerberos]

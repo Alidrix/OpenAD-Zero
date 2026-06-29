@@ -35,7 +35,8 @@ def test_executable_after_human_approval_run_gates():
     assert 'preview' in evaluate_tool_action(**base).reason
     assert 'human approval' in evaluate_tool_action(**base, preview_generated=True).reason
     assert 'terms acceptance' in evaluate_tool_action(**base, preview_generated=True, human_approved=True).reason
-    assert evaluate_tool_action(**base, preview_generated=True, human_approved=True, terms_accepted=True).allowed
+    assert 'hash' in evaluate_tool_action(**base, preview_generated=True, human_approved=True, terms_accepted=True, command_hash='abc', preview_command_hash='abc').reason
+    assert evaluate_tool_action(**base, preview_generated=True, human_approved=True, terms_accepted=True, command_hash='abc', preview_command_hash='abc').allowed
 
 
 def test_executable_after_human_approval_template_refusals():
@@ -46,7 +47,7 @@ def test_executable_after_human_approval_template_refusals():
 
 def test_sensitive_keywords_block_safe_but_not_declared_advanced_after_all_gates():
     assert not evaluate_tool_action(tool_id='nmap_safe_discovery', action='run', selected_template_id='nmap_safe_discovery', argv=['responder']).allowed
-    decision = evaluate_tool_action(tool_id='responder', action='run', selected_template_id='responder_analyze', argv=COMMAND_TEMPLATES['responder_analyze'], preview_generated=True, human_approved=True, terms_accepted=True)
+    decision = evaluate_tool_action(tool_id='responder', action='run', selected_template_id='responder_analyze', argv=COMMAND_TEMPLATES['responder_analyze'], preview_generated=True, human_approved=True, terms_accepted=True, command_hash='abc', preview_command_hash='abc')
     assert decision.allowed and decision.risk_level == 'high'
 
 
@@ -83,3 +84,16 @@ def test_removed_scanner_absent_from_tool_catalog_and_templates_and_docs():
     catalog = load_tool_catalog()
     assert all('ping' + 'castle' not in tool_id.lower() for tool_id in catalog)
     assert all('ping' + 'castle' not in template_id.lower() for template_id in COMMAND_TEMPLATES)
+
+
+def test_metasploit_templates_forbid_payload_sessions_and_background_exploit():
+    forbidden = ['exploit -j', 'run -j', 'set PAYLOAD', 'set LHOST', 'set LPORT', 'sessions -i']
+    for tid, argv in COMMAND_TEMPLATES.items():
+        if tid.startswith('metasploit'):
+            joined = ' '.join(argv)
+            for token in forbidden:
+                assert token not in joined
+
+def test_preview_hash_mismatch_refused():
+    decision = evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='kerbrute_userenum', preview_generated=True, human_approved=True, terms_accepted=True, command_hash='new', preview_command_hash='old')
+    assert not decision.allowed and 'hash' in decision.reason
