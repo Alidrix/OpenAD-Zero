@@ -38,3 +38,9 @@ An OpenAD-Zero tool is executable only when:
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
 
 Release docs: docs/RELEASE_READINESS.md, docs/KNOWN_ISSUES.md, docs/POST_RELEASE.md.
+
+### Controlled Metasploit exploitation
+
+OpenAD-Zero can prepare and run controlled Metasploit exploit workflows only when the module is allowlisted, the target is in scope, the command is generated from a backend template, the preview is reviewed, the preview hash matches at execution time, a check step has been performed when required, human approval is confirmed, terms are accepted and final exploit confirmation is confirmed.
+
+There is no free `msfconsole` command, no automatic exploitation, no implicit multi-target exploitation, no non-allowlisted payload, no automatic post-exploitation, no persistence, no log or trace deletion, no anti-forensics and no out-of-scope execution.

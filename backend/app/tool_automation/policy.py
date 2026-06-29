@@ -6,7 +6,8 @@ from typing import Literal
 
 import yaml
 
-from app.tool_automation.command_templates import COMMAND_TEMPLATES
+from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS, COMMAND_TEMPLATES
+from app.tool_automation.metasploit_allowlist import validate_metasploit_selection
 
 IntegrationStatus = Literal["safe_auto", "assisted_safe", "executable_after_human_approval", "manual_only", "blocked_auto", "planned"]
 Action = Literal["preview", "approve", "run"]
@@ -64,7 +65,7 @@ def _template_decision(tool: dict, selected_template_id: str | None) -> ToolPoli
     return None
 
 
-def evaluate_tool_action(*, tool_id: str, action: Action, template: str | None = None, argv: list[str] | None = None, target_in_scope: bool = True, catalog: dict[str, dict] | None = None, declared_template_ids: set[str] | None = None, human_approved: bool = False, terms_accepted: bool = False, preview_generated: bool = False, selected_template_id: str | None = None, command_hash: str | None = None, preview_command_hash: str | None = None) -> ToolPolicyDecision:
+def evaluate_tool_action(*, tool_id: str, action: Action, template: str | None = None, argv: list[str] | None = None, target_in_scope: bool = True, catalog: dict[str, dict] | None = None, declared_template_ids: set[str] | None = None, human_approved: bool = False, terms_accepted: bool = False, preview_generated: bool = False, selected_template_id: str | None = None, command_hash: str | None = None, preview_command_hash: str | None = None, final_exploit_confirmation: bool = False, check_run_id: str | None = None, check_status: str | None = None, metasploit_module_id: str | None = None, metasploit_module: str | None = None, metasploit_options: dict[str, str] | None = None, metasploit_payload: str | None = None) -> ToolPolicyDecision:
     tools = catalog if catalog is not None else load_tool_catalog()
     tool = tools.get(tool_id)
     if tool is None:
@@ -90,10 +91,36 @@ def evaluate_tool_action(*, tool_id: str, action: Action, template: str | None =
             template_denial = _template_decision(tool, selected_template_id)
             if template_denial is not None:
                 return template_denial
+            template_def = COMMAND_TEMPLATE_DEFINITIONS.get(selected_template_id)
+            if template_def and template_def.execution_class == "controlled_exploit_after_human_approval":
+                try:
+                    validate_metasploit_selection(module_id=metasploit_module_id, module_path=metasploit_module, options=metasploit_options, payload=metasploit_payload, require_allowed=selected_template_id != "metasploit_controlled_check")
+                except ValueError as exc:
+                    return deny(str(exc))
         return allow("Command preview or approval step is allowed for validated scope.")
     template_denial = _template_decision(tool, selected_template_id or (tool_id if declared_template_ids and tool_id in declared_template_ids else None))
     if template_denial is not None:
         return template_denial
+    template_def = COMMAND_TEMPLATE_DEFINITIONS.get(selected_template_id or "")
+    if template_def and template_def.execution_class == "controlled_exploit_after_human_approval":
+        try:
+            validate_metasploit_selection(module_id=metasploit_module_id, module_path=metasploit_module, options=metasploit_options, payload=metasploit_payload, require_allowed=selected_template_id != "metasploit_controlled_check")
+        except ValueError as exc:
+            return deny(str(exc))
+        if selected_template_id == "metasploit_controlled_exploit_previewable":
+            if not preview_generated:
+                return deny("This tool requires command preview before execution.")
+            if not command_hash or not preview_command_hash or command_hash != preview_command_hash:
+                return deny("Controlled exploit command does not match the approved preview.")
+            if not human_approved:
+                return deny("This tool requires human approval before execution.")
+            if not terms_accepted:
+                return deny("This tool requires explicit terms acceptance before execution.")
+            if not final_exploit_confirmation:
+                return deny("Controlled exploit requires final human confirmation.")
+            if not check_run_id or (check_status or "").lower() not in {"vulnerable", "appears", "safe", "checked"}:
+                return deny("Controlled exploit requires a previous check step.")
+        return ToolPolicyDecision(True, "Controlled Metasploit workflow is allowed only from allowlist, valid preview hash, prior check and complete human confirmations.", "critical", True, True)
     if status in {"safe_auto", "assisted_safe"} and (contains_authorised_keyword(template) or contains_authorised_keyword(argv)):
         return deny("Blocked automation keyword cannot be executed by OpenAD Zero.")
     if status == "executable_after_human_approval":

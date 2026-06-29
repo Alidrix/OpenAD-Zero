@@ -20,6 +20,11 @@ class CommandTemplate:
     parser: str
     risk_level: str = "low"
     output_artifact_type: str | None = None
+    execution_class: str | None = None
+    requires_check_first: bool = False
+    requires_human_approval: bool = False
+    requires_terms_acceptance: bool = False
+    requires_preview_hash_match: bool = False
 
 
 COMMAND_TEMPLATE_DEFINITIONS: dict[str, CommandTemplate] = {
@@ -63,6 +68,8 @@ COMMAND_TEMPLATE_DEFINITIONS: dict[str, CommandTemplate] = {
     "metasploit_info_module": CommandTemplate("metasploit_info_module", "metasploit", "Module info", "Show module information only.", ["msfconsole", "-q", "-x", "info {module}; exit"], ["module"], [], "metasploit_info", "high", "metasploit_module"),
     "metasploit_check_ms17_010": CommandTemplate("metasploit_check_ms17_010", "metasploit", "Check MS17-010", "Run the explicitly allowed non-destructive MS17-010 check.", ["msfconsole", "-q", "-x", "use auxiliary/scanner/smb/smb_ms17_010; set RHOSTS {target}; check; exit"], ["target"], [], "metasploit_check", "high", "vulnerability"),
     "metasploit_smb_version": CommandTemplate("metasploit_smb_version", "metasploit", "SMB version scanner", "Run the auxiliary SMB version scanner only.", ["msfconsole", "-q", "-x", "use auxiliary/scanner/smb/smb_version; set RHOSTS {target}; run; exit"], ["target"], [], "metasploit_check", "high", "service"),
+    "metasploit_controlled_check": CommandTemplate("metasploit_controlled_check", "metasploit", "Controlled allowlisted check", "Run check for a Metasploit module selected from the backend allowlist.", ["msfconsole", "-q", "-x", "use {module}; set RHOSTS {target}; setg VERBOSE true; check; exit"], ["module", "target"], [], "metasploit_check", "critical", "metasploit_check", "controlled_exploit_after_human_approval", True, True, True, True),
+    "metasploit_controlled_exploit_previewable": CommandTemplate("metasploit_controlled_exploit_previewable", "metasploit", "Controlled exploit after human approval", "Prepare and run only backend-generated allowlisted Metasploit exploit commands after all human gates pass.", ["msfconsole", "-q", "-x", "use {module}; set RHOSTS {target}; setg VERBOSE true; {validated_options}; {validated_payload}; run; exit"], ["module", "target"], ["validated_options", "validated_payload"], "metasploit_controlled_exploit", "critical", "metasploit_controlled_exploit", "controlled_exploit_after_human_approval", True, True, True, True),
 }
 
 COMMAND_TEMPLATES: dict[str, list[str]] = {k: v.argv for k, v in COMMAND_TEMPLATE_DEFINITIONS.items()}

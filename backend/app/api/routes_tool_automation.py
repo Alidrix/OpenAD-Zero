@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.tool_automation.command_templates import COMMAND_TEMPLATES
 from app.tool_automation.policy import evaluate_tool_action, load_tool_catalog
+from app.tool_automation.metasploit_allowlist import build_metasploit_command, mask_metasploit_secrets, public_allowlist
 
 router = APIRouter(prefix='/tool-automation', tags=['tool-automation'])
 _RUNS: dict[str, dict] = {}
@@ -24,12 +25,19 @@ class ToolActionRequest(BaseModel):
     terms_accepted: bool = False
     preview_generated: bool = False
     preview_command_hash: str | None = None
+    final_exploit_confirmation: bool = False
+    check_run_id: str | None = None
+    check_status: str | None = None
+    module_id: str | None = None
+    payload: str | None = None
 
 
 def _hash_command(command: list[str]) -> str:
     return hashlib.sha256(json.dumps(command, separators=(",", ":")).encode()).hexdigest()
 
-def _render(template_id: str, params: dict[str, str]) -> list[str]:
+def _render(template_id: str, params: dict[str, str], target: str | None = None, masked: bool = False) -> list[str]:
+    if template_id in {'metasploit_controlled_check', 'metasploit_controlled_exploit_previewable'}:
+        return build_metasploit_command(template_id=template_id, target=target or params.get('target', ''), module_id=params.get('module_id'), module_path=params.get('module'), options={k: v for k, v in params.items() if k not in {'module_id', 'module', 'payload'}}, payload=params.get('payload'), masked=masked)
     argv = COMMAND_TEMPLATES.get(template_id)
     if argv is None:
         raise HTTPException(status_code=400, detail='Selected template is not allowed for this tool.')
@@ -45,6 +53,10 @@ def _render(template_id: str, params: dict[str, str]) -> list[str]:
 def tools():
     return list(load_tool_catalog().values())
 
+@router.get('/metasploit/allowlist')
+def metasploit_allowlist():
+    return public_allowlist()
+
 @router.get('/templates')
 def templates():
     from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
@@ -52,12 +64,15 @@ def templates():
 
 @router.post('/preview')
 def preview(payload: ToolActionRequest):
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='preview', target_in_scope=True, selected_template_id=payload.template_id)
+    decision = evaluate_tool_action(tool_id=payload.tool_id, action='preview', target_in_scope=True, selected_template_id=payload.template_id, metasploit_module_id=payload.params.get('module_id'), metasploit_module=payload.params.get('module'), metasploit_options={k: v for k, v in payload.params.items() if k not in {'module_id','module','payload'}}, metasploit_payload=payload.params.get('payload'))
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
-    command = _render(payload.template_id, payload.params) if payload.template_id else []
+    try:
+        command = _render(payload.template_id, payload.params, payload.target) if payload.template_id else []
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
     command_hash = _hash_command(command)
-    return {'decision': decision, 'command': command, 'command_preview': ' '.join(command), 'command_hash': command_hash, 'preview_command_hash': command_hash}
+    return {'decision': decision, 'command': command, 'command_preview': mask_metasploit_secrets(' '.join(command)), 'command_hash': command_hash, 'preview_command_hash': command_hash}
 
 @router.post('/approve')
 def approve(payload: ToolActionRequest):
@@ -68,13 +83,16 @@ def approve(payload: ToolActionRequest):
 
 @router.post('/run')
 def run(payload: ToolActionRequest):
-    command = _render(payload.template_id, payload.params) if payload.template_id else []
+    try:
+        command = _render(payload.template_id, payload.params, payload.target) if payload.template_id else []
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
     command_hash = _hash_command(command)
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='run', target_in_scope=True, selected_template_id=payload.template_id, preview_generated=payload.preview_generated, human_approved=payload.human_approved, terms_accepted=payload.terms_accepted, argv=command, command_hash=command_hash, preview_command_hash=payload.preview_command_hash)
+    decision = evaluate_tool_action(tool_id=payload.tool_id, action='run', target_in_scope=True, selected_template_id=payload.template_id, preview_generated=payload.preview_generated, human_approved=payload.human_approved, terms_accepted=payload.terms_accepted, argv=command, command_hash=command_hash, preview_command_hash=payload.preview_command_hash, final_exploit_confirmation=payload.final_exploit_confirmation, check_run_id=payload.check_run_id, check_status=payload.check_status, metasploit_module_id=payload.params.get('module_id'), metasploit_module=payload.params.get('module'), metasploit_options={k: v for k, v in payload.params.items() if k not in {'module_id','module','payload'}}, metasploit_payload=payload.params.get('payload'))
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
     run_id = str(uuid4())
-    record = {'run_id': run_id, 'tool_id': payload.tool_id, 'template_id': payload.template_id, 'status': 'queued', 'command_preview': ' '.join(command), 'command_hash': command_hash, 'stdout': [], 'stderr': [], 'artifacts': []}
+    record = {'run_id': run_id, 'tool_id': payload.tool_id, 'template_id': payload.template_id, 'status': 'queued', 'command_preview': mask_metasploit_secrets(' '.join(command)), 'command_hash': command_hash, 'stdout': [], 'stderr': [], 'artifacts': []}
     _RUNS[run_id] = record
     return record
 

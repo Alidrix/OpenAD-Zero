@@ -13,6 +13,7 @@ class ExploitSearchSuggestion:
     suggested_template_id: str
     reason: str
     risk_level: str
+    execution_class: str | None = None
 
 
 def suggest_metasploit_searches(findings: list[ParsedFinding]) -> list[ExploitSearchSuggestion]:
@@ -20,7 +21,7 @@ def suggest_metasploit_searches(findings: list[ParsedFinding]) -> list[ExploitSe
     def add(f, service, port, cve, keyword, tid, reason, risk="high"):
         key=(f.tool_id, f.target or "", service, port, cve, keyword, tid)
         if key not in seen:
-            seen.add(key); out.append(ExploitSearchSuggestion(f.tool_id, f.target or "", service, port, cve, keyword, tid, reason, risk))
+            seen.add(key); out.append(ExploitSearchSuggestion(f.tool_id, f.target or "", service, port, cve, keyword, tid, reason, risk, "controlled_exploit_after_human_approval" if tid == "metasploit_controlled_exploit_previewable" else None))
     for f in findings:
         fields=f.parsed_fields or {}
         for cve in fields.get("cves", []) if isinstance(fields.get("cves"), list) else ([fields.get("cve")] if fields.get("cve") else []):
@@ -39,4 +40,5 @@ def suggest_metasploit_searches(findings: list[ParsedFinding]) -> list[ExploitSe
             add(f, service, port, None, service, "metasploit_search_by_service", "Service and version were parsed from tool output.")
         if (service in {"smb", "microsoft-ds", "netbios-ssn"} or port in {139,445}) and any(x in version.lower() for x in ["windows 7", "2008", "smbv1"]):
             add(f, "smb", port, None, "ms17-010", "metasploit_check_ms17_010", "Legacy Windows/SMB indicator warrants explicit safe check preview.")
+            add(f, "smb", port, None, "controlled-exploit-candidate", "metasploit_controlled_exploit_previewable", "Potential controlled exploit candidate. Requires manual review, check, preview and final confirmation.", "critical")
     return out

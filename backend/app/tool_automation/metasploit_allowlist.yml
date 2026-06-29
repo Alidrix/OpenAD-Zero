@@ -1,0 +1,27 @@
+modules:
+  - id: msf_smb_ms17_010_check
+    module: auxiliary/scanner/smb/smb_ms17_010
+    type: check
+    allowed: true
+    requires_payload: false
+    allowed_options:
+      - RHOSTS
+      - RPORT
+      - SMBUser
+      - SMBPass
+      - SMBDomain
+
+  - id: msf_controlled_exploit_example
+    module: exploit/windows/smb/example_module
+    type: exploit
+    allowed: false
+    requires_payload: true
+    allowed_payloads: []
+    allowed_options:
+      - RHOSTS
+      - RPORT
+      - TARGETURI
+      - SMBUser
+      - SMBPass
+      - SMBDomain
+    notes: "Disabled by default. Must be explicitly enabled by the lab operator."

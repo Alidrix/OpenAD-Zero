@@ -132,8 +132,11 @@
   risk_level: high
   requires_human_approval: true
   requires_terms_acceptance: true
-  templates: [metasploit_db_status, metasploit_search_by_cve, metasploit_search_by_service, metasploit_search_by_platform_windows, metasploit_search_smb, metasploit_search_ldap, metasploit_search_kerberos, metasploit_info_module, metasploit_check_ms17_010, metasploit_smb_version]
-  notes: "Search/info and explicitly allowed non-destructive checks only; no payloads, sessions or automatic exploitation."
+  templates: [metasploit_db_status, metasploit_search_by_cve, metasploit_search_by_service, metasploit_search_by_platform_windows, metasploit_search_smb, metasploit_search_ldap, metasploit_search_kerberos, metasploit_info_module, metasploit_check_ms17_010, metasploit_smb_version, metasploit_controlled_check, metasploit_controlled_exploit_previewable]
+  execution_class: controlled_exploit_after_human_approval
+  requires_check_first: true
+  requires_preview_hash_match: true
+  notes: "Search/info/check plus controlled exploit preparation from the backend Metasploit allowlist only; exploits require check, preview hash match, human approval, terms acceptance and final confirmation."
 - id: mimikatz
   name: Mimikatz
   integration_status: manual_only

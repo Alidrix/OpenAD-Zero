@@ -65,3 +65,21 @@ An OpenAD-Zero tool is executable only when:
 7. explicit terms are accepted.
 
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
+
+## Controlled Metasploit exploitation
+
+OpenAD-Zero can prepare and run controlled Metasploit exploit workflows only when:
+
+1. the module is allowlisted in `backend/app/tool_automation/metasploit_allowlist.yml`;
+2. the target is in scope;
+3. the command is generated from a backend template;
+4. the command preview is reviewed;
+5. the preview hash matches at execution time;
+6. a check step has been performed when required;
+7. human approval is confirmed;
+8. terms are accepted;
+9. final exploit confirmation is confirmed.
+
+Prepared exploit does not mean executed exploit. An exploit command may be generated and previewed, but it must never run without explicit human approval, terms acceptance, valid scope and a matching preview hash.
+
+Metasploit controlled exploitation forbids free `msfconsole` commands, automatic exploitation without human action, implicit multi-target exploitation, non-allowlisted payloads, automatic post-exploitation, persistence, log deletion, trace removal, anti-forensics and any execution outside validated scope. Correlation from Nmap, Nuclei, NetExec, SMB, LDAP, Kerberos and BloodHound may suggest a potential controlled exploit candidate, but the suggestion is never directly executable and always requires manual review, check, preview and final confirmation.

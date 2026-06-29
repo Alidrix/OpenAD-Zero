@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from app.tool_automation.results import ParsedFinding, make_finding
+from app.tool_automation.metasploit_allowlist import mask_metasploit_secrets
 
 
 def parse_tool_output(tool_id: str, template_id: str, output: str, target: str | None = None, artifact_path: str | None = None) -> list[ParsedFinding]:
@@ -95,10 +96,22 @@ def parse_responder(output, tool_id="responder", template_id="responder_analyze"
 
 def parse_metasploit(output, tool_id="metasploit", template_id="metasploit_search_by_service", target=None):
     fs=[]
+    controlled = "controlled_exploit" in template_id
     for l in output.splitlines():
+        safe_line = mask_metasploit_secrets(l)
         m=re.search(r"\b((auxiliary|exploit)/\S+)", l)
-        if m: fs.append(make_finding(tool_id, template_id, target, "metasploit_module", "info", f"Metasploit module {m.group(1)}", "Metasploit search/info/check output identified a module.", l, {"module": m.group(1), "type": m.group(2), "check_supported": "check" in l.lower()}))
-        elif "appears" in l.lower() or "vulnerable" in l.lower(): fs.append(make_finding(tool_id, template_id, target, "vulnerability", "high", "Metasploit check result", "Metasploit check reported a vulnerability indicator.", l, {"check_result": l}))
+        if m:
+            fs.append(make_finding(tool_id, template_id, target, "metasploit_module", "info", f"Metasploit module {m.group(1)}", "Metasploit output identified a module.", safe_line, {"module": m.group(1), "type": m.group(2), "check_supported": "check" in l.lower()}))
+        elif "appears" in l.lower() or "vulnerable" in l.lower():
+            fs.append(make_finding(tool_id, template_id, target, "metasploit_check", "high", "Metasploit check result", "Metasploit check reported a vulnerability indicator.", safe_line, {"check_result": safe_line, "vulnerable": True}))
+            fs.append(make_finding(tool_id, template_id, target, "vulnerability", "high", "Metasploit vulnerability indicator", "Metasploit reported a vulnerable status.", safe_line, {"vulnerable": True}))
+        elif "not exploitable" in l.lower() or "not vulnerable" in l.lower() or "safe" in l.lower():
+            fs.append(make_finding(tool_id, template_id, target, "metasploit_check", "info", "Metasploit non-vulnerable result", "Metasploit did not report a vulnerable status.", safe_line, {"vulnerable": False}))
+        elif re.search(r"Command shell session\s+(\d+)\s+opened|Meterpreter session\s+(\d+)\s+opened", l, re.I):
+            sid = next(x for x in re.search(r"session\s+(\d+)\s+opened", l, re.I).groups() if x)
+            fs.append(make_finding(tool_id, template_id, target, "metasploit_session", "critical", f"Metasploit session {sid} opened", "Controlled exploit output reported an opened session.", safe_line, {"session_opened": True, "session_id": sid}))
+        elif controlled and any(x in l.lower() for x in ["exploit", "run", "error", "failed"]):
+            fs.append(make_finding(tool_id, template_id, target, "metasploit_controlled_exploit", "critical" if "opened" in l.lower() else "medium", "Controlled Metasploit exploit output", "Parsed controlled exploit status/error output.", safe_line, {"status": safe_line, "error": "error" in l.lower() or "failed" in l.lower()}))
     return fs
 
 def parse_nmap(output, tool_id="nmap_safe_discovery", template_id="nmap_safe_discovery", target=None):

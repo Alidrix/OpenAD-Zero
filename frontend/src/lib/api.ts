@@ -100,9 +100,10 @@ export const cancelJob=(missionId:string,jobId:string)=>req<Job>(`/api/missions/
 export const retryJob=(missionId:string,jobId:string)=>req<Job>(`/api/missions/${missionId}/jobs/${jobId}/retry`,{method:'POST',body:JSON.stringify({})});
 export const listMissionEvents=(missionId:string,filters?:{after_id?:string;limit?:number;event_type?:string;source?:string})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,String(v))});return req<PersistentMissionEvent[]>(`/api/missions/${missionId}/events${qs.toString()?`?${qs}`:''}`)};
 export const workerHealth=()=>req<any>('/api/health/worker');
-import type {CommandTemplate,ToolActionPayload,ToolAutomationTool,ToolRunRecord} from '../types/toolAutomation';
+import type {CommandTemplate,MetasploitAllowlistModule,ToolActionPayload,ToolAutomationTool,ToolRunRecord} from '../types/toolAutomation';
 export const getToolAutomationTools=()=>req<ToolAutomationTool[]>('/api/tool-automation/tools');
 export const getToolAutomationTemplates=()=>req<CommandTemplate[]>('/api/tool-automation/templates');
+export const getMetasploitAllowlist=()=>req<MetasploitAllowlistModule[]>('/api/tool-automation/metasploit/allowlist');
 export const previewToolCommand=(payload:ToolActionPayload)=>req<{command:string[];command_preview:string;command_hash:string;preview_command_hash:string;decision:any}>('/api/tool-automation/preview',{method:'POST',body:JSON.stringify(payload)});
 export const approveToolCommand=(payload:ToolActionPayload)=>req<{approved:boolean;decision:any}>('/api/tool-automation/approve',{method:'POST',body:JSON.stringify(payload)});
 export const runToolCommand=(payload:ToolActionPayload)=>req<ToolRunRecord>('/api/tool-automation/run',{method:'POST',body:JSON.stringify(payload)});

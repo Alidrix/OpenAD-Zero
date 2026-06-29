@@ -8,7 +8,7 @@ FindingValue = str | int | bool | list[str]
 
 CATEGORIES = {
     "host", "port", "service", "domain", "user", "group", "computer", "share", "session", "spn", "asrep", "gmsa", "acl",
-    "credential_artifact", "coercion", "captured_hash", "metasploit_module", "vulnerability", "bloodhound_path",
+    "credential_artifact", "coercion", "captured_hash", "metasploit_module", "metasploit_check", "metasploit_controlled_exploit", "metasploit_session", "vulnerability", "bloodhound_path",
 }
 
 @dataclass(frozen=True)
