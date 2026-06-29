@@ -8,6 +8,7 @@ ENV PATH="/go/bin:/usr/local/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    gosu \
     curl \
     git \
     nmap \
@@ -52,11 +53,13 @@ COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
 COPY app /app/app
 COPY scripts /app/scripts
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY nuclei-templates-safe /app/nuclei-templates-safe
 
-RUN mkdir -p /app/evidence /opt/pipx /go \
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && mkdir -p /app/evidence /app/evidence/tool-runs /app/evidence/findings /app/evidence/artifacts /opt/pipx /go \
     && chown -R openadzero:openadzero /app /app/evidence /opt/pipx /go
 
-USER openadzero
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]

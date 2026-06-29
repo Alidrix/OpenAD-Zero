@@ -1,9 +1,13 @@
 COMPOSE ?= docker compose
-.PHONY: up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check security-check release-docs-check frontend-deps-check release-check version docker-security-check qa health clean
+.PHONY: prepare-evidence up up-build up-bloodhound down restart logs logs-api logs-worker logs-ui ps migrate migrate-local migration-new db-reset-dev seed-dev smoke test backend-install backend-test backend-lint backend-format backend-format-check frontend-install frontend-build frontend-e2e e2e lint format format-check security-check release-docs-check frontend-deps-check release-check version docker-security-check qa health clean
+
+prepare-evidence:
+	mkdir -p evidence evidence/tool-runs evidence/findings evidence/artifacts
+	@echo "Evidence directory prepared locally."
 
 up:
 	$(COMPOSE) up
-up-build:
+up-build: prepare-evidence
 	$(COMPOSE) up --build
 up-bloodhound:
 	$(COMPOSE) --profile bloodhound up --build
