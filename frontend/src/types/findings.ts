@@ -1,0 +1,1 @@
+export interface ParsedFinding{ id:string; tool_id:string; template_id:string; target?:string|null; category:string; severity:string; title:string; description:string; raw_evidence:string; parsed_fields:Record<string,unknown>; artifact_path?:string|null }

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from uuid import uuid4
 
@@ -21,7 +23,11 @@ class ToolActionRequest(BaseModel):
     human_approved: bool = False
     terms_accepted: bool = False
     preview_generated: bool = False
+    preview_command_hash: str | None = None
 
+
+def _hash_command(command: list[str]) -> str:
+    return hashlib.sha256(json.dumps(command, separators=(",", ":")).encode()).hexdigest()
 
 def _render(template_id: str, params: dict[str, str]) -> list[str]:
     argv = COMMAND_TEMPLATES.get(template_id)
@@ -41,7 +47,8 @@ def tools():
 
 @router.get('/templates')
 def templates():
-    return [{'id': tid, 'argv': argv, 'placeholders': sorted(set(_PLACEHOLDER_RE.findall(' '.join(argv))))} for tid, argv in COMMAND_TEMPLATES.items()]
+    from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
+    return [{**COMMAND_TEMPLATE_DEFINITIONS[tid].__dict__, 'placeholders': sorted(set(_PLACEHOLDER_RE.findall(' '.join(argv))))} for tid, argv in COMMAND_TEMPLATES.items()]
 
 @router.post('/preview')
 def preview(payload: ToolActionRequest):
@@ -49,7 +56,8 @@ def preview(payload: ToolActionRequest):
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
     command = _render(payload.template_id, payload.params) if payload.template_id else []
-    return {'decision': decision, 'command': command, 'command_preview': ' '.join(command)}
+    command_hash = _hash_command(command)
+    return {'decision': decision, 'command': command, 'command_preview': ' '.join(command), 'command_hash': command_hash, 'preview_command_hash': command_hash}
 
 @router.post('/approve')
 def approve(payload: ToolActionRequest):
@@ -61,13 +69,42 @@ def approve(payload: ToolActionRequest):
 @router.post('/run')
 def run(payload: ToolActionRequest):
     command = _render(payload.template_id, payload.params) if payload.template_id else []
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='run', target_in_scope=True, selected_template_id=payload.template_id, preview_generated=payload.preview_generated, human_approved=payload.human_approved, terms_accepted=payload.terms_accepted, argv=command)
+    command_hash = _hash_command(command)
+    decision = evaluate_tool_action(tool_id=payload.tool_id, action='run', target_in_scope=True, selected_template_id=payload.template_id, preview_generated=payload.preview_generated, human_approved=payload.human_approved, terms_accepted=payload.terms_accepted, argv=command, command_hash=command_hash, preview_command_hash=payload.preview_command_hash)
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
     run_id = str(uuid4())
-    record = {'run_id': run_id, 'tool_id': payload.tool_id, 'template_id': payload.template_id, 'status': 'queued', 'command_preview': ' '.join(command), 'stdout': [], 'stderr': [], 'artifacts': []}
+    record = {'run_id': run_id, 'tool_id': payload.tool_id, 'template_id': payload.template_id, 'status': 'queued', 'command_preview': ' '.join(command), 'command_hash': command_hash, 'stdout': [], 'stderr': [], 'artifacts': []}
     _RUNS[run_id] = record
     return record
+
+@router.get('/presets')
+def presets():
+    import yaml
+    from pathlib import Path
+    path = Path(__file__).parents[1] / 'tool_automation' / 'workflow_presets.yml'
+    return yaml.safe_load(path.read_text())
+
+@router.get('/findings')
+def findings(tool_id: str | None = Query(default=None)):
+    rows = []
+    for run in _RUNS.values():
+        for item in run.get('findings', []):
+            if not tool_id or item.get('tool_id') == tool_id:
+                rows.append(item)
+    return rows
+
+@router.get('/suggestions')
+def suggestions():
+    from app.tool_automation.correlation import suggest_metasploit_searches
+    return [s.__dict__ for s in suggest_metasploit_searches([])]
+
+@router.post('/metasploit/suggest')
+def metasploit_suggest(findings_payload: list[dict]):
+    from app.tool_automation.correlation import suggest_metasploit_searches
+    from app.tool_automation.results import ParsedFinding
+    findings = [ParsedFinding(**item) for item in findings_payload]
+    return [s.__dict__ for s in suggest_metasploit_searches(findings)]
 
 @router.get('/runs/{run_id}')
 def get_run(run_id: str):

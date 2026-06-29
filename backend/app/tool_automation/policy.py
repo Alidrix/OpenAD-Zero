@@ -24,6 +24,7 @@ class ToolPolicyDecision:
     risk_level: str = "low"
     requires_human_approval: bool = False
     requires_terms_acceptance: bool = False
+    requires_preview: bool = True
 
 
 def load_tool_catalog(path: Path = CATALOG_PATH) -> dict[str, dict]:
@@ -63,7 +64,7 @@ def _template_decision(tool: dict, selected_template_id: str | None) -> ToolPoli
     return None
 
 
-def evaluate_tool_action(*, tool_id: str, action: Action, template: str | None = None, argv: list[str] | None = None, target_in_scope: bool = True, catalog: dict[str, dict] | None = None, declared_template_ids: set[str] | None = None, human_approved: bool = False, terms_accepted: bool = False, preview_generated: bool = False, selected_template_id: str | None = None) -> ToolPolicyDecision:
+def evaluate_tool_action(*, tool_id: str, action: Action, template: str | None = None, argv: list[str] | None = None, target_in_scope: bool = True, catalog: dict[str, dict] | None = None, declared_template_ids: set[str] | None = None, human_approved: bool = False, terms_accepted: bool = False, preview_generated: bool = False, selected_template_id: str | None = None, command_hash: str | None = None, preview_command_hash: str | None = None) -> ToolPolicyDecision:
     tools = catalog if catalog is not None else load_tool_catalog()
     tool = tools.get(tool_id)
     if tool is None:
@@ -85,6 +86,10 @@ def evaluate_tool_action(*, tool_id: str, action: Action, template: str | None =
             return deny("Manual-only tools can be documented, but not run.")
         return allow("Manual-only workflow may be previewed or approved as documentation only.")
     if action in {"preview", "approve"}:
+        if selected_template_id:
+            template_denial = _template_decision(tool, selected_template_id)
+            if template_denial is not None:
+                return template_denial
         return allow("Command preview or approval step is allowed for validated scope.")
     template_denial = _template_decision(tool, selected_template_id or (tool_id if declared_template_ids and tool_id in declared_template_ids else None))
     if template_denial is not None:
@@ -98,7 +103,11 @@ def evaluate_tool_action(*, tool_id: str, action: Action, template: str | None =
             return deny("This tool requires human approval before execution.")
         if not terms_accepted:
             return deny("This tool requires explicit terms acceptance before execution.")
-        return ToolPolicyDecision(True, "Advanced workflow is allowed after preview, human approval, terms acceptance and scope validation.", "high", True, True)
+        if not command_hash or not preview_command_hash or command_hash != preview_command_hash:
+            return deny("Executed command hash must match the generated preview command hash.")
+        return ToolPolicyDecision(True, "Advanced workflow is allowed after preview, matching command hash, human approval, terms acceptance and scope validation.", "high", True, True)
     if status in {"safe_auto", "assisted_safe"}:
+        if preview_generated and (not command_hash or not preview_command_hash or command_hash != preview_command_hash):
+            return deny("Executed command hash must match the generated preview command hash.")
         return allow("Safe or assisted workflow is allowed for validated scope and declared template.")
     return deny("Unsupported integration status.")

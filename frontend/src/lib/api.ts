@@ -103,7 +103,7 @@ export const workerHealth=()=>req<any>('/api/health/worker');
 import type {CommandTemplate,ToolActionPayload,ToolAutomationTool,ToolRunRecord} from '../types/toolAutomation';
 export const getToolAutomationTools=()=>req<ToolAutomationTool[]>('/api/tool-automation/tools');
 export const getToolAutomationTemplates=()=>req<CommandTemplate[]>('/api/tool-automation/templates');
-export const previewToolCommand=(payload:ToolActionPayload)=>req<{command:string[];command_preview:string;decision:any}>('/api/tool-automation/preview',{method:'POST',body:JSON.stringify(payload)});
+export const previewToolCommand=(payload:ToolActionPayload)=>req<{command:string[];command_preview:string;command_hash:string;preview_command_hash:string;decision:any}>('/api/tool-automation/preview',{method:'POST',body:JSON.stringify(payload)});
 export const approveToolCommand=(payload:ToolActionPayload)=>req<{approved:boolean;decision:any}>('/api/tool-automation/approve',{method:'POST',body:JSON.stringify(payload)});
 export const runToolCommand=(payload:ToolActionPayload)=>req<ToolRunRecord>('/api/tool-automation/run',{method:'POST',body:JSON.stringify(payload)});
 export const getToolRun=(runId:string)=>req<ToolRunRecord>(`/api/tool-automation/runs/${runId}`);

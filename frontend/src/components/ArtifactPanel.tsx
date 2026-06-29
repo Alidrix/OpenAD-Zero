@@ -1,0 +1,1 @@
+export function ArtifactPanel({artifacts=[]}:{artifacts?:string[]}){return <div className='card'><h2 className='font-bold'>Artifacts</h2>{artifacts.length?artifacts.map(a=><p className='font-mono text-xs' key={a}>{a}</p>):<p className='text-sm text-slate-500'>No artifacts recorded yet.</p>}</div>}
