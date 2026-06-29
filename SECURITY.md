@@ -1,26 +1,6 @@
-# OpenAD Zero
+# Security Policy
 
-OpenAD Zero is a safe-by-default Active Directory lab operations platform for authorized internal labs, CTFs, training environments, and controlled assessment workflows.
-
-It combines a FastAPI backend, React/Vite frontend, PostgreSQL, Redis, RQ worker, evidence handling, Markdown/HTML reporting, lab operations, timeline/progress views, and an explicit capability matrix.
-
-## Quick start
-
-```bash
-cp .env.example .env
-make up-build
-make migrate
-make smoke
-```
-
-Then open:
-
-- UI: http://localhost:5173
-- API: http://localhost:8000
-- API health: http://localhost:8000/api/health
-- Version: http://localhost:8000/api/version
-
-SUPPORTED BY HTB - © 2026 Hack The Box
+Use GitHub private vulnerability reporting for coordinated disclosure. Do not publish exploit details before maintainers triage the issue.
 
 ## Tool execution model
 
@@ -36,5 +16,3 @@ An OpenAD-Zero tool is executable only when:
 7. explicit terms are accepted.
 
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
-
-Release docs: docs/RELEASE_READINESS.md, docs/KNOWN_ISSUES.md, docs/POST_RELEASE.md.
