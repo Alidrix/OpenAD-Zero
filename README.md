@@ -38,3 +38,16 @@ An OpenAD-Zero tool is executable only when:
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
 
 Release docs: docs/RELEASE_READINESS.md, docs/KNOWN_ISSUES.md, docs/POST_RELEASE.md.
+
+## Local LAB startup
+
+```bash
+cp .env.example .env
+make up-build
+make migrate
+make smoke
+pytest
+cd frontend && npm install && npm run build
+```
+
+Tool automation exposes `/api/tool-automation/tool-health` for binary status and stores local run history under `data/tool-runs/` plus findings under `data/findings/`.

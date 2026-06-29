@@ -32,12 +32,26 @@ RUN pipx install git+https://github.com/Pennyw0rth/NetExec \
     || pipx install --pip-args="--no-cache-dir" git+https://github.com/Pennyw0rth/NetExec
 RUN command -v nxc && nxc --help >/tmp/nxc_help.txt
 
+# Tooling used by the controlled Tool Automation Library. Some upstream tools
+# are intentionally best-effort so local builds can still complete and the API
+# can report missing optional binaries through /tool-automation/tool-health.
+RUN pipx install impacket \
+    && pipx install bloodyAD \
+    && pipx install coercer \
+    || true
+RUN pipx install git+https://github.com/login-securite/DonPAPI.git || true
+RUN pipx install git+https://github.com/micahvandeusen/gMSADumper.git || true
+RUN git clone --depth 1 https://github.com/lgandx/Responder.git /opt/Responder \
+    && ln -sf /opt/Responder/Responder.py /usr/local/bin/responder \
+    || true
+
 RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
 RUN command -v nuclei && nuclei -version
 
 COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
 COPY app /app/app
+COPY scripts /app/scripts
 COPY nuclei-templates-safe /app/nuclei-templates-safe
 
 RUN mkdir -p /app/evidence /opt/pipx /go \

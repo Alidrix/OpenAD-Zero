@@ -66,3 +66,10 @@ COMMAND_TEMPLATE_DEFINITIONS: dict[str, CommandTemplate] = {
 }
 
 COMMAND_TEMPLATES: dict[str, list[str]] = {k: v.argv for k, v in COMMAND_TEMPLATE_DEFINITIONS.items()}
+
+# Controlled Metasploit templates are constructed by backend-only allowlist logic.
+COMMAND_TEMPLATE_DEFINITIONS.update({
+    "metasploit_controlled_check": CommandTemplate("metasploit_controlled_check", "metasploit", "Controlled allowlisted check", "Run only an allowlisted Metasploit check module against one validated target.", ["msfconsole", "-q", "-x", "use {module}; set RHOSTS {target}; setg VERBOSE true; check; exit"], ["module", "target"], [], "metasploit_check", "high", "metasploit_check"),
+    "metasploit_controlled_exploit": CommandTemplate("metasploit_controlled_exploit", "metasploit", "Controlled allowlisted exploit", "Disabled-by-default controlled exploit path; requires strict allowlist, successful check, and final confirmation.", ["msfconsole", "-q", "-x", "use {module}; set RHOSTS {target}; setg VERBOSE true; {validated_options}; {validated_payload}; run; exit"], ["module", "target", "validated_options", "validated_payload"], [], "metasploit_controlled_exploit", "high", "metasploit_controlled_exploit"),
+})
+COMMAND_TEMPLATES.update({k: v.argv for k, v in COMMAND_TEMPLATE_DEFINITIONS.items() if k.startswith('metasploit_controlled_')})

@@ -59,11 +59,18 @@ def redact_mapping(data: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def redact_text(text: str) -> str:
-    redacted = _ASSIGNMENT_RE.sub(lambda m: f"{m.group('name')}{m.group('sep')}{MASK}", text)
-    redacted = _SET_RE.sub(lambda m: f"{m.group('prefix')}{MASK}", redacted)
-    redacted = _BEARER_RE.sub(lambda m: f"{m.group(1)} {MASK}", redacted)
+    redacted = text
+    # Specific HTTP auth/cookie patterns first so generic assignments do not partially mask them.
+    redacted = re.sub(r"(?i)\b(Authorization\s*:\s*Bearer)\s+[^\s,;]+", rf"\1 {MASK}", redacted)
+    redacted = re.sub(r"(?i)\b(authorization\s*=\s*Bearer)\s+[^\s,;]+", rf"\1 {MASK}", redacted)
+    redacted = re.sub(r"(?i)\b(Authorization\s*:\s*Basic)\s+[^\s,;]+", rf"\1 {MASK}", redacted)
+    redacted = re.sub(r"(?i)\b(authorization\s*=\s*Basic)\s+[^\s,;]+", rf"\1 {MASK}", redacted)
+    redacted = re.sub(r"(?i)\bCookie\s*:\s*[^\r\n]+", f"Cookie: {MASK}", redacted)
     redacted = _DOLLAR_HASH_RE.sub(MASK, redacted)
     redacted = _NTLM_RE.sub(MASK, redacted)
+    redacted = _ASSIGNMENT_RE.sub(lambda m: f"{m.group('name')}{m.group('sep')}{MASK}", redacted)
+    redacted = _SET_RE.sub(lambda m: f"{m.group('prefix')}{MASK}", redacted)
+    redacted = re.sub(r"(?i)(^|\s)(-p|--password|-H|--hash(?:es)?|--token)\s+[^\s,;]+", lambda m: f"{m.group(1)}{m.group(2)} {MASK}", redacted)
     return redacted
 
 

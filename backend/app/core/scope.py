@@ -49,3 +49,21 @@ def validate_scope(raw_scope: str, allow_public: bool = False, max_prefix: int =
     if not out:
         raise ScopeValidationError('Scope must contain at least one IP or CIDR')
     return ScopeValidationResult(out)
+
+
+def is_target_in_validated_scope(target: str, scope: list[str]) -> bool:
+    """Return True only when target is private IPv4 and belongs to validated private scope."""
+    try:
+        target_ip = ipaddress.ip_address(target)
+        if target_ip.version != 4 or not target_ip.is_private:
+            return False
+        validated = validate_scope(",".join(scope)).targets
+        for item in validated:
+            if "/" in item:
+                if target_ip in ipaddress.ip_network(item, strict=False):
+                    return True
+            elif target_ip == ipaddress.ip_address(item):
+                return True
+        return False
+    except Exception:
+        return False
