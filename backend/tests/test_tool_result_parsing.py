@@ -20,3 +20,9 @@ def test_parsers_core_ad_tools():
 def test_nmap_and_nuclei_parsers():
     assert parse_tool_output('nmap_safe_discovery','nmap_safe_discovery','445/tcp open microsoft-ds Windows Server','10.0.0.5')[0].parsed_fields['port'] == 445
     assert parse_tool_output('nuclei_safe_templates','nuclei_safe_templates','[CVE-2020-1472] [critical] target','10.0.0.5')[0].parsed_fields['cves'] == ['CVE-2020-1472']
+
+
+def test_parser_redacts_raw_evidence_before_api_exposure():
+    finding = parse_tool_output('donpapi', 'donpapi_collect_target', 'credential password=SuperSecretPassword123 found', '10.0.0.5')[0]
+    assert 'SuperSecretPassword123' not in finding.raw_evidence
+    assert '********' in finding.raw_evidence

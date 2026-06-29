@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.tool_automation.command_templates import COMMAND_TEMPLATES
 from app.tool_automation.policy import evaluate_tool_action, load_tool_catalog
+from app.tool_automation.redaction import mask_command, redact_mapping
 
 router = APIRouter(prefix='/tool-automation', tags=['tool-automation'])
 _RUNS: dict[str, dict] = {}
@@ -28,6 +29,10 @@ class ToolActionRequest(BaseModel):
 
 def _hash_command(command: list[str]) -> str:
     return hashlib.sha256(json.dumps(command, separators=(",", ":")).encode()).hexdigest()
+
+def _masked_preview(command: list[str], params: dict[str, str]) -> tuple[list[str], str]:
+    masked = mask_command(command, params)
+    return masked, ' '.join(masked)
 
 def _render(template_id: str, params: dict[str, str]) -> list[str]:
     argv = COMMAND_TEMPLATES.get(template_id)
@@ -57,7 +62,8 @@ def preview(payload: ToolActionRequest):
         raise HTTPException(status_code=403, detail=decision.reason)
     command = _render(payload.template_id, payload.params) if payload.template_id else []
     command_hash = _hash_command(command)
-    return {'decision': decision, 'command': command, 'command_preview': ' '.join(command), 'command_hash': command_hash, 'preview_command_hash': command_hash}
+    masked_command, command_preview = _masked_preview(command, payload.params)
+    return {'decision': decision, 'masked_command': masked_command, 'command': masked_command, 'command_preview': command_preview, 'preview_command_hash': command_hash}
 
 @router.post('/approve')
 def approve(payload: ToolActionRequest):
@@ -74,7 +80,8 @@ def run(payload: ToolActionRequest):
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
     run_id = str(uuid4())
-    record = {'run_id': run_id, 'tool_id': payload.tool_id, 'template_id': payload.template_id, 'status': 'queued', 'command_preview': ' '.join(command), 'command_hash': command_hash, 'stdout': [], 'stderr': [], 'artifacts': []}
+    masked_command, command_preview = _masked_preview(command, payload.params)
+    record = {'run_id': run_id, 'tool_id': payload.tool_id, 'template_id': payload.template_id, 'status': 'queued', 'command_preview': command_preview, 'masked_command': masked_command, 'preview_command_hash': command_hash, 'stdout': [], 'stderr': [], 'artifacts': []}
     _RUNS[run_id] = record
     return record
 
@@ -91,7 +98,7 @@ def findings(tool_id: str | None = Query(default=None)):
     for run in _RUNS.values():
         for item in run.get('findings', []):
             if not tool_id or item.get('tool_id') == tool_id:
-                rows.append(item)
+                rows.append(redact_mapping(item))
     return rows
 
 @router.get('/suggestions')
@@ -110,9 +117,9 @@ def metasploit_suggest(findings_payload: list[dict]):
 def get_run(run_id: str):
     if run_id not in _RUNS:
         raise HTTPException(status_code=404, detail='Run not found')
-    return _RUNS[run_id]
+    return redact_mapping(_RUNS[run_id])
 
 @router.get('/runs')
 def list_runs(tool_id: str | None = Query(default=None)):
     runs = list(_RUNS.values())
-    return [r for r in runs if not tool_id or r['tool_id'] == tool_id]
+    return [redact_mapping(r) for r in runs if not tool_id or r['tool_id'] == tool_id]
