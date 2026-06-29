@@ -16,6 +16,49 @@ from app.tool_automation.parsers import parse_tool_output
 from app.tool_automation.redaction import mask_command, redact_text
 from app.tool_automation.results import ParsedFinding
 
+RUNTIME_DIRS = {
+    'HOME': Path('/app/runtime/home'),
+    'XDG_CONFIG_HOME': Path('/app/runtime/config'),
+    'XDG_CACHE_HOME': Path('/app/runtime/cache'),
+    'XDG_DATA_HOME': Path('/app/runtime/data'),
+    'TMPDIR': Path('/app/runtime/tmp'),
+}
+NXC_PATH = Path('/app/runtime/home/.nxc')
+RESPONDER_RUNTIME_DIR = Path('/app/runtime/responder')
+
+
+def _ensure_writable_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    probe = path / f'.openadzero-write-test-{uuid4().hex}'
+    try:
+        probe.write_text('ok', encoding='utf-8')
+    finally:
+        probe.unlink(missing_ok=True)
+
+
+def ensure_tool_runtime_dirs() -> None:
+    for path in RUNTIME_DIRS.values():
+        _ensure_writable_dir(path)
+    _ensure_writable_dir(NXC_PATH)
+    _ensure_writable_dir(RUNTIME_DIRS['XDG_CONFIG_HOME'] / 'nuclei')
+    _ensure_writable_dir(Path('/app/runtime/nxc'))
+    _ensure_writable_dir(RESPONDER_RUNTIME_DIR)
+
+
+def build_tool_env(base_env: dict[str, str] | None = None) -> dict[str, str]:
+    env = dict(base_env or os.environ)
+    env['HOME'] = str(RUNTIME_DIRS['HOME'])
+    env['XDG_CONFIG_HOME'] = str(RUNTIME_DIRS['XDG_CONFIG_HOME'])
+    env['XDG_CACHE_HOME'] = str(RUNTIME_DIRS['XDG_CACHE_HOME'])
+    env['XDG_DATA_HOME'] = str(RUNTIME_DIRS['XDG_DATA_HOME'])
+    env['TMPDIR'] = str(RUNTIME_DIRS['TMPDIR'])
+    env['NXC_PATH'] = str(NXC_PATH)
+    env['NETEXEC_HOME'] = '/app/runtime/nxc'
+    env['PATH'] = env.get('PATH') or os.getenv('PATH', '/go/bin:/usr/local/bin:/usr/bin:/bin')
+    env.setdefault('LANG', 'C.UTF-8')
+    env.setdefault('LC_ALL', 'C.UTF-8')
+    return env
+
 
 def tool_runs_dir() -> Path:
     return (
@@ -112,7 +155,10 @@ def execute_tool_request(
         raise ValueError('Executed command hash must match the generated preview command hash.')
     run_id = str(uuid4())
     started_at = datetime.now(UTC).isoformat()
-    safe_env = {'PATH': os.getenv('PATH', '/usr/local/bin:/usr/bin:/bin'), 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8'}
+    ensure_tool_runtime_dirs()
+    job_dir = tool_runs_dir() / run_id
+    _ensure_writable_dir(job_dir)
+    safe_env = build_tool_env()
     stdout_lines: list[str] = []
     stderr_lines: list[str] = []
     status = 'running'
@@ -121,7 +167,7 @@ def execute_tool_request(
         if not argv or not shutil.which(argv[0]):
             raise FileNotFoundError(argv[0] if argv else '')
         completed = subprocess.run(
-            argv, shell=False, capture_output=True, text=True, timeout=timeout_seconds, cwd=os.getcwd(), env=safe_env
+            argv, shell=False, capture_output=True, text=True, timeout=timeout_seconds, cwd=str(job_dir), env=safe_env
         )
         returncode = completed.returncode
         stdout_lines = [redact_text(line) for line in completed.stdout.splitlines()]
