@@ -1,5 +1,6 @@
 services:
   openadzero-postgres:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: openadzero
@@ -12,6 +13,7 @@ services:
       timeout: 5s
       retries: 5
   openadzero-redis:
+    restart: unless-stopped
     image: redis:7-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -19,6 +21,7 @@ services:
       timeout: 5s
       retries: 5
   openadzero-api:
+    restart: unless-stopped
     build: ./backend
     env_file: .env
     environment:
@@ -27,10 +30,19 @@ services:
       EVIDENCE_DIR: /app/evidence
       APP_UID: "10001"
       APP_GID: "10001"
+      HOME: /app/runtime/home
+      XDG_CONFIG_HOME: /app/runtime/config
+      XDG_CACHE_HOME: /app/runtime/cache
+      XDG_DATA_HOME: /app/runtime/data
+      TMPDIR: /app/runtime/tmp
+      NXC_PATH: /app/runtime/home/.nxc
+      NETEXEC_HOME: /app/runtime/nxc
     ports: ['8000:8000']
     # Named volume is recommended to avoid host bind-mount permission issues.
     # Use a local override with ./evidence:/app/evidence only when you need exported artifacts.
-    volumes: ['openadzero-evidence:/app/evidence']
+    volumes:
+      - openadzero-evidence:/app/evidence
+      - openadzero-runtime:/app/runtime
     depends_on:
       openadzero-postgres:
         condition: service_healthy
@@ -42,6 +54,7 @@ services:
       timeout: 5s
       retries: 5
   openadzero-worker:
+    restart: unless-stopped
     build: ./backend
     env_file: .env
     environment:
@@ -50,11 +63,19 @@ services:
       EVIDENCE_DIR: /app/evidence
       APP_UID: "10001"
       APP_GID: "10001"
+      HOME: /app/runtime/home
+      XDG_CONFIG_HOME: /app/runtime/config
+      XDG_CACHE_HOME: /app/runtime/cache
+      XDG_DATA_HOME: /app/runtime/data
+      TMPDIR: /app/runtime/tmp
+      NXC_PATH: /app/runtime/home/.nxc
+      NETEXEC_HOME: /app/runtime/nxc
     command: ["python", "-m", "app.worker"]
     # Named volume is recommended to avoid host bind-mount permission issues.
     # Use a local override with ./evidence:/app/evidence only when you need exported artifacts.
     volumes:
       - openadzero-evidence:/app/evidence
+      - openadzero-runtime:/app/runtime
     depends_on:
       openadzero-postgres:
         condition: service_healthy
@@ -66,6 +87,7 @@ services:
       timeout: 5s
       retries: 5
   openadzero-ui:
+    restart: unless-stopped
     build: ./frontend
     environment:
       VITE_API_URL: http://localhost:8000
@@ -104,6 +126,7 @@ services:
     depends_on: [bloodhound-postgres, bloodhound-neo4j]
 volumes:
   openadzero-evidence:
+  openadzero-runtime:
   postgres-data:
   bloodhound-postgres-data:
   bloodhound-neo4j-data:

@@ -1,17 +1,24 @@
 from __future__ import annotations
 
 import re
-import shutil
-import subprocess
+from pathlib import Path
 
+import yaml
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.scope import is_target_in_validated_scope
-from app.tool_automation.command_templates import COMMAND_TEMPLATES, COMMAND_TEMPLATE_DEFINITIONS
+from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS, COMMAND_TEMPLATES
+from app.tool_automation.executor import (
+    ToolExecutionRequest,
+    compute_command_hash,
+    execute_tool_request,
+    load_findings,
+    load_runs,
+)
 from app.tool_automation.policy import evaluate_tool_action, load_tool_catalog
-from app.tool_automation.executor import ToolExecutionRequest, compute_command_hash, execute_tool_request, load_findings, load_runs
 from app.tool_automation.redaction import mask_command, redact_mapping
+from app.tool_automation.tool_health import collect_tool_health
 
 router = APIRouter(prefix='/tool-automation', tags=['tool-automation'])
 _RUNS: dict[str, dict] = {}
@@ -63,7 +70,6 @@ def tools():
 
 @router.get('/templates')
 def templates():
-    from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
     return [{**COMMAND_TEMPLATE_DEFINITIONS[tid].__dict__, 'placeholders': sorted(set(_PLACEHOLDER_RE.findall(' '.join(argv))))} for tid, argv in COMMAND_TEMPLATES.items()]
 
 @router.post('/preview')
@@ -105,8 +111,6 @@ def run(payload: ToolActionRequest):
 
 @router.get('/presets')
 def presets():
-    import yaml
-    from pathlib import Path
     path = Path(__file__).parents[1] / 'tool_automation' / 'workflow_presets.yml'
     return yaml.safe_load(path.read_text())
 
@@ -121,24 +125,7 @@ def findings(tool_id: str | None = Query(default=None), target: str | None = Que
 
 @router.get('/tool-health')
 def tool_health():
-    checks = {
-        'nmap': ['nmap', '--version'], 'nuclei': ['nuclei', '-version'], 'netexec': ['nxc', '--version'],
-        'enum4linux-ng': ['enum4linux-ng', '-h'], 'kerbrute': ['kerbrute', '-h'], 'impacket': ['GetNPUsers.py', '-h'],
-        'gMSADumper': ['gMSADumper.py', '-h'], 'DonPAPI': ['DonPAPI', '-h'], 'Coercer': ['coercer', '-h'],
-        'BloodyAD': ['bloodyAD', '-h'], 'Responder': ['responder', '-h'], 'metasploit': ['msfconsole', '-v'],
-    }
-    out = {}
-    for name, argv in checks.items():
-        if not shutil.which(argv[0]):
-            out[name] = {'available': False, 'reason': f'{argv[0]} not installed'}
-            continue
-        try:
-            cp = subprocess.run(argv, shell=False, capture_output=True, text=True, timeout=10)
-            version = (cp.stdout or cp.stderr).splitlines()[0] if (cp.stdout or cp.stderr) else 'available'
-            out[name] = {'available': True, 'version': version}
-        except Exception as exc:
-            out[name] = {'available': False, 'reason': str(exc)}
-    return out
+    return collect_tool_health()
 
 @router.get('/suggestions')
 def suggestions():

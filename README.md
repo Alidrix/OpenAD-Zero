@@ -59,3 +59,16 @@ cd frontend && npm install && npm run build
 ```
 
 Tool automation exposes `/api/tool-automation/tool-health` for binary status and stores local run history under `EVIDENCE_DIR/tool-runs/` plus findings under `EVIDENCE_DIR/findings/`.
+
+## Runtime writable directories
+
+OpenAD-Zero keeps application code under `/app` and treats it as read-only at runtime. Do not make the full `/app` tree writable and do not run the final API or worker process as root.
+
+Runtime output is split into two writable Docker volumes:
+
+- `/app/evidence` stores durable evidence, tool run records, findings, and exported artifacts.
+- `/app/runtime` stores external-tool runtime state: `HOME` in `/app/runtime/home`, XDG config in `/app/runtime/config`, cache in `/app/runtime/cache`, data in `/app/runtime/data`, temporary files in `/app/runtime/tmp`, and tool-specific state such as NetExec under `/app/runtime/home/.nxc`.
+
+The Docker entrypoint creates these directories automatically, fixes ownership only for `/app/evidence` and `/app/runtime`, and then drops privileges to the `openadzero` user. Tool execution and tool-health checks pass `HOME`, `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_DATA_HOME`, `TMPDIR`, and `NXC_PATH` values pointing at `/app/runtime`, so tools such as NetExec and Nuclei no longer try to write to `/app/.nxc` or `/app/.config`.
+
+Operators should not run manual `chown -R` commands on `/app`, `/go`, `/opt/pipx`, `/usr/local`, or the container filesystem. Use `make check-permissions` to verify the API and worker can write to the expected runtime directories.
