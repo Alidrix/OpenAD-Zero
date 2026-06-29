@@ -16,3 +16,7 @@ An OpenAD-Zero tool is executable only when:
 7. explicit terms are accepted.
 
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
+
+## Tool automation safeguards
+
+Tool execution is template-only: raw commands are rejected, `shell=True` is not used, scope is revalidated at preview/approval/run time, public targets and broad default routes are refused, and preview hashes must match before execution. Secrets are redacted before API return and persisted findings use redacted evidence fingerprints for stable non-duplicated IDs. Metasploit controlled exploit requires an allowlisted enabled module, allowlisted options/payloads, successful prior check when required, and final human confirmation.

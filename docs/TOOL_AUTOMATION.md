@@ -65,3 +65,18 @@ An OpenAD-Zero tool is executable only when:
 7. explicit terms are accepted.
 
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
+
+## Local controlled execution model
+
+`/api/tool-automation/preview`, `/approve`, and `/run` rebuild commands from backend allowlisted argv templates only. The frontend must not send raw commands. Preview returns a masked command and a SHA-256 hash computed over the canonical real argv. Run reconstructs the argv, revalidates scope, checks policy gates, compares the preview hash, executes with `subprocess.run(..., shell=False, timeout=300)`, redacts stdout/stderr, invokes parsers, and stores run/findings JSON under `data/tool-runs/` and `data/findings/`.
+
+`GET /api/tool-automation/tool-health` reports installed/missing binaries. Metasploit controlled exploit is gated by `backend/app/tool_automation/metasploit_allowlist.yml`; disabled modules, unknown options, missing payload allowlist entries, missing successful checks, and missing final confirmation are refused. No exploit-all or arbitrary msfconsole strings are supported.
+
+Local validation checklist:
+
+- UI accessible on `localhost:5173`.
+- API accessible on `localhost:8000`.
+- Tool health reports available and missing binaries.
+- Preview succeeds only for private in-scope targets and masks secrets.
+- Run executes only the previewed command hash and stores redacted stdout/stderr/findings.
+- Findings are parsed and secrets remain masked.

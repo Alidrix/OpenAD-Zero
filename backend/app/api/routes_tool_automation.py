@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import re
-from uuid import uuid4
+import shutil
+import subprocess
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.tool_automation.command_templates import COMMAND_TEMPLATES
+from app.core.scope import is_target_in_validated_scope
+from app.tool_automation.command_templates import COMMAND_TEMPLATES, COMMAND_TEMPLATE_DEFINITIONS
 from app.tool_automation.policy import evaluate_tool_action, load_tool_catalog
+from app.tool_automation.executor import ToolExecutionRequest, compute_command_hash, execute_tool_request, load_findings, load_runs
 from app.tool_automation.redaction import mask_command, redact_mapping
 
 router = APIRouter(prefix='/tool-automation', tags=['tool-automation'])
@@ -17,6 +18,7 @@ _RUNS: dict[str, dict] = {}
 _PLACEHOLDER_RE = re.compile(r'{([a-zA-Z0-9_]+)}')
 
 class ToolActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     tool_id: str
     template_id: str | None = None
     params: dict[str, str] = Field(default_factory=dict)
@@ -25,10 +27,13 @@ class ToolActionRequest(BaseModel):
     terms_accepted: bool = False
     preview_generated: bool = False
     preview_command_hash: str | None = None
+    scope: list[str] = Field(default_factory=list)
+    final_confirmation: bool = False
+    final_exploit_confirmation: bool = False
+    check_run_id: str | None = None
+    check_status: str | None = None
 
 
-def _hash_command(command: list[str]) -> str:
-    return hashlib.sha256(json.dumps(command, separators=(",", ":")).encode()).hexdigest()
 
 def _masked_preview(command: list[str], params: dict[str, str]) -> tuple[list[str], str]:
     masked = mask_command(command, params)
@@ -46,6 +51,12 @@ def _render(template_id: str, params: dict[str, str]) -> list[str]:
         rendered.append(arg.format(**params))
     return rendered
 
+
+def _target_in_scope(payload: ToolActionRequest) -> bool:
+    if not payload.target:
+        return True
+    return is_target_in_validated_scope(payload.target, payload.scope or [payload.target])
+
 @router.get('/tools')
 def tools():
     return list(load_tool_catalog().values())
@@ -57,33 +68,40 @@ def templates():
 
 @router.post('/preview')
 def preview(payload: ToolActionRequest):
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='preview', target_in_scope=True, selected_template_id=payload.template_id)
+    decision = evaluate_tool_action(tool_id=payload.tool_id, action='preview', target_in_scope=_target_in_scope(payload), selected_template_id=payload.template_id)
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
     command = _render(payload.template_id, payload.params) if payload.template_id else []
-    command_hash = _hash_command(command)
+    command_hash = compute_command_hash(command)
     masked_command, command_preview = _masked_preview(command, payload.params)
     return {'decision': decision, 'masked_command': masked_command, 'command': masked_command, 'command_preview': command_preview, 'preview_command_hash': command_hash}
 
 @router.post('/approve')
 def approve(payload: ToolActionRequest):
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='approve', target_in_scope=True, selected_template_id=payload.template_id)
+    decision = evaluate_tool_action(tool_id=payload.tool_id, action='approve', target_in_scope=_target_in_scope(payload), selected_template_id=payload.template_id)
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
     return {'decision': decision, 'approved': True}
 
 @router.post('/run')
 def run(payload: ToolActionRequest):
+    raw = getattr(payload, '__pydantic_extra__', None) or {}
+    if 'command' in raw:
+        raise HTTPException(status_code=400, detail='Raw commands are not accepted.')
     command = _render(payload.template_id, payload.params) if payload.template_id else []
-    command_hash = _hash_command(command)
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='run', target_in_scope=True, selected_template_id=payload.template_id, preview_generated=payload.preview_generated, human_approved=payload.human_approved, terms_accepted=payload.terms_accepted, argv=command, command_hash=command_hash, preview_command_hash=payload.preview_command_hash)
+    command_hash = compute_command_hash(command)
+    decision = evaluate_tool_action(tool_id=payload.tool_id, action='run', target_in_scope=_target_in_scope(payload), selected_template_id=payload.template_id, preview_generated=payload.preview_generated, human_approved=payload.human_approved, terms_accepted=payload.terms_accepted, argv=command, command_hash=command_hash, preview_command_hash=payload.preview_command_hash)
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
-    run_id = str(uuid4())
     masked_command, command_preview = _masked_preview(command, payload.params)
-    record = {'run_id': run_id, 'tool_id': payload.tool_id, 'template_id': payload.template_id, 'status': 'queued', 'command_preview': command_preview, 'masked_command': masked_command, 'preview_command_hash': command_hash, 'stdout': [], 'stderr': [], 'artifacts': []}
-    _RUNS[run_id] = record
-    return record
+    timeout = 300
+    try:
+        result = execute_tool_request(ToolExecutionRequest(payload.tool_id, payload.template_id or '', payload.target, dict(payload.params), payload.preview_command_hash or '', payload.human_approved, payload.terms_accepted, payload.final_confirmation or payload.final_exploit_confirmation, payload.scope), command, command_preview, timeout)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    record = result.__dict__ | {'masked_command': masked_command, 'command_preview': command_preview, 'preview_command_hash': command_hash}
+    _RUNS[result.run_id] = record
+    return redact_mapping(record)
 
 @router.get('/presets')
 def presets():
@@ -93,13 +111,34 @@ def presets():
     return yaml.safe_load(path.read_text())
 
 @router.get('/findings')
-def findings(tool_id: str | None = Query(default=None)):
-    rows = []
-    for run in _RUNS.values():
+def findings(tool_id: str | None = Query(default=None), target: str | None = Query(default=None)):
+    rows = load_findings()
+    for run in list(_RUNS.values()):
         for item in run.get('findings', []):
-            if not tool_id or item.get('tool_id') == tool_id:
-                rows.append(redact_mapping(item))
-    return rows
+            rows.append(item if isinstance(item, dict) else item.__dict__)
+    return [redact_mapping(item) for item in rows if (not tool_id or item.get('tool_id') == tool_id) and (not target or item.get('target') == target)]
+
+
+@router.get('/tool-health')
+def tool_health():
+    checks = {
+        'nmap': ['nmap', '--version'], 'nuclei': ['nuclei', '-version'], 'netexec': ['nxc', '--version'],
+        'enum4linux-ng': ['enum4linux-ng', '-h'], 'kerbrute': ['kerbrute', '-h'], 'impacket': ['GetNPUsers.py', '-h'],
+        'gMSADumper': ['gMSADumper.py', '-h'], 'DonPAPI': ['DonPAPI', '-h'], 'Coercer': ['coercer', '-h'],
+        'BloodyAD': ['bloodyAD', '-h'], 'Responder': ['responder', '-h'], 'metasploit': ['msfconsole', '-v'],
+    }
+    out = {}
+    for name, argv in checks.items():
+        if not shutil.which(argv[0]):
+            out[name] = {'available': False, 'reason': f'{argv[0]} not installed'}
+            continue
+        try:
+            cp = subprocess.run(argv, shell=False, capture_output=True, text=True, timeout=10)
+            version = (cp.stdout or cp.stderr).splitlines()[0] if (cp.stdout or cp.stderr) else 'available'
+            out[name] = {'available': True, 'version': version}
+        except Exception as exc:
+            out[name] = {'available': False, 'reason': str(exc)}
+    return out
 
 @router.get('/suggestions')
 def suggestions():
@@ -121,5 +160,5 @@ def get_run(run_id: str):
 
 @router.get('/runs')
 def list_runs(tool_id: str | None = Query(default=None)):
-    runs = list(_RUNS.values())
+    runs = load_runs() + list(_RUNS.values())
     return [redact_mapping(r) for r in runs if not tool_id or r['tool_id'] == tool_id]
