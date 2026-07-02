@@ -37,6 +37,7 @@ def run_demo_scan(scan_id: str) -> dict:
         scan_service.add_scan_event(db, scan_id, 'scan.running', 'Demo scan worker started', {'status': 'running', 'progress_percent': scan.progress_percent, 'current_step': scan.current_step})
         db.commit()
 
+        # TODO: a future worker-control brick should check the RQ stop signal inside this loop.
         for index, progress in enumerate(DEMO_PROGRESS_STEPS, start=1):
             current_step = f'Demo worker step {index}/{len(DEMO_PROGRESS_STEPS)}'
             status = 'completed' if progress == 100 else 'running'
