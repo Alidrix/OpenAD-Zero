@@ -63,7 +63,14 @@ def collect_tool_health(timeout: int = 10) -> dict[str, object]:
             continue
         try:
             cp = subprocess.run(argv, shell=False, capture_output=True, text=True, timeout=timeout, env=env, cwd='/app/evidence')
-            version = ((cp.stdout or cp.stderr).splitlines() or ['available'])[0]
+            output = cp.stdout or cp.stderr
+            lines = [line.strip() for line in output.splitlines() if line.strip()]
+            if name == 'metasploit':
+                version = next((line for line in lines if line.startswith('Framework Version:')), lines[-1] if lines else 'available')
+            elif name == 'impacket':
+                version = next((line for line in lines if line.startswith('Impacket ')), lines[0] if lines else 'available')
+            else:
+                version = lines[0] if lines else 'available'
             tools[name] = {'available': True, 'version': version}
         except Exception as exc:
             tools[name] = {'available': False, 'reason': str(exc)}
