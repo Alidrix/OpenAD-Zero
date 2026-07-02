@@ -63,3 +63,6 @@ Integrate real RQ scan workers that emit persisted progress events, add robust w
 ## RQ demo progress hardening
 
 The Scan Library now includes a temporary **Run demo progress** action that calls `POST /api/v2/scans/{scan_id}/enqueue-demo`. The action validates the worker-to-PostgreSQL progression path without launching external tools. During active states (`queued`, `running`, `stopping`), the frontend performs a light two-second HTTP refresh so WebSocket messages remain realtime hints rather than the source of truth.
+## Dashboard V2 handoff
+
+After the Scan Library can resynchronize active scans through HTTP polling and WebSocket hints, `/v2-dashboard` can safely display persisted scan counters from the same `/api/v2/scans` source of truth.
