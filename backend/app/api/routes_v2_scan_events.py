@@ -17,6 +17,16 @@ def query_scan_events(db, scan_id: str, limit: int = 200):
 async def ws_v2_scan(websocket: WebSocket, scan_id: str):
     await scan_ws_manager.connect(scan_id, websocket)
     try:
+        db = SessionLocal()
+        try:
+            scan_exists = scan_service.get_scan(db, scan_id) is not None
+        finally:
+            db.close()
+        if not scan_exists:
+            await websocket.send_json({'type': 'scan.error', 'event_type': 'scan.error', 'scan_id': scan_id, 'message': 'Scan not found'})
+            await websocket.close(code=1008)
+            scan_ws_manager.disconnect(scan_id, websocket)
+            return
         if websocket.query_params.get('replay') == 'true':
             db = SessionLocal()
             try:
