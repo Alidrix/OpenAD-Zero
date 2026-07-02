@@ -59,3 +59,8 @@ The new versioned API is mounted under `/api/v2/scans`:
 ## Next recommended step
 
 Add WebSocket progress streaming and a frontend Scan Library that reads from `/api/v2/scans` instead of keeping critical scan state in the browser.
+
+
+## Related V2 frontend/realtime brick
+
+See [V2 Scan Library + realtime](./V2_SCAN_LIBRARY_REALTIME.md) for the Scan Library UI, `/ws/v2/scans/{scan_id}` replay channel, and refresh/theme resynchronization rules.
