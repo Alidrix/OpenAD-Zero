@@ -52,7 +52,7 @@ Dark/light theme state is treated as a UI preference only. Changing theme must n
 ## Known limits
 
 - Realtime broadcast is best-effort: if broadcasting fails, the HTTP mutation still succeeds after persistence.
-- This step does not implement full RQ worker cancellation or a worker-driven progress pipeline.
+- The demo pipeline includes RQ enqueue and API-side stop/cancel synchronization; cooperative in-loop stop handling inside the demo worker is still a known future hardening item.
 - This step does not add any NetExec workflow, command catalog, or offensive automation.
 - The UI is intentionally minimal and stable; the final V2 dashboard visual redesign is deferred.
 
