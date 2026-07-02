@@ -39,6 +39,11 @@ The frontend never sends a raw command to execute. The backend always rebuilds a
 
 Release docs: docs/RELEASE_READINESS.md, docs/KNOWN_ISSUES.md, docs/POST_RELEASE.md.
 
+
+## V2 scan persistence foundation
+
+The backend includes a first V2 scan persistence foundation under `/api/v2/scans`. Scan state is stored in PostgreSQL, soft-deleted scans are hidden by default, lifecycle events are recorded, and artifacts are constrained to `EVIDENCE_DIR`. This first V2 slice is orchestration-only: it does not add automatic tool execution or NetExec commands. See `docs/V2_SCAN_PERSISTENCE.md` for the model, endpoints, and next steps.
+
 ## Evidence storage
 
 Runs, findings, uploaded evidence, reports, and generated tool artifacts are stored under `EVIDENCE_DIR`. In Docker the default path is `/app/evidence`, with `tool-runs`, `findings`, and `artifacts` subdirectories created automatically for both the API and worker containers.

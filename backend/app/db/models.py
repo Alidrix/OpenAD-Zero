@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -20,7 +20,10 @@ class Mission(Base):
     status: Mapped[str] = mapped_column(String(40), default='created')
     raw_scope: Mapped[str] = mapped_column(Text)
     validated_targets: Mapped[list] = mapped_column(JSON)
+    client_name: Mapped[str | None] = mapped_column(String(255))
+    scope: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
     jobs = relationship('Job', cascade='all, delete-orphan')
@@ -39,6 +42,75 @@ class Mission(Base):
     objective = relationship('MissionObjective', cascade='all, delete-orphan')
     phases = relationship('MissionPhase', cascade='all, delete-orphan')
     timeline_events = relationship('MissionTimelineEvent', cascade='all, delete-orphan')
+    scans = relationship('Scan', cascade='all, delete-orphan')
+
+
+class Scan(Base):
+    __tablename__ = 'scans'
+    __table_args__ = (
+        CheckConstraint('progress_percent >= 0 AND progress_percent <= 100', name='ck_scans_progress_percent_range'),
+        Index('ix_scans_status', 'status'),
+        Index('ix_scans_created_at', 'created_at'),
+        Index('ix_scans_deleted_at', 'deleted_at'),
+        Index('ix_scans_mission_id', 'mission_id'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    mission_id: Mapped[str | None] = mapped_column(ForeignKey('missions.id'), nullable=True)
+    name: Mapped[str] = mapped_column(String(255))
+    scan_type: Mapped[str] = mapped_column(String(120))
+    tool_name: Mapped[str | None] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(40), default='draft')
+    progress_percent: Mapped[int] = mapped_column(Integer, default=0)
+    current_step: Mapped[str | None] = mapped_column(String(255))
+    rq_job_id: Mapped[str | None] = mapped_column(String(255))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    stopped_at: Mapped[datetime | None] = mapped_column(DateTime)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    renamed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    steps = relationship('ScanStep', cascade='all, delete-orphan')
+    events = relationship('ScanEvent', cascade='all, delete-orphan')
+    artifacts = relationship('ScanArtifact', cascade='all, delete-orphan')
+
+
+class ScanStep(Base):
+    __tablename__ = 'scan_steps'
+    __table_args__ = (CheckConstraint('progress_percent >= 0 AND progress_percent <= 100', name='ck_scan_steps_progress_percent_range'),)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    order: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(40), default='pending')
+    progress_percent: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ScanEvent(Base):
+    __tablename__ = 'scan_events'
+    __table_args__ = (Index('ix_scan_events_scan_id', 'scan_id'), Index('ix_scan_events_created_at', 'created_at'))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    event_type: Mapped[str] = mapped_column(String(120))
+    message: Mapped[str] = mapped_column(Text)
+    payload_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ScanArtifact(Base):
+    __tablename__ = 'scan_artifacts'
+    __table_args__ = (Index('ix_scan_artifacts_scan_id', 'scan_id'),)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    artifact_type: Mapped[str] = mapped_column(String(120))
+    path: Mapped[str] = mapped_column(Text)
+    sha256: Mapped[str | None] = mapped_column(String(64))
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Job(Base):
