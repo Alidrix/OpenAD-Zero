@@ -119,11 +119,11 @@ def request_scan_stop(db: Session, scan_id: str):
         scan.status = 'completed'
         scan.progress_percent = 100
         scan.finished_at = scan.finished_at or datetime.utcnow()
-        scan_service.add_scan_event(db, scan_id, 'scan.completed', 'RQ job already finished; scan synchronized', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'completed'})
+        scan_service.add_scan_event(db, scan_id, 'scan.rq_synchronized', 'RQ job already finished; scan synchronized', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'completed'})
     elif status in {'failed'}:
         scan.status = 'failed'
         scan.finished_at = scan.finished_at or datetime.utcnow()
-        scan_service.add_scan_event(db, scan_id, 'scan.failed', 'RQ job failed; scan synchronized', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'failed'})
+        scan_service.add_scan_event(db, scan_id, 'scan.rq_synchronized', 'RQ job failed; scan synchronized', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'failed'})
     elif status in {'stopped', 'canceled', 'cancelled'}:
         scan.status = 'stopped'
         scan.stopped_at = scan.stopped_at or datetime.utcnow()

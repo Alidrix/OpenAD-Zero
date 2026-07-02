@@ -52,3 +52,6 @@ This worker is a demo progress worker only. It adds no offensive catalog, no Net
 ## Recommended next step
 
 Build the V2 dashboard aesthetics and then introduce a reviewed catalog of safe server-side templates.
+## Dashboard V2 gate
+
+The RQ progress worker consolidation is the gate for the experimental `/v2-dashboard` page. The dashboard reads existing scan list endpoints only and does not enqueue work, execute tools, or send raw commands.
