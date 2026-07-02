@@ -12,6 +12,7 @@ from app.api.routes_missions import router as missions_router
 from app.api.routes_operations import router as operations_router
 from app.api.routes_reports import router as reports_router
 from app.api.routes_tool_automation import router as tool_automation_router
+from app.api.routes_v2_scans import router as v2_scans_router
 from app.core.config import get_settings
 from app.db.init_db import init_db
 
@@ -40,4 +41,5 @@ app.include_router(evidence_router, prefix='/api')
 app.include_router(reports_router, prefix='/api')
 app.include_router(operations_router, prefix='/api')
 app.include_router(tool_automation_router, prefix='/api')
+app.include_router(v2_scans_router, prefix='/api')
 app.include_router(events_router)
