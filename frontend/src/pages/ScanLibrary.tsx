@@ -1,11 +1,156 @@
-import {useCallback,useEffect,useMemo,useState} from 'react';
-import {deleteScan,getScan,listScanArtifacts,listScanEvents,listScans,renameScan,stopScan,type V2Scan,type V2ScanArtifact,type V2ScanEvent} from '../lib/v2ScansApi';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  deleteScan,
+  enqueueDemoScan,
+  getScan,
+  listScanArtifacts,
+  listScanEvents,
+  listScans,
+  renameScan,
+  stopScan,
+  type V2Scan,
+  type V2ScanArtifact,
+  type V2ScanEvent,
+} from '../lib/v2ScansApi';
 import {connectScanSocket} from '../lib/v2ScanSocket';
 
-function pct(v:number|undefined|null){return Math.max(0,Math.min(100,Number(v||0)))}
-function Progress({scan}:{scan:V2Scan}){const value=pct(scan.progress_percent);return <div><div className='h-3 overflow-hidden rounded bg-slate-200 dark:bg-slate-800'><div className='h-full rounded bg-blue-500' style={{width:`${value}%`}}/></div><div className='mt-1 text-xs text-slate-500'>{value}%{scan.current_step?` · ${scan.current_step}`:''}</div></div>}
-function Badge({status}:{status:string}){const tone=status==='deleted'?'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200':status==='completed'?'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-200':status==='running'?'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200':'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${tone}`}>{status}</span>}
+const ACTIVE_STATUSES = new Set(['queued', 'running', 'stopping']);
+const DEMO_RUN_STATUSES = new Set(['draft', 'stopped', 'failed', 'completed']);
 
-function Details({scan,onClose,onScanChange}:{scan:V2Scan;onClose:()=>void;onScanChange:(scan:V2Scan)=>void}){const [events,setEvents]=useState<V2ScanEvent[]>([]);const [artifacts,setArtifacts]=useState<V2ScanArtifact[]>([]);const [socketStatus,setSocketStatus]=useState<'connected'|'disconnected'|'error'>('disconnected');const refresh=useCallback(async()=>{const [fresh,ev,ar]=await Promise.all([getScan(scan.id),listScanEvents(scan.id),listScanArtifacts(scan.id)]);onScanChange(fresh);setEvents(ev);setArtifacts(ar)},[scan.id,onScanChange]);useEffect(()=>{refresh().catch(()=>undefined)},[refresh]);useEffect(()=>{const conn=connectScanSocket(scan.id,event=>{setEvents(old=>old.some(e=>e.id===event.id)?old:[...old,event]);if(event.status||event.progress_percent!==undefined||event.current_step){onScanChange({...scan,status:event.status||scan.status,progress_percent:event.progress_percent??scan.progress_percent,current_step:event.current_step??scan.current_step})}}, {replay:false,onStatus:setSocketStatus});return()=>conn.close()},[scan,onScanChange]);return <aside className='card space-y-4'><div className='flex items-start justify-between gap-3'><div><h2 className='text-xl font-bold'>{scan.name}</h2><p className='text-sm text-slate-500'>{scan.scan_type} · {scan.tool_name||'no tool'} · Realtime {socketStatus}</p></div><button className='btn' onClick={onClose}>Close</button></div><Badge status={scan.status}/><Progress scan={scan}/><button className='btn' onClick={()=>refresh()}>Manual refresh</button><div className='grid gap-3 md:grid-cols-2'><div><h3 className='font-semibold'>Lifecycle</h3><p className='text-sm'>Created: {new Date(scan.created_at).toLocaleString()}</p><p className='text-sm'>Started: {scan.started_at?new Date(scan.started_at).toLocaleString():'n/a'}</p><p className='text-sm'>Finished: {scan.finished_at?new Date(scan.finished_at).toLocaleString():'n/a'}</p><p className='text-sm'>Stopped: {scan.stopped_at?new Date(scan.stopped_at).toLocaleString():'n/a'}</p></div><div><h3 className='font-semibold'>Artifacts</h3>{artifacts.length===0?<p className='text-sm text-slate-500'>No artifacts.</p>:artifacts.map(a=><p key={a.id} className='break-all text-xs'>{a.artifact_type}: {a.path}</p>)}</div></div><div><h3 className='font-semibold'>Events timeline</h3><div className='mt-2 max-h-80 space-y-2 overflow-auto'>{events.map(e=><div key={e.id} className='rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800'><div className='flex justify-between gap-2'><b>{e.event_type}</b><span className='text-xs text-slate-500'>{new Date(e.created_at).toLocaleString()}</span></div><p>{e.message}</p>{(e.payload_json||e.payload)&&<pre className='mt-2 overflow-auto text-xs'>{JSON.stringify(e.payload_json||e.payload,null,2)}</pre>}</div>)}</div></div></aside>}
+function pct(value: number | undefined | null) {
+  return Math.max(0, Math.min(100, Number(value || 0)));
+}
 
-export function ScanLibrary(){const [scans,setScans]=useState<V2Scan[]>([]);const [selectedId,setSelectedId]=useState<string|null>(null);const [includeDeleted,setIncludeDeleted]=useState(false);const [loading,setLoading]=useState(true);const [error,setError]=useState('');const selected=useMemo(()=>scans.find(s=>s.id===selectedId)||null,[scans,selectedId]);const refresh=useCallback(async()=>{setLoading(true);setError('');try{setScans(await listScans(includeDeleted))}catch(e){setError(String(e))}finally{setLoading(false)}},[includeDeleted]);useEffect(()=>{refresh()},[refresh]);const replace=(scan:V2Scan)=>setScans(old=>old.map(s=>s.id===scan.id?scan:s));async function rename(scan:V2Scan){const name=prompt('New scan name',scan.name);if(!name)return;replace(await renameScan(scan.id,name));await refresh()}async function stop(scan:V2Scan){replace(await stopScan(scan.id));await refresh()}async function remove(scan:V2Scan){if(!confirm(`Delete ${scan.name}?`))return;replace(await deleteScan(scan.id));await refresh()}return <div className='space-y-6'><div className='flex flex-wrap items-center justify-between gap-3'><div><h1 className='text-3xl font-bold'>Scan Library</h1><p className='text-slate-500'>V2 scans are loaded from /api/v2/scans. PostgreSQL remains the source of truth.</p></div><div className='flex items-center gap-3'><label className='text-sm'><input type='checkbox' checked={includeDeleted} onChange={e=>setIncludeDeleted(e.target.checked)}/> Show deleted</label><button className='btn' onClick={()=>refresh()}>Refresh</button></div></div>{error&&<div className='rounded-xl bg-rose-100 p-3 text-rose-700 dark:bg-rose-950 dark:text-rose-200'>{error}</div>}{loading?<p>Loading scans...</p>:scans.length===0?<div className='card text-slate-500'>No scans found.</div>:<div className='overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800'><table className='w-full text-left text-sm'><thead className='bg-slate-100 dark:bg-slate-900'><tr><th className='p-3'>Name</th><th className='p-3'>Type</th><th className='p-3'>Tool</th><th className='p-3'>Status</th><th className='p-3'>Progress</th><th className='p-3'>Created</th><th className='p-3'>Actions</th></tr></thead><tbody>{scans.map(scan=><tr key={scan.id} className='border-t border-slate-200 dark:border-slate-800'><td className='p-3 font-semibold'>{scan.name}</td><td className='p-3'>{scan.scan_type}</td><td className='p-3'>{scan.tool_name||'—'}</td><td className='p-3'><Badge status={scan.status}/></td><td className='min-w-48 p-3'><Progress scan={scan}/></td><td className='p-3'>{new Date(scan.created_at).toLocaleString()}</td><td className='space-x-2 p-3'><button className='btn' onClick={()=>setSelectedId(scan.id)}>Inspect</button><button className='btn' onClick={()=>rename(scan)}>Rename</button><button className='btn' onClick={()=>stop(scan)} disabled={['stopped','completed','deleted'].includes(scan.status)}>Stop</button><button className='btn' onClick={()=>remove(scan)} disabled={scan.status==='deleted'}>Delete</button></td></tr>)}</tbody></table></div>}{selected&&<Details scan={selected} onClose={()=>setSelectedId(null)} onScanChange={replace}/>}</div>}
+function ScanProgressBar({scan}: {scan: V2Scan}) {
+  const value = pct(scan.progress_percent);
+  return (
+    <div>
+      <div className="h-3 overflow-hidden rounded bg-slate-200 dark:bg-slate-800">
+        <div className="h-full rounded bg-blue-500 transition-all" style={{width: `${value}%`}} />
+      </div>
+      <div className="mt-1 text-xs text-slate-500">
+        {value}%{scan.current_step ? ` · ${scan.current_step}` : ''}
+      </div>
+    </div>
+  );
+}
+
+function ScanStatusBadge({status}: {status: string}) {
+  const tone =
+    status === 'deleted'
+      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200'
+      : status === 'completed'
+        ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-200'
+        : ACTIVE_STATUSES.has(status)
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200'
+          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
+  return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${tone}`}>{status}</span>;
+}
+
+function ScanActions({scan, onInspect, onRename, onStop, onDelete, onRunDemo}: {scan: V2Scan; onInspect: () => void; onRename: () => void; onStop: () => void; onDelete: () => void; onRunDemo: () => void}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button className="btn" onClick={onInspect}>Inspect</button>
+      <button className="btn" onClick={onRename}>Rename</button>
+      {DEMO_RUN_STATUSES.has(scan.status) && <button className="btn" onClick={onRunDemo}>Run demo progress</button>}
+      <button className="btn" onClick={onStop} disabled={['stopped', 'completed', 'deleted'].includes(scan.status)}>Stop</button>
+      <button className="btn" onClick={onDelete} disabled={scan.status === 'deleted'}>Delete</button>
+    </div>
+  );
+}
+
+function ScanDetailsPanel({scan, onClose, onScanChange}: {scan: V2Scan; onClose: () => void; onScanChange: (scan: V2Scan) => void}) {
+  const [events, setEvents] = useState<V2ScanEvent[]>([]);
+  const [artifacts, setArtifacts] = useState<V2ScanArtifact[]>([]);
+  const [socketStatus, setSocketStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
+
+  const refresh = useCallback(async () => {
+    const [fresh, nextEvents, nextArtifacts] = await Promise.all([getScan(scan.id), listScanEvents(scan.id), listScanArtifacts(scan.id)]);
+    onScanChange(fresh);
+    setEvents(nextEvents);
+    setArtifacts(nextArtifacts);
+  }, [scan.id, onScanChange]);
+
+  useEffect(() => {
+    refresh().catch(() => undefined);
+  }, [refresh]);
+
+  useEffect(() => {
+    const connection = connectScanSocket(
+      scan.id,
+      event => {
+        setEvents(old => (old.some(existing => existing.id === event.id) ? old : [...old, event]));
+        if (event.status || event.progress_percent !== undefined || event.current_step) {
+          onScanChange({...scan, status: event.status || scan.status, progress_percent: event.progress_percent ?? scan.progress_percent, current_step: event.current_step ?? scan.current_step});
+        }
+      },
+      {replay: false, onStatus: setSocketStatus},
+    );
+    return () => connection.close();
+  }, [scan.id, scan.status, scan.progress_percent, scan.current_step, onScanChange]);
+
+  return (
+    <aside className="card space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold">{scan.name}</h2>
+          <p className="text-sm text-slate-500">{scan.scan_type} · {scan.tool_name || 'no tool'} · Realtime {socketStatus}</p>
+        </div>
+        <button className="btn" onClick={onClose}>Close</button>
+      </div>
+      <ScanStatusBadge status={scan.status} />
+      <ScanProgressBar scan={scan} />
+      <button className="btn" onClick={() => refresh()}>Manual refresh</button>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div><h3 className="font-semibold">Lifecycle</h3><p className="text-sm">Created: {new Date(scan.created_at).toLocaleString()}</p><p className="text-sm">Started: {scan.started_at ? new Date(scan.started_at).toLocaleString() : 'n/a'}</p><p className="text-sm">Finished: {scan.finished_at ? new Date(scan.finished_at).toLocaleString() : 'n/a'}</p><p className="text-sm">Stopped: {scan.stopped_at ? new Date(scan.stopped_at).toLocaleString() : 'n/a'}</p></div>
+        <div><h3 className="font-semibold">Artifacts</h3>{artifacts.length === 0 ? <p className="text-sm text-slate-500">No artifacts.</p> : artifacts.map(artifact => <p key={artifact.id} className="break-all text-xs">{artifact.artifact_type}: {artifact.path}</p>)}</div>
+      </div>
+      <div><h3 className="font-semibold">Events timeline</h3><div className="mt-2 max-h-80 space-y-2 overflow-auto">{events.map(event => <div key={event.id} className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800"><div className="flex justify-between gap-2"><b>{event.event_type}</b><span className="text-xs text-slate-500">{new Date(event.created_at).toLocaleString()}</span></div><p>{event.message}</p>{(event.payload_json || event.payload) && <pre className="mt-2 overflow-auto text-xs">{JSON.stringify(event.payload_json || event.payload, null, 2)}</pre>}</div>)}</div></div>
+    </aside>
+  );
+}
+
+export function ScanLibrary() {
+  const [scans, setScans] = useState<V2Scan[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const selected = useMemo(() => scans.find(scan => scan.id === selectedId) || null, [scans, selectedId]);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setScans(await listScans(includeDeleted));
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [includeDeleted]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  useEffect(() => {
+    if (!scans.some(scan => ACTIVE_STATUSES.has(scan.status))) return;
+    const timer = window.setInterval(() => refresh().catch(() => undefined), 2000);
+    return () => window.clearInterval(timer);
+  }, [scans, refresh]);
+
+  const replace = useCallback((scan: V2Scan) => setScans(old => old.map(item => (item.id === scan.id ? scan : item))), []);
+
+  async function rename(scan: V2Scan) { const name = prompt('New scan name', scan.name); if (!name) return; replace(await renameScan(scan.id, name)); await refresh(); }
+  async function stop(scan: V2Scan) { replace(await stopScan(scan.id)); await refresh(); }
+  async function runDemo(scan: V2Scan) { replace(await enqueueDemoScan(scan.id)); await refresh(); }
+  async function remove(scan: V2Scan) { if (!confirm(`Delete ${scan.name}?`)) return; replace(await deleteScan(scan.id)); await refresh(); }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-3xl font-bold">Scan Library</h1><p className="text-slate-500">V2 scans are loaded from /api/v2/scans. PostgreSQL remains the source of truth.</p></div><div className="flex items-center gap-3"><label className="text-sm"><input type="checkbox" checked={includeDeleted} onChange={event => setIncludeDeleted(event.target.checked)} /> Show deleted</label><button className="btn" onClick={() => refresh()}>Refresh</button></div></div>
+      {error && <div className="rounded-xl bg-rose-100 p-3 text-rose-700 dark:bg-rose-950 dark:text-rose-200">{error}</div>}
+      {loading ? <p>Loading scans...</p> : scans.length === 0 ? <div className="card text-slate-500">No scans found.</div> : <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800"><table className="w-full text-left text-sm"><thead className="bg-slate-100 dark:bg-slate-900"><tr><th className="p-3">Name</th><th className="p-3">Type</th><th className="p-3">Tool</th><th className="p-3">Status</th><th className="p-3">Progress</th><th className="p-3">Created</th><th className="p-3">Actions</th></tr></thead><tbody>{scans.map(scan => <tr key={scan.id} className="border-t border-slate-200 dark:border-slate-800"><td className="p-3 font-semibold">{scan.name}</td><td className="p-3">{scan.scan_type}</td><td className="p-3">{scan.tool_name || '—'}</td><td className="p-3"><ScanStatusBadge status={scan.status} /></td><td className="min-w-48 p-3"><ScanProgressBar scan={scan} /></td><td className="p-3">{new Date(scan.created_at).toLocaleString()}</td><td className="p-3"><ScanActions scan={scan} onInspect={() => setSelectedId(scan.id)} onRename={() => rename(scan)} onStop={() => stop(scan)} onDelete={() => remove(scan)} onRunDemo={() => runDemo(scan)} /></td></tr>)}</tbody></table></div>}
+      {selected && <ScanDetailsPanel scan={selected} onClose={() => setSelectedId(null)} onScanChange={replace} />}
+    </div>
+  );
+}

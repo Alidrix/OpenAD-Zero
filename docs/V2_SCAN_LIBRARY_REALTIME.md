@@ -59,3 +59,7 @@ Dark/light theme state is treated as a UI preference only. Changing theme must n
 ## Recommended next step
 
 Integrate real RQ scan workers that emit persisted progress events, add robust worker cancellation semantics, then build the final aesthetic V2 dashboard on top of the same persisted scan model.
+
+## RQ demo progress hardening
+
+The Scan Library now includes a temporary **Run demo progress** action that calls `POST /api/v2/scans/{scan_id}/enqueue-demo`. The action validates the worker-to-PostgreSQL progression path without launching external tools. During active states (`queued`, `running`, `stopping`), the frontend performs a light two-second HTTP refresh so WebSocket messages remain realtime hints rather than the source of truth.

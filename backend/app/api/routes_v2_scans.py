@@ -61,9 +61,26 @@ async def rename_scan(scan_id: str, payload: ScanRename, db: Session = Depends(g
     return scan
 
 
+@router.post('/{scan_id}/enqueue-demo', response_model=ScanRead)
+async def enqueue_demo_scan(scan_id: str, db: Session = Depends(get_db)):
+    try:
+        scan = scan_orchestrator.enqueue_demo_scan(db, scan_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if scan is None:
+        raise HTTPException(status_code=404, detail='Scan not found')
+    await _broadcast_latest_scan_event(db, scan)
+    return scan
+
+
 @router.post('/{scan_id}/stop', response_model=ScanRead)
 async def stop_scan(scan_id: str, db: Session = Depends(get_db)):
-    scan = scan_orchestrator.request_scan_stop(db, scan_id)
+    try:
+        scan = scan_orchestrator.request_scan_stop(db, scan_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     if scan is None:
         raise HTTPException(status_code=404, detail='Scan not found')
     await _broadcast_latest_scan_event(db, scan)
