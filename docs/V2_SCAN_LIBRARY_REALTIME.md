@@ -72,3 +72,7 @@ After the Scan Library can resynchronize active scans through HTTP polling and W
 The Scan Library is reachable at `/scans` from the sidebar. `Run demo progress` is available only for `draft`, `stopped`, `failed`, and `completed` scans and is disabled for `queued`, `running`, `stopping`, and `deleted` scans. The button sends an empty `POST /api/v2/scans/{scan_id}/enqueue-demo` request: no target, raw command, or tool option is sent from the browser.
 
 The page refreshes over HTTP after each mutation and polls every two seconds only while scans are active. Browser refreshes and theme changes do not affect persisted scan state because PostgreSQL remains the source of truth.
+
+## Recommendations handoff
+
+The Scan Library includes a non-executive **View recommendations** navigation action. It opens `/v2-recommendations?scan_id=<scan_id>` so operators can inspect safe-by-default recommendations and backend-rendered command previews without starting tools or creating RQ jobs.

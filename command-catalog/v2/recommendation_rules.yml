@@ -1,0 +1,40 @@
+- id: recommend_smb_review_after_smb_open
+  when:
+    signals:
+      - smb_open
+  recommend:
+    template_id: v2_netexec_smb_fingerprint_preview
+    reason: SMB appears open on one or more in-scope hosts. Prepare a read-only SMB review preview.
+    priority: medium
+- id: recommend_ldap_review_after_ldap_open
+  when:
+    signals:
+      - ldap_open
+  recommend:
+    template_id: v2_ldap_review_preview
+    reason: LDAP appears available. Prepare an LDAP-oriented review preview without authentication or execution.
+    priority: medium
+- id: recommend_web_review_after_http_open
+  when:
+    signals:
+      - http_open
+  recommend:
+    template_id: v2_web_review_preview
+    reason: HTTP appears open on one or more hosts. Prepare a safe web review preview without launching a scanner.
+    priority: medium
+- id: recommend_artifact_review_after_upload
+  when:
+    signals:
+      - artifact_uploaded
+  recommend:
+    template_id: v2_evidence_review_preview
+    reason: A scan artifact is persisted. Prepare an evidence review preview without executing uploaded content.
+    priority: low
+- id: recommend_bloodhound_review_after_artifact
+  when:
+    signals:
+      - bloodhound_artifact_present
+  recommend:
+    template_id: v2_bloodhound_artifact_review_preview
+    reason: BloodHound-style artifact evidence is present. Prepare an imported graph review preview only.
+    priority: medium

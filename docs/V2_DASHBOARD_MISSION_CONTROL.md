@@ -64,3 +64,7 @@ The dashboard is reachable at `/v2-dashboard` and remains read-only. It imports 
 ## V2 brand identity update
 
 The dashboard now presents the V2 product identity as **AD Mission Control** with the tagline **Persistent Active Directory audit operations**. It remains read-only: it lists counters, active scans, recent scans, Mission Control status, and persistence guarantees, but it does not enqueue demo work or execute tools.
+
+## V2 recommendations preview link
+
+A separate `/v2-recommendations` page now provides preview-only recommendations derived from persisted V2 scan data. Mission Control remains read-only and does not execute recommendations, enqueue recommendation jobs, or accept raw commands.
