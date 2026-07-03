@@ -64,3 +64,11 @@ Add more artifact parsers for already captured safe outputs, surface parsed data
 ## Dashboard integration
 
 Normalized parsing feeds the V2 dashboard through the read-only `GET /api/v2/dashboard/summary` endpoint. The summary aggregates parsed assets, services, findings, signals, diagnostics, service distributions, and AD surface hints without triggering parsing, RQ jobs, subprocesses, or external tools. If parsed tables are empty, dashboard counters return zero values.
+
+## Dashboard integration consolidation
+
+- Normalized parsing tables feed `GET /api/v2/dashboard/summary` for counters and summaries.
+- The endpoint is mounted through the V2 dashboard router in the FastAPI app.
+- `/v2-dashboard` reads normalized parsed data through `getV2DashboardSummary()`.
+- `/v2-parsed-data` is routed and linked in the sidebar for explicit review of assets, services, signals, and diagnostics.
+- Parsing remains explicit from the parsed-data page via persisted scan data only; the dashboard never triggers parsing or external execution.

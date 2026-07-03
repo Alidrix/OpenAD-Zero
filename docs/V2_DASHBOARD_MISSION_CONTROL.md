@@ -72,3 +72,11 @@ A separate `/v2-recommendations` page now provides preview-only recommendations 
 ## Parsed Intelligence summary
 
 The V2 dashboard now consumes `GET /api/v2/dashboard/summary` to display normalized parsed assets, services, signals, diagnostics, top services, and AD surface hints. The dashboard remains read-only: it does not enqueue jobs, trigger parsing, execute tools, create subprocesses, or launch external binaries. Parsing is still only available from `/v2-parsed-data` against persisted scan data.
+
+## Parsed Intelligence consolidation
+
+- The backend dashboard router is mounted in FastAPI, exposing `GET /api/v2/dashboard/summary` under the `/api` prefix.
+- The V2 dashboard frontend uses `getV2DashboardSummary()` instead of deriving parsed metrics from scan lists alone.
+- `/v2-parsed-data` is available from React routing and from the sidebar as **V2 Parsed Data**.
+- Dashboard actions remain read-only: refresh only re-reads PostgreSQL through backend APIs.
+- The dashboard does not parse persisted data, enqueue jobs, create subprocesses, launch external tools, or run recommendation previews.
