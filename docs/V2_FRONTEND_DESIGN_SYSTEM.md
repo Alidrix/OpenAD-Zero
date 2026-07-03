@@ -63,3 +63,9 @@ The dashboard imports the token file directly and uses the reusable classes for 
 - Add visual regression coverage when the frontend test stack is expanded.
 - Consolidate repeated V2 primitives into shared React components if additional V2 pages adopt the same look.
 - Keep the V2 design system isolated from V1 until the final branding decision is made.
+
+## AD Mission Control identity tokens
+
+The V2 design system now centers the **AD Mission Control** identity in `frontend/src/styles/v2-theme.css`, `frontend/src/lib/v2Brand.ts`, and `frontend/src/components/v2/V2Logo.tsx`. The reusable V2 classes are scoped to V2 pages so the existing V1 interface remains intact.
+
+Reusable classes include `.v2-shell`, `.v2-header`, `.v2-card`, `.v2-card-muted`, `.v2-counter`, `.v2-counter-label`, `.v2-orbit-dot`, `.v2-progress`, `.v2-progress-bar`, `.v2-badge`, `.v2-badge-active`, `.v2-badge-success`, `.v2-badge-danger`, `.v2-button`, `.v2-button-primary`, `.v2-button-secondary`, `.v2-safety-banner`, `.v2-grid`, and `.v2-section-title`.

@@ -12,6 +12,7 @@ import {
   type V2ScanArtifact,
   type V2ScanEvent,
 } from '../lib/v2ScansApi';
+import {V2Logo} from '../components/v2/V2Logo';
 import {connectScanSocket} from '../lib/v2ScanSocket';
 import '../styles/v2-theme.css';
 
@@ -28,8 +29,8 @@ function ScanProgressBar({scan}: {scan: V2Scan}) {
 
   return (
     <div>
-      <div className="h-3 overflow-hidden rounded bg-slate-200 dark:bg-slate-800">
-        <div className="h-full rounded bg-blue-500 transition-all" style={{width: `${value}%`}} />
+      <div className="v2-progress">
+        <div className="v2-progress-bar" style={{width: `${value}%`}} />
       </div>
       <div className="mt-1 text-xs text-slate-500">
         {value}%{scan.current_step ? ` · ${scan.current_step}` : ''}
@@ -47,7 +48,9 @@ function ScanStatusBadge({status}: {status: string}) {
         ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200'
         : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
 
-  return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${tone}`}>{status}</span>;
+  const v2Tone = ACTIVE_STATUSES.has(status) ? 'v2-badge-active' : status === 'completed' ? 'v2-badge-success' : status === 'deleted' || status === 'failed' ? 'v2-badge-danger' : '';
+
+  return <span className={`v2-badge ${v2Tone} ${tone}`}>{status}</span>;
 }
 
 function ScanActions({
@@ -69,19 +72,19 @@ function ScanActions({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <button className="btn" onClick={onInspect}>
+      <button className="v2-button v2-button-secondary" onClick={onInspect}>
         Inspect
       </button>
-      <button className="btn" onClick={onRename}>
+      <button className="v2-button v2-button-secondary" onClick={onRename}>
         Rename
       </button>
-      <button className="btn" disabled={!canRunDemo} onClick={onRunDemo}>
+      <button className="v2-button v2-button-secondary" disabled={!canRunDemo} onClick={onRunDemo}>
         Run demo progress
       </button>
-      <button className="btn" disabled={STOP_DISABLED_STATUSES.has(scan.status)} onClick={onStop}>
+      <button className="v2-button v2-button-secondary" disabled={STOP_DISABLED_STATUSES.has(scan.status)} onClick={onStop}>
         Stop
       </button>
-      <button className="btn" disabled={scan.status === 'deleted'} onClick={onDelete}>
+      <button className="v2-button v2-button-secondary" disabled={scan.status === 'deleted'} onClick={onDelete}>
         Delete
       </button>
     </div>
@@ -178,7 +181,7 @@ function ScanDetailsPanel({
   }, [scan, onScanChange]);
 
   return (
-    <aside className="card space-y-4">
+    <aside className="v2-card space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">{scan.name}</h2>
@@ -186,7 +189,7 @@ function ScanDetailsPanel({
             {scan.scan_type} · {scan.tool_name || 'no tool'} · Realtime {socketStatus}
           </p>
         </div>
-        <button className="btn" onClick={onClose}>
+        <button className="v2-button v2-button-secondary" onClick={onClose}>
           Close
         </button>
       </div>
@@ -194,7 +197,7 @@ function ScanDetailsPanel({
       <ScanStatusBadge status={scan.status} />
       <ScanProgressBar scan={scan} />
 
-      <button className="btn" onClick={() => refresh()}>
+      <button className="v2-button v2-button-secondary" onClick={() => refresh()}>
         Manual refresh
       </button>
 
@@ -295,15 +298,15 @@ export function ScanLibrary() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Scan Library</h1>
-          <p className="text-slate-500">
-            V2 scans are loaded from /api/v2/scans. PostgreSQL remains the source of truth.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="v2-shell space-y-6">
+      <div className="v2-card p-6">
+        <div className="v2-header">
+          <div>
+            <V2Logo size={44} showText />
+            <h1 className="mt-4 text-3xl font-bold">Scan Library</h1>
+            <p className="text-[var(--v2-text-muted)]">Persisted scan history and realtime progress</p>
+          </div>
+          <div className="flex items-center gap-3">
           <label className="text-sm">
             <input
               checked={includeDeleted}
@@ -312,9 +315,10 @@ export function ScanLibrary() {
             />{' '}
             Show deleted
           </label>
-          <button className="btn" onClick={() => refresh()}>
+          <button className="v2-button v2-button-secondary" onClick={() => refresh()}>
             Refresh
           </button>
+          </div>
         </div>
       </div>
 
@@ -323,11 +327,11 @@ export function ScanLibrary() {
       {loading ? (
         <p>Loading scans...</p>
       ) : scans.length === 0 ? (
-        <div className="card text-slate-500">No scans found.</div>
+        <div className="v2-card p-5 text-[var(--v2-text-muted)]">No scans found.</div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="v2-card overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-100 dark:bg-slate-900">
+            <thead className="bg-[var(--v2-bg)]">
               <tr>
                 <th className="p-3">Name</th>
                 <th className="p-3">Type</th>
