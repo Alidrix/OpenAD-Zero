@@ -61,6 +61,7 @@ function ScanActions({
   onDelete,
   onRunDemo,
   onRecommendations,
+  onParsedData,
 }: {
   scan: V2Scan;
   onInspect: () => void;
@@ -69,6 +70,7 @@ function ScanActions({
   onDelete: () => void;
   onRunDemo: () => void;
   onRecommendations: () => void;
+  onParsedData: () => void;
 }) {
   const canRunDemo = DEMO_RUN_STATUSES.has(scan.status);
 
@@ -82,6 +84,9 @@ function ScanActions({
       </button>
       <button className="v2-button v2-button-secondary" onClick={onRecommendations}>
         View recommendations
+      </button>
+      <button className="v2-button v2-button-secondary" onClick={onParsedData}>
+        View parsed data
       </button>
       <button className="v2-button v2-button-secondary" disabled={!canRunDemo} onClick={onRunDemo}>
         Run demo progress
@@ -368,6 +373,7 @@ export function ScanLibrary() {
                       onRename={() => rename(scan)}
                       onRunDemo={() => runDemo(scan)}
                       onRecommendations={() => { window.location.href = `/v2-recommendations?scan_id=${encodeURIComponent(scan.id)}`; }}
+                      onParsedData={() => { window.location.href = `/v2-parsed-data?scan_id=${encodeURIComponent(scan.id)}`; }}
                       onStop={() => stop(scan)}
                     />
                   </td>

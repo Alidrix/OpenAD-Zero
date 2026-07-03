@@ -69,3 +69,7 @@ Add richer normalized service/artifact signals, introduce operator-facing approv
 - Automatic execution remains disabled and previews return `automatic_execution_allowed: false`.
 - The frontend does not send raw commands.
 - The backend rebuilds argv previews from allowlisted templates and rejects raw-command-like parameters.
+
+## Parsed signals integration
+
+V2 recommendations now prefer normalized `parsed_signals` produced by the persisted-data parser when available for a scan. If a scan has no parsed signals, the previous persisted scan/event/artifact fallback remains in place.

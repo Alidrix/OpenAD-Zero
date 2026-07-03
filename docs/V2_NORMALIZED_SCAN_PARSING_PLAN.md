@@ -43,3 +43,7 @@ Transform persisted `scan_events` and uploaded scan artifacts into normalized, q
 ## Recommended next Codex step
 
 Implement a PostgreSQL-backed normalized parsing slice with migrations, ORM models, parser service functions, and read-only API endpoints. Start with generic scan-event parsing and uploaded Nmap XML parsing, then connect the resulting `parsed_signals` to the V2 recommendation engine without adding execution, subprocess calls, or external tool launches.
+
+## Implemented first slice
+
+The first slice adds PostgreSQL-backed parsed assets, services, findings, signals, and diagnostics; a generic structured `scan_events` parser; an uploaded Nmap XML artifact parser; read-only parsed-data API endpoints; and recommendation-engine preference for `parsed_signals` when present. The implementation remains parsing-only and does not launch external tools or subprocesses.
