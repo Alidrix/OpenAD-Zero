@@ -1,0 +1,34 @@
+defaults:
+  require_scope_validation: true
+  require_backend_template_rebuild: true
+  reject_raw_frontend_commands: true
+  require_human_approval_for_preview: true
+  allow_automatic_execution: false
+  allow_public_targets: false
+  reject_global_cidrs:
+    - 0.0.0.0/0
+    - ::/0
+
+blocked_categories:
+  - exploitation
+  - credential_dump
+  - password_spraying
+  - brute_force
+  - command_execution
+  - lateral_movement
+  - coercion_execution
+  - file_write
+  - persistence
+  - privilege_escalation
+
+allowed_modes:
+  - preview_only
+  - assisted_safe
+  - gated_high_risk
+
+v2_current_execution_policy:
+  recommendation_engine: true
+  command_preview: true
+  automatic_execution: false
+  netexec_execution: false
+  external_tool_execution: false

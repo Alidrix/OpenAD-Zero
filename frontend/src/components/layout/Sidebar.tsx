@@ -51,6 +51,7 @@ export function Sidebar() {
         <Section title="V2 Operations">
           <NavLink className={active} to="/v2-dashboard">V2 Dashboard</NavLink>
           <NavLink className={active} to="/scans">Scan Library</NavLink>
+          <NavLink className={active} to="/v2-recommendations">V2 Recommendations</NavLink>
           <NavLink className={active} to="/v2-brand">V2 Brand</NavLink>
         </Section>
 

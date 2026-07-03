@@ -1,0 +1,124 @@
+- id: v2_nmap_safe_discovery_preview
+  tool_id: nmap_safe_discovery
+  name: Nmap safe discovery preview
+  description: Prepare a lightweight service discovery preview for one validated in-scope target.
+  category: discovery
+  risk_level: low
+  mode: preview_only
+  requires_human_approval: true
+  requires_terms_acceptance: false
+  template_ref: nmap_safe_discovery
+  expected_inputs:
+    - target
+  expected_outputs:
+    - scan
+  recommendation_signals:
+    - host_discovered
+  safety_notes:
+    - Backend must rebuild argv from the allowlisted template.
+    - Frontend must never send raw commands.
+    - This V2 slice never executes Nmap.
+- id: v2_netexec_smb_fingerprint_preview
+  tool_id: netexec_smb_fingerprint
+  name: NetExec SMB fingerprint preview
+  description: Prepare a read-only SMB fingerprint preview for validated in-scope hosts.
+  category: smb_review
+  risk_level: low
+  mode: preview_only
+  requires_human_approval: true
+  requires_terms_acceptance: false
+  template_ref: netexec_smb_fingerprint
+  expected_inputs:
+    - target
+  expected_outputs:
+    - smb_fingerprint
+  recommendation_signals:
+    - smb_open
+    - windows_host_detected
+  safety_notes:
+    - Backend must rebuild argv from the allowlisted template.
+    - Frontend must never send raw commands.
+    - No authentication, spraying, dumping, or command execution.
+    - This V2 slice never executes NetExec.
+- id: v2_ldap_review_preview
+  tool_id: bloodhound_explorer
+  name: LDAP review preview
+  description: Prepare an LDAP-oriented review preview without authentication or execution.
+  category: ldap_review
+  risk_level: low
+  mode: preview_only
+  requires_human_approval: true
+  requires_terms_acceptance: false
+  template_ref: bloodhound_explorer
+  expected_inputs:
+    - query
+  expected_outputs:
+    - ldap_review_notes
+  recommendation_signals:
+    - ldap_open
+    - kerberos_open
+  safety_notes:
+    - Backend must rebuild argv from the allowlisted template.
+    - Frontend must never send raw commands.
+    - Review only already persisted or imported directory context.
+- id: v2_web_review_preview
+  tool_id: nuclei_safe_templates
+  name: Web review preview
+  description: Prepare a safe web service review preview from detected HTTP services.
+  category: web_review
+  risk_level: low
+  mode: preview_only
+  requires_human_approval: true
+  requires_terms_acceptance: false
+  template_ref: nuclei_safe_templates
+  expected_inputs:
+    - target
+  expected_outputs:
+    - web_review
+  recommendation_signals:
+    - http_open
+  safety_notes:
+    - Backend must rebuild argv from the allowlisted template.
+    - Frontend must never send raw commands.
+    - This V2 slice never executes Nuclei.
+- id: v2_bloodhound_artifact_review_preview
+  tool_id: bloodhound_explorer
+  name: BloodHound artifact review preview
+  description: Prepare a review of already-imported BloodHound artifacts.
+  category: imported_artifact_review
+  risk_level: low
+  mode: preview_only
+  requires_human_approval: true
+  requires_terms_acceptance: false
+  template_ref: bloodhound_explorer
+  expected_inputs:
+    - query
+  expected_outputs:
+    - bloodhound_review
+  recommendation_signals:
+    - artifact_uploaded
+    - bloodhound_artifact_present
+  safety_notes:
+    - Backend must rebuild argv from the allowlisted template.
+    - Frontend must never send raw commands.
+    - Imported artifacts are reviewed only and are never executed.
+- id: v2_evidence_review_preview
+  tool_id: bloodhound_sharphound_upload
+  name: Evidence review preview
+  description: Prepare an imported evidence review preview for already persisted artifacts.
+  category: evidence_review
+  risk_level: low
+  mode: preview_only
+  requires_human_approval: true
+  requires_terms_acceptance: false
+  template_ref: bloodhound_sharphound_upload
+  expected_inputs:
+    - artifact
+  expected_outputs:
+    - evidence_review
+  recommendation_signals:
+    - artifact_uploaded
+  safety_notes:
+    - Backend must rebuild argv from the allowlisted template.
+    - Frontend must never send raw commands.
+    - Uploaded evidence remains documentation-only in this V2 slice.
