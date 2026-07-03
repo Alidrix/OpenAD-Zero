@@ -1,0 +1,76 @@
+:root {
+  --v2-bg: #FAF9F5;
+  --v2-surface: #FFFFFF;
+  --v2-text: #141413;
+  --v2-text-muted: #6F6B63;
+  --v2-border: #E8E6DC;
+  --v2-gray: #B1ADA1;
+  --v2-orange: #C15F3C;
+  --v2-orange-light: #F28A4B;
+  --v2-orange-dark: #8E3E26;
+}
+
+.v2-shell {
+  min-height: 100%;
+  border-radius: 2rem;
+  background: var(--v2-bg);
+  color: var(--v2-text);
+  padding: 1.5rem;
+}
+
+.v2-card {
+  border: 1px solid var(--v2-border);
+  border-radius: 1.5rem;
+  background: var(--v2-surface);
+  box-shadow: 0 10px 30px rgba(20, 20, 19, 0.06);
+}
+
+.v2-orbit-dot {
+  display: inline-flex;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  background: var(--v2-gray);
+  box-shadow: 0 0 0 0.25rem rgba(193, 95, 60, 0.12);
+}
+
+.v2-orbit-dot[data-active='true'] {
+  background: var(--v2-orange-light);
+}
+
+.v2-counter {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 800;
+  color: var(--v2-text);
+}
+
+.v2-progress {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--v2-border);
+}
+
+.v2-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--v2-orange-dark), var(--v2-orange), var(--v2-orange-light));
+  transition: width 200ms ease;
+}
+
+.v2-safety-banner {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--v2-border);
+  border-radius: 1.5rem;
+  background: var(--v2-text);
+  color: white;
+  padding: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .v2-safety-banner {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

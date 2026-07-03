@@ -66,3 +66,9 @@ The Scan Library now includes a temporary **Run demo progress** action that call
 ## Dashboard V2 handoff
 
 After the Scan Library can resynchronize active scans through HTTP polling and WebSocket hints, `/v2-dashboard` can safely display persisted scan counters from the same `/api/v2/scans` source of truth.
+
+## Frontend hardening update
+
+The Scan Library is reachable at `/scans` from the sidebar. `Run demo progress` is available only for `draft`, `stopped`, `failed`, and `completed` scans and is disabled for `queued`, `running`, `stopping`, and `deleted` scans. The button sends an empty `POST /api/v2/scans/{scan_id}/enqueue-demo` request: no target, raw command, or tool option is sent from the browser.
+
+The page refreshes over HTTP after each mutation and polls every two seconds only while scans are active. Browser refreshes and theme changes do not affect persisted scan state because PostgreSQL remains the source of truth.

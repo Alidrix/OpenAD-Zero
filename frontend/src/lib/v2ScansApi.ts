@@ -66,35 +66,35 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export const listScans = (includeDeleted = false) =>
+export const listScans = (includeDeleted = false): Promise<V2Scan[]> =>
   request<V2Scan[]>(`/api/v2/scans${includeDeleted ? '?include_deleted=true' : ''}`);
 
-export const getScan = (scanId: string) =>
+export const getScan = (scanId: string): Promise<V2Scan> =>
   request<V2Scan>(`/api/v2/scans/${encodeURIComponent(scanId)}`);
 
-export const renameScan = (scanId: string, name: string) =>
+export const renameScan = (scanId: string, name: string): Promise<V2Scan> =>
   request<V2Scan>(`/api/v2/scans/${encodeURIComponent(scanId)}/rename`, {
     method: 'PATCH',
     body: JSON.stringify({name}),
   });
 
-export const enqueueDemoScan = (scanId: string) =>
+export const enqueueDemoScan = (scanId: string): Promise<V2Scan> =>
   request<V2Scan>(`/api/v2/scans/${encodeURIComponent(scanId)}/enqueue-demo`, {
     method: 'POST',
     body: JSON.stringify({}),
   });
 
-export const stopScan = (scanId: string) =>
+export const stopScan = (scanId: string): Promise<V2Scan> =>
   request<V2Scan>(`/api/v2/scans/${encodeURIComponent(scanId)}/stop`, {
     method: 'POST',
     body: JSON.stringify({}),
   });
 
-export const deleteScan = (scanId: string) =>
+export const deleteScan = (scanId: string): Promise<V2Scan> =>
   request<V2Scan>(`/api/v2/scans/${encodeURIComponent(scanId)}`, {method: 'DELETE'});
 
-export const listScanEvents = (scanId: string) =>
+export const listScanEvents = (scanId: string): Promise<V2ScanEvent[]> =>
   request<V2ScanEvent[]>(`/api/v2/scans/${encodeURIComponent(scanId)}/events`);
 
-export const listScanArtifacts = (scanId: string) =>
+export const listScanArtifacts = (scanId: string): Promise<V2ScanArtifact[]> =>
   request<V2ScanArtifact[]>(`/api/v2/scans/${encodeURIComponent(scanId)}/artifacts`);

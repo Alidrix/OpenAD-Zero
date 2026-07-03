@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {listScans, type V2Scan} from '../lib/v2ScansApi';
+import '../styles/v2-theme.css';
 
 const ACTIVE_STATUSES = new Set(['queued', 'running', 'stopping']);
 
@@ -11,18 +12,17 @@ function percent(value: number | undefined | null) {
 function StatusDot({active}: {active: boolean}) {
   return (
     <span
-      className={`inline-flex h-3 w-3 rounded-full shadow-[0_0_0_4px_rgba(193,95,60,0.12)] ${
-        active ? 'bg-[#F28A4B]' : 'bg-[#B1ADA1]'
-      }`}
+      className="v2-orbit-dot"
+      data-active={active}
     />
   );
 }
 
 function ProgressBar({value}: {value: number}) {
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-[#E8E6DC]">
+    <div className="v2-progress">
       <div
-        className="h-full rounded-full bg-gradient-to-r from-[#8E3E26] via-[#C15F3C] to-[#F28A4B] transition-all"
+        className="v2-progress-bar"
         style={{width: `${percent(value)}%`}}
       />
     </div>
@@ -31,19 +31,19 @@ function ProgressBar({value}: {value: number}) {
 
 function CounterCard({label, value, active = false}: {label: string; value: number; active?: boolean}) {
   return (
-    <div className="rounded-3xl border border-[#E8E6DC] bg-white p-5 shadow-sm">
+    <div className="v2-card p-5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#6F6B63]">{label}</p>
         <StatusDot active={active} />
       </div>
-      <p className="mt-4 text-4xl font-bold text-[#141413]">{value}</p>
+      <p className="v2-counter mt-4">{value}</p>
     </div>
   );
 }
 
 function ScanRow({scan}: {scan: V2Scan}) {
   return (
-    <div className="rounded-2xl border border-[#E8E6DC] bg-[#FAF9F5] p-4">
+    <div className="rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-bg)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-semibold text-[#141413]">{scan.name}</p>
@@ -117,8 +117,8 @@ export function V2DashboardPage() {
   const latestScan = recentScans[0];
 
   return (
-    <div className="min-h-full space-y-6 rounded-[2rem] bg-[#FAF9F5] p-6 text-[#141413]">
-      <header className="rounded-[2rem] border border-[#E8E6DC] bg-white p-6 shadow-sm">
+    <div className="v2-shell space-y-6">
+      <header className="v2-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#C15F3C]">Mission Control</p>
@@ -144,7 +144,7 @@ export function V2DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="rounded-[2rem] border border-[#E8E6DC] bg-white p-6 shadow-sm">
+        <div className="v2-card p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-2xl font-bold">Active scans</h2>
@@ -161,7 +161,7 @@ export function V2DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-[#E8E6DC] bg-white p-6 shadow-sm">
+        <div className="v2-card p-6">
           <h2 className="text-2xl font-bold">Recent scans</h2>
           <p className="mt-1 text-sm text-[#6F6B63]">
             Latest: {latestScan ? `${latestScan.name} · ${new Date(latestScan.created_at).toLocaleString()}` : 'n/a'}
@@ -186,7 +186,7 @@ export function V2DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 rounded-[2rem] border border-[#E8E6DC] bg-[#141413] p-6 text-white md:grid-cols-3">
+      <section className="v2-safety-banner">
         <p>PostgreSQL is the source of truth</p>
         <p>Demo progress worker only</p>
         <p>No raw frontend commands</p>
