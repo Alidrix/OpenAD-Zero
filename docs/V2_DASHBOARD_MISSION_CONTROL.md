@@ -56,3 +56,7 @@ Dashboard V2 is read-only visualization. It does not create scans, enqueue work,
 - Define the final visual identity and logo.
 - Add a safe template catalog when the safety model is ready.
 - Add recommendations based on parsed results, without introducing offensive automation.
+
+## Frontend hardening update
+
+The dashboard is reachable at `/v2-dashboard` and remains read-only. It imports the shared V2 tokens from `frontend/src/styles/v2-theme.css`, uses two-second polling only while a scan is active, and links back to `/scans` for inspection instead of exposing run controls.

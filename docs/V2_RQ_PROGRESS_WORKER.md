@@ -55,3 +55,7 @@ Build the V2 dashboard aesthetics and then introduce a reviewed catalog of safe 
 ## Dashboard V2 gate
 
 The RQ progress worker consolidation is the gate for the experimental `/v2-dashboard` page. The dashboard reads existing scan list endpoints only and does not enqueue work, execute tools, or send raw commands.
+
+## Frontend contract
+
+`frontend/src/lib/v2ScansApi.ts` exposes `enqueueDemoScan(scanId)` as a typed helper for the demo endpoint. The helper posts an empty JSON body and never accepts a command, target, or offensive tool option. The worker remains a safe progress simulation and Redis/RQ remains asynchronous execution plumbing only.

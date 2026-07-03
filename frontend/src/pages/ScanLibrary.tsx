@@ -13,6 +13,7 @@ import {
   type V2ScanEvent,
 } from '../lib/v2ScansApi';
 import {connectScanSocket} from '../lib/v2ScanSocket';
+import '../styles/v2-theme.css';
 
 const ACTIVE_STATUSES = new Set(['queued', 'running', 'stopping']);
 const DEMO_RUN_STATUSES = new Set(['draft', 'stopped', 'failed', 'completed']);
@@ -83,6 +84,45 @@ function ScanActions({
       <button className="btn" disabled={scan.status === 'deleted'} onClick={onDelete}>
         Delete
       </button>
+    </div>
+  );
+}
+
+function ScanEventsTimeline({events}: {events: V2ScanEvent[]}) {
+  if (events.length === 0) {
+    return <p className="text-sm text-slate-500">No events yet.</p>;
+  }
+
+  return (
+    <div className="mt-2 max-h-80 space-y-2 overflow-auto">
+      {events.map(event => (
+        <div key={event.id} className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800">
+          <div className="flex justify-between gap-2">
+            <b>{event.event_type}</b>
+            <span className="text-xs text-slate-500">{new Date(event.created_at).toLocaleString()}</span>
+          </div>
+          <p>{event.message}</p>
+          {(event.payload_json || event.payload) && (
+            <pre className="mt-2 overflow-auto text-xs">{JSON.stringify(event.payload_json || event.payload, null, 2)}</pre>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScanArtifactsList({artifacts}: {artifacts: V2ScanArtifact[]}) {
+  if (artifacts.length === 0) {
+    return <p className="text-sm text-slate-500">No artifacts.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {artifacts.map(artifact => (
+        <p key={artifact.id} className="break-all text-xs">
+          {artifact.artifact_type}: {artifact.path}
+        </p>
+      ))}
     </div>
   );
 }
@@ -169,36 +209,13 @@ function ScanDetailsPanel({
 
         <div>
           <h3 className="font-semibold">Artifacts</h3>
-          {artifacts.length === 0 ? (
-            <p className="text-sm text-slate-500">No artifacts.</p>
-          ) : (
-            artifacts.map(artifact => (
-              <p key={artifact.id} className="break-all text-xs">
-                {artifact.artifact_type}: {artifact.path}
-              </p>
-            ))
-          )}
+          <ScanArtifactsList artifacts={artifacts} />
         </div>
       </div>
 
       <div>
         <h3 className="font-semibold">Events timeline</h3>
-        <div className="mt-2 max-h-80 space-y-2 overflow-auto">
-          {events.map(event => (
-            <div key={event.id} className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800">
-              <div className="flex justify-between gap-2">
-                <b>{event.event_type}</b>
-                <span className="text-xs text-slate-500">{new Date(event.created_at).toLocaleString()}</span>
-              </div>
-              <p>{event.message}</p>
-              {(event.payload_json || event.payload) && (
-                <pre className="mt-2 overflow-auto text-xs">
-                  {JSON.stringify(event.payload_json || event.payload, null, 2)}
-                </pre>
-              )}
-            </div>
-          ))}
-        </div>
+        <ScanEventsTimeline events={events} />
       </div>
     </aside>
   );
