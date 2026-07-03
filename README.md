@@ -82,6 +82,10 @@ Operators should not run manual `chown -R` commands on `/app`, `/go`, `/opt/pipx
 
 The experimental V2 frontend identity is **AD Mission Control**: a persistent Active Directory audit operations surface for `/v2-dashboard`, `/scans`, and `/v2-brand`. The repository name remains OpenAD-Zero, and the V2 identity does not add offensive automation, raw frontend commands, or an external logo dependency.
 
+### Experimental V2 normalized scan parsing
+
+OpenAD-Zero includes an experimental parsing-only V2 normalized data layer under `/api/v2/scans/{scan_id}/parse-persisted` and `/v2-parsed-data`. It transforms already persisted scan events and uploaded evidence artifacts into parsed assets, services, signals and non-fatal diagnostics in PostgreSQL. This slice does not execute external tools, create subprocesses, enqueue parsing jobs, or launch Nmap/NetExec/Impacket/BloodHound/Kerbrute/Responder.
+
 ### Experimental V2 safe template recommendations
 
 OpenAD-Zero includes an experimental preview-only V2 recommendation layer under `/api/v2/recommendations/*` and `/v2-recommendations`. It loads a metadata-only catalog from `command-catalog/v2`, derives recommendations from persisted scan signals, and rebuilds argv previews on the backend from allowlisted templates. This slice does not execute NetExec, Nmap, Impacket, BloodHound, Kerbrute, Responder, shell commands, RQ jobs, password spraying, dumping, or lateral movement.

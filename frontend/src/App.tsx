@@ -17,6 +17,7 @@ import {ToolConsolePage} from './pages/ToolConsolePage';
 import {V2BrandPage} from './pages/V2BrandPage';
 import {V2DashboardPage} from './pages/V2DashboardPage';
 import {V2RecommendationsPage} from './pages/V2RecommendationsPage';
+import {V2ParsedDataPage} from './pages/V2ParsedDataPage';
 import {WebTargetsPage} from './pages/WebTargetsPage';
 import {BloodHoundExplorerPage} from './pages/bloodhound/BloodHoundExplorerPage';
 import {BloodHoundPage} from './pages/bloodhound/BloodHoundPage';
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/scans" element={<ScanLibrary />} />
         <Route path="/v2-dashboard" element={<V2DashboardPage />} />
         <Route path="/v2-recommendations" element={<V2RecommendationsPage />} />
+        <Route path="/v2-parsed-data" element={<V2ParsedDataPage />} />
         <Route path="/v2-brand" element={<V2BrandPage />} />
         <Route path="/tools/:toolSlug" element={<ToolConsolePage />} />
         <Route path="/missions/:missionId/tools/:toolSlug" element={<ToolConsolePage />} />

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from app.db.models import Scan, ScanArtifact, ScanEvent
+from sqlalchemy.orm import Session
+from app.db.models import ParsedSignal, Scan, ScanArtifact, ScanEvent
 from app.recommendations.catalog_loader import get_catalog
 from app.recommendations.models import V2Recommendation
 
@@ -17,10 +18,16 @@ PORT_SIGNALS = {
 ALLOWED_SIGNALS = {
     "host_discovered",
     "windows_host_detected",
+    "linux_host_detected",
     "smb_open",
     "ldap_open",
     "kerberos_open",
     "http_open",
+    "rdp_open",
+    "winrm_open",
+    "mssql_open",
+    "ssh_open",
+    "ftp_open",
     "scan_completed",
     "artifact_uploaded",
     "bloodhound_artifact_present",
@@ -76,11 +83,14 @@ def extract_signals(
 
 
 def build_recommendations(
-    scan: Scan, events: list[ScanEvent], artifacts: list[ScanArtifact]
+    scan: Scan, events: list[ScanEvent], artifacts: list[ScanArtifact], db: Session | None = None
 ) -> list[V2Recommendation]:
     templates, rules, _policy = get_catalog()
     by_id = {template.id: template for template in templates}
-    signals = extract_signals(scan, events, artifacts)
+    parsed_signals = set()
+    if db is not None:
+        parsed_signals = {row.signal for row in db.query(ParsedSignal).filter_by(scan_id=scan.id).all() if row.signal in ALLOWED_SIGNALS}
+    signals = parsed_signals or extract_signals(scan, events, artifacts)
     recommendations: list[V2Recommendation] = []
     for rule in rules:
         if not set(rule.when.signals).issubset(signals):

@@ -59,7 +59,7 @@ def scan_recommendations(scan_id: str, db: Session = Depends(get_db)):
         .order_by(ScanArtifact.created_at.asc())
         .all()
     )
-    return build_recommendations(scan, events, artifacts)
+    return build_recommendations(scan, events, artifacts, db=db)
 
 
 @router.post("/v2/recommendations/preview", response_model=V2CommandPreview)

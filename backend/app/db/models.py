@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import CheckConstraint, JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -73,6 +73,11 @@ class Scan(Base):
     steps = relationship('ScanStep', cascade='all, delete-orphan')
     events = relationship('ScanEvent', cascade='all, delete-orphan')
     artifacts = relationship('ScanArtifact', cascade='all, delete-orphan')
+    parsed_assets = relationship('ParsedAsset', cascade='all, delete-orphan')
+    parsed_services = relationship('ParsedService', cascade='all, delete-orphan')
+    parsed_findings = relationship('ParsedFinding', cascade='all, delete-orphan')
+    parsed_signals = relationship('ParsedSignal', cascade='all, delete-orphan')
+    parse_diagnostics = relationship('ParseDiagnostic', cascade='all, delete-orphan')
 
 
 class ScanStep(Base):
@@ -110,6 +115,110 @@ class ScanArtifact(Base):
     path: Mapped[str] = mapped_column(Text)
     sha256: Mapped[str | None] = mapped_column(String(64))
     size_bytes: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class ParsedAsset(Base):
+    __tablename__ = 'parsed_assets'
+    __table_args__ = (
+        CheckConstraint('confidence >= 0 AND confidence <= 1', name='ck_parsed_assets_confidence_range'),
+        Index('ix_parsed_assets_scan_id', 'scan_id'),
+        Index('ix_parsed_assets_ip_address', 'ip_address'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    ip_address: Mapped[str] = mapped_column(String(80))
+    hostname: Mapped[str | None] = mapped_column(String(255))
+    fqdn: Mapped[str | None] = mapped_column(String(255))
+    mac_address: Mapped[str | None] = mapped_column(String(80))
+    os_family: Mapped[str | None] = mapped_column(String(80))
+    os_name: Mapped[str | None] = mapped_column(String(255))
+    confidence: Mapped[float] = mapped_column(Float, default=0.8)
+    tags_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ParsedService(Base):
+    __tablename__ = 'parsed_services'
+    __table_args__ = (
+        CheckConstraint('confidence >= 0 AND confidence <= 1', name='ck_parsed_services_confidence_range'),
+        Index('ix_parsed_services_scan_id', 'scan_id'),
+        Index('ix_parsed_services_ip_address', 'ip_address'),
+        Index('ix_parsed_services_port', 'port'),
+        Index('ix_parsed_services_protocol', 'protocol'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    asset_id: Mapped[str | None] = mapped_column(ForeignKey('parsed_assets.id'), nullable=True)
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    ip_address: Mapped[str] = mapped_column(String(80))
+    port: Mapped[int] = mapped_column(Integer)
+    protocol: Mapped[str] = mapped_column(String(20), default='tcp')
+    service_name: Mapped[str | None] = mapped_column(String(120))
+    product: Mapped[str | None] = mapped_column(String(255))
+    version: Mapped[str | None] = mapped_column(String(255))
+    state: Mapped[str] = mapped_column(String(40), default='open')
+    confidence: Mapped[float] = mapped_column(Float, default=0.8)
+    tags_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ParsedFinding(Base):
+    __tablename__ = 'parsed_findings'
+    __table_args__ = (
+        CheckConstraint('confidence >= 0 AND confidence <= 1', name='ck_parsed_findings_confidence_range'),
+        CheckConstraint("severity IN ('info', 'low', 'medium', 'high', 'critical')", name='ck_parsed_findings_severity'),
+        Index('ix_parsed_findings_scan_id', 'scan_id'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    asset_id: Mapped[str | None] = mapped_column(ForeignKey('parsed_assets.id'), nullable=True)
+    service_id: Mapped[str | None] = mapped_column(ForeignKey('parsed_services.id'), nullable=True)
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    severity: Mapped[str] = mapped_column(String(40), default='info')
+    confidence: Mapped[float] = mapped_column(Float, default=0.8)
+    tags_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ParsedSignal(Base):
+    __tablename__ = 'parsed_signals'
+    __table_args__ = (
+        CheckConstraint('confidence >= 0 AND confidence <= 1', name='ck_parsed_signals_confidence_range'),
+        Index('ix_parsed_signals_scan_id', 'scan_id'),
+        Index('ix_parsed_signals_signal', 'signal'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    asset_id: Mapped[str | None] = mapped_column(ForeignKey('parsed_assets.id'), nullable=True)
+    service_id: Mapped[str | None] = mapped_column(ForeignKey('parsed_services.id'), nullable=True)
+    finding_id: Mapped[str | None] = mapped_column(ForeignKey('parsed_findings.id'), nullable=True)
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    signal: Mapped[str] = mapped_column(String(120))
+    value: Mapped[str] = mapped_column(Text, default='true')
+    confidence: Mapped[float] = mapped_column(Float, default=0.8)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ParseDiagnostic(Base):
+    __tablename__ = 'parse_diagnostics'
+    __table_args__ = (Index('ix_parse_diagnostics_scan_id', 'scan_id'),)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    level: Mapped[str] = mapped_column(String(40), default='warning')
+    message: Mapped[str] = mapped_column(Text)
+    details_json: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

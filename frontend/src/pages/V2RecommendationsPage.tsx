@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {Link, useSearchParams} from 'react-router-dom';
 import {
   buildCommandPreview,
   getRecommendationCatalog,
@@ -172,12 +172,19 @@ export function V2RecommendationsPage() {
               </option>
             ))}
           </select>
-          <button
-            className="v2-button v2-button-secondary mt-3"
-            onClick={() => refreshRecommendations().catch(err => setError(String(err)))}
-          >
-            Refresh recommendations
-          </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              className="v2-button v2-button-secondary"
+              onClick={() => refreshRecommendations().catch(err => setError(String(err)))}
+            >
+              Refresh recommendations
+            </button>
+            {selectedScanId && (
+              <Link className="v2-button v2-button-secondary" to={`/v2-parsed-data?scan_id=${encodeURIComponent(selectedScanId)}`}>
+                View parsed signals
+              </Link>
+            )}
+          </div>
           <div className="mt-4 space-y-3">
             {recommendations.length === 0 ? (
               <p className="text-sm text-slate-500">
