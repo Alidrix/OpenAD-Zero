@@ -54,3 +54,18 @@ Signals are currently heuristic and derived from persisted scan fields, event me
 ## Next steps
 
 Add richer normalized service/artifact signals, introduce operator-facing approval records for future safe assisted flows, and keep high-risk templates gated as documentation-only until a separate safety review approves any execution path.
+
+## Integration status
+
+- The FastAPI recommendations router is mounted from `backend/app/main.py` with the `/api` prefix.
+- The frontend recommendations page is routed at `/v2-recommendations`.
+- The sidebar includes a `V2 Recommendations` navigation link.
+- Scan Library rows include a non-executive `View recommendations` link to `/v2-recommendations?scan_id=<scan_id>`.
+- The mounted endpoints are covered by API tests:
+  - `GET /api/v2/recommendations/catalog`
+  - `GET /api/v2/scans/{scan_id}/recommendations`
+  - `POST /api/v2/recommendations/preview`
+- Previews are still preview-only and return `executable: false`.
+- Automatic execution remains disabled and previews return `automatic_execution_allowed: false`.
+- The frontend does not send raw commands.
+- The backend rebuilds argv previews from allowlisted templates and rejects raw-command-like parameters.
