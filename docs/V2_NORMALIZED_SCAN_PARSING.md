@@ -60,3 +60,7 @@ The V2 recommendation engine reads `parsed_signals` first when they exist for a 
 ## Next steps
 
 Add more artifact parsers for already captured safe outputs, surface parsed data in dashboard/report summaries, and add richer finding derivation while preserving the no-execution model.
+
+## Dashboard integration
+
+Normalized parsing feeds the V2 dashboard through the read-only `GET /api/v2/dashboard/summary` endpoint. The summary aggregates parsed assets, services, findings, signals, diagnostics, service distributions, and AD surface hints without triggering parsing, RQ jobs, subprocesses, or external tools. If parsed tables are empty, dashboard counters return zero values.
