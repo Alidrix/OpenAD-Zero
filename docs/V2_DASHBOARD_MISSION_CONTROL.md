@@ -60,3 +60,7 @@ Dashboard V2 is read-only visualization. It does not create scans, enqueue work,
 ## Frontend hardening update
 
 The dashboard is reachable at `/v2-dashboard` and remains read-only. It imports the shared V2 tokens from `frontend/src/styles/v2-theme.css`, uses two-second polling only while a scan is active, and links back to `/scans` for inspection instead of exposing run controls.
+
+## V2 brand identity update
+
+The dashboard now presents the V2 product identity as **AD Mission Control** with the tagline **Persistent Active Directory audit operations**. It remains read-only: it lists counters, active scans, recent scans, Mission Control status, and persistence guarantees, but it does not enqueue demo work or execute tools.

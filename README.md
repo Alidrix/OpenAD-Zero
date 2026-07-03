@@ -77,3 +77,7 @@ Runtime output is split into two writable Docker volumes:
 The Docker entrypoint creates these directories automatically, fixes ownership only for `/app/evidence` and `/app/runtime`, and then drops privileges to the `openadzero` user. Tool execution and tool-health checks pass `HOME`, `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_DATA_HOME`, `TMPDIR`, and `NXC_PATH` values pointing at `/app/runtime`, so tools such as NetExec and Nuclei no longer try to write to `/app/.nxc` or `/app/.config`.
 
 Operators should not run manual `chown -R` commands on `/app`, `/go`, `/opt/pipx`, `/usr/local`, or the container filesystem. Use `make check-permissions` to verify the API and worker can write to the expected runtime directories.
+
+## V2 experimental identity
+
+The experimental V2 frontend identity is **AD Mission Control**: a persistent Active Directory audit operations surface for `/v2-dashboard`, `/scans`, and `/v2-brand`. The repository name remains OpenAD-Zero, and the V2 identity does not add offensive automation, raw frontend commands, or an external logo dependency.

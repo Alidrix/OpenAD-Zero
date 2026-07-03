@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Link} from 'react-router-dom';
+import {V2Logo} from '../components/v2/V2Logo';
+import {V2_BRAND} from '../lib/v2Brand';
 import {listScans, type V2Scan} from '../lib/v2ScansApi';
 import '../styles/v2-theme.css';
 
@@ -33,7 +35,7 @@ function CounterCard({label, value, active = false}: {label: string; value: numb
   return (
     <div className="v2-card p-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#6F6B63]">{label}</p>
+        <p className="v2-counter-label">{label}</p>
         <StatusDot active={active} />
       </div>
       <p className="v2-counter mt-4">{value}</p>
@@ -49,7 +51,7 @@ function ScanRow({scan}: {scan: V2Scan}) {
           <p className="font-semibold text-[#141413]">{scan.name}</p>
           <p className="text-sm text-[#6F6B63]">{scan.current_step || scan.tool_name || scan.scan_type}</p>
         </div>
-        <span className="rounded-full border border-[#E8E6DC] bg-white px-3 py-1 text-xs font-semibold text-[#8E3E26]">
+        <span className="v2-badge">
           {scan.status}
         </span>
       </div>
@@ -119,13 +121,13 @@ export function V2DashboardPage() {
   return (
     <div className="v2-shell space-y-6">
       <header className="v2-card p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="v2-header">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#C15F3C]">Mission Control</p>
-            <h1 className="mt-2 text-4xl font-bold">OpenAD-Zero V2 Mission Control</h1>
-            <p className="mt-2 text-[#6F6B63]">persisted scan operations</p>
+            <V2Logo size={52} showText />
+            <h1 className="mt-5 text-4xl font-bold">{V2_BRAND.productName}</h1>
+            <p className="mt-2 text-[var(--v2-text-muted)]">{V2_BRAND.tagline}</p>
           </div>
-          <Link className="rounded-full bg-[#C15F3C] px-5 py-3 font-semibold text-white shadow-sm hover:bg-[#8E3E26]" to="/scans">
+          <Link className="v2-button v2-button-primary" to="/scans">
             Open Scan Library
           </Link>
         </div>
@@ -143,11 +145,27 @@ export function V2DashboardPage() {
         <CounterCard label="Deleted" value={counts.deleted} />
       </section>
 
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="v2-card p-6">
+          <h2 className="v2-section-title">Mission Control status</h2>
+          <p className="mt-2 text-sm text-[var(--v2-text-muted)]">Read-only telemetry from persisted V2 scans. The dashboard never enqueues work or sends raw commands.</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="v2-card-muted p-4"><p className="v2-counter-label">Realtime hints</p><p className="mt-2 font-bold">WebSocket + active polling</p></div>
+            <div className="v2-card-muted p-4"><p className="v2-counter-label">Execution model</p><p className="mt-2 font-bold">Demo worker only</p></div>
+          </div>
+        </div>
+        <div className="v2-card p-6">
+          <h2 className="v2-section-title">Persistence guarantee</h2>
+          <p className="mt-2 text-sm text-[var(--v2-text-muted)]">PostgreSQL remains the source of truth for scan lifecycle, progress, events, and recovery after refresh.</p>
+          <Link className="mt-5 inline-flex text-sm font-bold text-[var(--v2-orange)]" to="/scans">Review persisted Scan Library →</Link>
+        </div>
+      </section>
+
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <div className="v2-card p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-bold">Active scans</h2>
+              <h2 className="v2-section-title">Active scans</h2>
               <p className="text-sm text-[#6F6B63]">Average active progress: {averageActiveProgress}%</p>
             </div>
             <StatusDot active={hasActiveScans} />
@@ -162,7 +180,7 @@ export function V2DashboardPage() {
         </div>
 
         <div className="v2-card p-6">
-          <h2 className="text-2xl font-bold">Recent scans</h2>
+          <h2 className="v2-section-title">Recent scans</h2>
           <p className="mt-1 text-sm text-[#6F6B63]">
             Latest: {latestScan ? `${latestScan.name} · ${new Date(latestScan.created_at).toLocaleString()}` : 'n/a'}
           </p>
@@ -188,7 +206,7 @@ export function V2DashboardPage() {
 
       <section className="v2-safety-banner">
         <p>PostgreSQL is the source of truth</p>
-        <p>Demo progress worker only</p>
+        <p>Demo worker only</p>
         <p>No raw frontend commands</p>
       </section>
     </div>
