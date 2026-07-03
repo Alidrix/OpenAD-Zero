@@ -68,3 +68,7 @@ The dashboard now presents the V2 product identity as **AD Mission Control** wit
 ## V2 recommendations preview link
 
 A separate `/v2-recommendations` page now provides preview-only recommendations derived from persisted V2 scan data. Mission Control remains read-only and does not execute recommendations, enqueue recommendation jobs, or accept raw commands.
+
+## Parsed Intelligence summary
+
+The V2 dashboard now consumes `GET /api/v2/dashboard/summary` to display normalized parsed assets, services, signals, diagnostics, top services, and AD surface hints. The dashboard remains read-only: it does not enqueue jobs, trigger parsing, execute tools, create subprocesses, or launch external binaries. Parsing is still only available from `/v2-parsed-data` against persisted scan data.

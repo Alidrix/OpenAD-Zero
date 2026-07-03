@@ -84,7 +84,7 @@ The experimental V2 frontend identity is **AD Mission Control**: a persistent Ac
 
 ### Experimental V2 normalized scan parsing
 
-OpenAD-Zero includes an experimental parsing-only V2 normalized data layer under `/api/v2/scans/{scan_id}/parse-persisted` and `/v2-parsed-data`. It transforms already persisted scan events and uploaded evidence artifacts into parsed assets, services, signals and non-fatal diagnostics in PostgreSQL. This slice does not execute external tools, create subprocesses, enqueue parsing jobs, or launch Nmap/NetExec/Impacket/BloodHound/Kerbrute/Responder.
+OpenAD-Zero includes an experimental parsing-only V2 normalized data layer under `/api/v2/scans/{scan_id}/parse-persisted`, `/api/v2/dashboard/summary`, and `/v2-parsed-data`. It transforms already persisted scan events and uploaded evidence artifacts into parsed assets, services, signals and non-fatal diagnostics in PostgreSQL. This slice does not execute external tools, create subprocesses, enqueue parsing jobs, or launch Nmap/NetExec/Impacket/BloodHound/Kerbrute/Responder.
 
 ### Experimental V2 safe template recommendations
 
