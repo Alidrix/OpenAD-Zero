@@ -30,6 +30,12 @@ export type V2SignalCounters = {
   ssh_open: number;
 };
 
+export type V2AssetCounters = {
+  windows_hosts: number;
+  linux_hosts: number;
+  unknown_hosts: number;
+};
+
 export type V2AdSurfaceCounters = {
   domain_controller_hints: number;
   smb_hosts: number;
@@ -70,11 +76,7 @@ export type V2DashboardSummary = {
     top_ports: V2TopPort[];
     top_service_names: V2TopService[];
   };
-  assets: {
-    windows_hosts: number;
-    linux_hosts: number;
-    unknown_hosts: number;
-  };
+  assets: V2AssetCounters;
   ad_surface: V2AdSurfaceCounters;
   recent_scans: V2RecentScan[];
   recent_diagnostics: V2RecentDiagnostic[];

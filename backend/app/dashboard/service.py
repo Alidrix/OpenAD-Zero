@@ -1,6 +1,7 @@
 from collections import Counter
+from typing import Iterable
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 
 from app.dashboard.schemas import (
     V2AdSurfaceCounters,
@@ -15,7 +16,14 @@ from app.dashboard.schemas import (
     V2TopPort,
     V2TopService,
 )
-from app.db.models import ParseDiagnostic, ParsedAsset, ParsedFinding, ParsedService, ParsedSignal, Scan
+from app.db.models import (
+    ParseDiagnostic,
+    ParsedAsset,
+    ParsedFinding,
+    ParsedService,
+    ParsedSignal,
+    Scan,
+)
 
 ACTIVE_STATUSES = {'queued', 'running', 'stopping'}
 SIGNAL_NAMES = tuple(V2SignalCounters.model_fields.keys())
@@ -31,26 +39,46 @@ PORT_SIGNALS = {
 }
 
 
-def _scope(query, scan_id: str | None):
-    return query.filter_by(scan_id=scan_id) if scan_id else query
+def _is_soft_deleted(scan: Scan) -> bool:
+    return scan.deleted_at is not None or scan.status == 'deleted'
 
 
-def _host_count(rows) -> int:
+def _scope_scans(db: Session, include_deleted: bool, scan_id: str | None) -> list[Scan]:
+    query = db.query(Scan)
+
+    if scan_id:
+        scan = db.get(Scan, scan_id)
+        if scan is None:
+            raise LookupError('scan_not_found')
+        return [scan]
+
+    if not include_deleted:
+        query = query.filter(Scan.deleted_at.is_(None), Scan.status != 'deleted')
+
+    return query.all()
+
+
+def _scope_parsed_query(
+    query: Query,
+    model: type[ParsedAsset | ParsedService | ParsedFinding | ParsedSignal | ParseDiagnostic],
+    scan_ids: set[str],
+    scan_id: str | None,
+) -> Query:
+    if scan_id:
+        return query.filter(model.scan_id == scan_id)
+
+    if not scan_ids:
+        return query.filter(False)
+
+    return query.filter(model.scan_id.in_(scan_ids))
+
+
+def _host_count(rows: Iterable[ParsedService]) -> int:
     return len({row.ip_address for row in rows if row.ip_address})
 
 
-def build_v2_dashboard_summary(db: Session, *, include_deleted: bool = False, scan_id: str | None = None, limit_recent: int = 5) -> V2DashboardSummary:
-    if scan_id and db.get(Scan, scan_id) is None:
-        raise LookupError('scan_not_found')
-
-    scan_query = db.query(Scan)
-    if scan_id:
-        scan_query = scan_query.filter(Scan.id == scan_id)
-    elif not include_deleted:
-        scan_query = scan_query.filter(Scan.deleted_at.is_(None), Scan.status != 'deleted')
-    scans = scan_query.all()
-
-    scan_counts = V2ScanCounters(
+def _build_scan_counters(scans: list[Scan]) -> V2ScanCounters:
+    return V2ScanCounters(
         total=len(scans),
         active=sum(1 for scan in scans if scan.status in ACTIVE_STATUSES),
         queued=sum(1 for scan in scans if scan.status == 'queued'),
@@ -58,36 +86,79 @@ def build_v2_dashboard_summary(db: Session, *, include_deleted: bool = False, sc
         completed=sum(1 for scan in scans if scan.status == 'completed'),
         failed=sum(1 for scan in scans if scan.status == 'failed'),
         stopped=sum(1 for scan in scans if scan.status == 'stopped'),
-        deleted=sum(1 for scan in scans if scan.status == 'deleted' or scan.deleted_at is not None),
+        deleted=sum(1 for scan in scans if _is_soft_deleted(scan)),
     )
 
-    assets = _scope(db.query(ParsedAsset), scan_id).all()
-    services = _scope(db.query(ParsedService), scan_id).all()
-    findings_count = _scope(db.query(ParsedFinding), scan_id).count()
-    signals = _scope(db.query(ParsedSignal), scan_id).all()
-    diagnostics = _scope(db.query(ParseDiagnostic), scan_id).all()
 
-    parsed = V2ParsedCounters(assets=len(assets), services=len(services), findings=findings_count, signals=len(signals), diagnostics=len(diagnostics))
-
+def _build_signal_counters(
+    services: list[ParsedService],
+    signals: list[ParsedSignal],
+) -> V2SignalCounters:
     signal_counter = Counter(row.signal for row in signals if row.signal in SIGNAL_NAMES)
+
     for service in services:
-        if service.state == 'open':
-            for signal_name, ports in PORT_SIGNALS.items():
-                if service.port in ports:
-                    signal_counter[signal_name] += 1
-    signal_summary = V2SignalCounters(**{name: signal_counter[name] for name in SIGNAL_NAMES})
+        if service.state != 'open':
+            continue
 
-    top_ports = [V2TopPort(port=port, protocol=proto, count=count) for (port, proto), count in Counter((svc.port, svc.protocol or 'tcp') for svc in services).most_common(10)]
-    top_names = [V2TopService(service_name=name, count=count) for name, count in Counter((svc.service_name or 'unknown') for svc in services).most_common(10)]
+        for signal_name, ports in PORT_SIGNALS.items():
+            if service.port in ports:
+                signal_counter[signal_name] += 1
 
-    windows_hosts = sum(1 for asset in assets if (asset.os_family or '').lower() == 'windows' or 'windows' in (asset.os_name or '').lower())
-    linux_hosts = sum(1 for asset in assets if (asset.os_family or '').lower() == 'linux' or 'linux' in (asset.os_name or '').lower())
-    asset_summary = V2AssetCounters(windows_hosts=windows_hosts, linux_hosts=linux_hosts, unknown_hosts=max(0, len(assets) - windows_hosts - linux_hosts))
+    return V2SignalCounters(**{name: signal_counter[name] for name in SIGNAL_NAMES})
 
+
+def _build_service_summary(services: list[ParsedService]) -> V2ServiceSummary:
+    top_ports = [
+        V2TopPort(port=port, protocol=protocol, count=count)
+        for (port, protocol), count in Counter(
+            (service.port, service.protocol or 'tcp') for service in services
+        ).most_common(10)
+    ]
+    top_service_names = [
+        V2TopService(service_name=service_name, count=count)
+        for service_name, count in Counter(
+            service.service_name or 'unknown' for service in services
+        ).most_common(10)
+    ]
+
+    return V2ServiceSummary(top_ports=top_ports, top_service_names=top_service_names)
+
+
+def _build_asset_counters(assets: list[ParsedAsset]) -> V2AssetCounters:
+    windows_hosts = sum(
+        1
+        for asset in assets
+        if (asset.os_family or '').lower() == 'windows'
+        or 'windows' in (asset.os_name or '').lower()
+    )
+    linux_hosts = sum(
+        1
+        for asset in assets
+        if (asset.os_family or '').lower() == 'linux'
+        or 'linux' in (asset.os_name or '').lower()
+    )
+
+    return V2AssetCounters(
+        windows_hosts=windows_hosts,
+        linux_hosts=linux_hosts,
+        unknown_hosts=max(0, len(assets) - windows_hosts - linux_hosts),
+    )
+
+
+def _build_ad_surface(
+    services: list[ParsedService],
+    signals: list[ParsedSignal],
+) -> V2AdSurfaceCounters:
     by_signal = {name: [row for row in signals if row.signal == name] for name in SIGNAL_NAMES}
-    by_port = {name: [svc for svc in services if svc.state == 'open' and svc.port in ports] for name, ports in PORT_SIGNALS.items()}
-    ad_surface = V2AdSurfaceCounters(
-        domain_controller_hints=len({row.asset_id or row.value for row in by_signal['ldap_open'] + by_signal['kerberos_open']}),
+    by_port = {
+        name: [service for service in services if service.state == 'open' and service.port in ports]
+        for name, ports in PORT_SIGNALS.items()
+    }
+
+    return V2AdSurfaceCounters(
+        domain_controller_hints=len(
+            {row.asset_id or row.value for row in by_signal['ldap_open'] + by_signal['kerberos_open']}
+        ),
         smb_hosts=_host_count(by_port['smb_open']) or len(by_signal['smb_open']),
         ldap_hosts=_host_count(by_port['ldap_open']) or len(by_signal['ldap_open']),
         kerberos_hosts=_host_count(by_port['kerberos_open']) or len(by_signal['kerberos_open']),
@@ -95,16 +166,57 @@ def build_v2_dashboard_summary(db: Session, *, include_deleted: bool = False, sc
         rdp_hosts=_host_count(by_port['rdp_open']) or len(by_signal['rdp_open']),
     )
 
-    recent_scan_rows = sorted(scans, key=lambda scan: scan.created_at, reverse=True)[:max(0, limit_recent)]
-    recent_diagnostic_rows = sorted(diagnostics, key=lambda row: row.created_at, reverse=True)[:max(0, limit_recent)]
+
+def build_v2_dashboard_summary(
+    db: Session,
+    *,
+    include_deleted: bool = False,
+    scan_id: str | None = None,
+    limit_recent: int = 5,
+) -> V2DashboardSummary:
+    scans = _scope_scans(db, include_deleted=include_deleted, scan_id=scan_id)
+    scan_ids = {scan.id for scan in scans}
+
+    assets = _scope_parsed_query(db.query(ParsedAsset), ParsedAsset, scan_ids, scan_id).all()
+    services = _scope_parsed_query(db.query(ParsedService), ParsedService, scan_ids, scan_id).all()
+    findings_count = _scope_parsed_query(
+        db.query(ParsedFinding),
+        ParsedFinding,
+        scan_ids,
+        scan_id,
+    ).count()
+    signals = _scope_parsed_query(db.query(ParsedSignal), ParsedSignal, scan_ids, scan_id).all()
+    diagnostics = _scope_parsed_query(
+        db.query(ParseDiagnostic),
+        ParseDiagnostic,
+        scan_ids,
+        scan_id,
+    ).all()
+
+    recent_limit = max(0, limit_recent)
+    recent_scans = sorted(scans, key=lambda scan: scan.created_at, reverse=True)[:recent_limit]
+    recent_diagnostics = sorted(
+        diagnostics,
+        key=lambda diagnostic: diagnostic.created_at,
+        reverse=True,
+    )[:recent_limit]
 
     return V2DashboardSummary(
-        scans=scan_counts,
-        parsed=parsed,
-        signals=signal_summary,
-        services=V2ServiceSummary(top_ports=top_ports, top_service_names=top_names),
-        assets=asset_summary,
-        ad_surface=ad_surface,
-        recent_scans=[V2RecentScan.model_validate(scan, from_attributes=True) for scan in recent_scan_rows],
-        recent_diagnostics=[V2RecentDiagnostic.model_validate(row, from_attributes=True) for row in recent_diagnostic_rows],
+        scans=_build_scan_counters(scans),
+        parsed=V2ParsedCounters(
+            assets=len(assets),
+            services=len(services),
+            findings=findings_count,
+            signals=len(signals),
+            diagnostics=len(diagnostics),
+        ),
+        signals=_build_signal_counters(services, signals),
+        services=_build_service_summary(services),
+        assets=_build_asset_counters(assets),
+        ad_surface=_build_ad_surface(services, signals),
+        recent_scans=[V2RecentScan.model_validate(scan, from_attributes=True) for scan in recent_scans],
+        recent_diagnostics=[
+            V2RecentDiagnostic.model_validate(diagnostic, from_attributes=True)
+            for diagnostic in recent_diagnostics
+        ],
     )

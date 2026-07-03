@@ -14,8 +14,13 @@ def dashboard_summary(
     scan_id: str | None = None,
     limit_recent: int = Query(default=5, ge=0, le=50),
     db: Session = Depends(get_db),
-):
+) -> V2DashboardSummary:
     try:
-        return build_v2_dashboard_summary(db, include_deleted=include_deleted, scan_id=scan_id, limit_recent=limit_recent)
+        return build_v2_dashboard_summary(
+            db,
+            include_deleted=include_deleted,
+            scan_id=scan_id,
+            limit_recent=limit_recent,
+        )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail='Scan not found') from exc

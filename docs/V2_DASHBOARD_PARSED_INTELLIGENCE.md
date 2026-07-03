@@ -61,3 +61,12 @@ The dashboard uses only API reads against the backend summary endpoint. Parsing 
 - Add optional per-scan parsed summary badges to the Scan Library when a lightweight endpoint exists.
 - Add richer diagnostic severity grouping once parser diagnostics are more structured.
 - Extend AD surface heuristics with future normalized Active Directory object parsers.
+
+## Consolidation hardening status
+
+- The FastAPI router `app.api.routes_v2_dashboard` is imported and mounted from `backend/app/main.py` with the `/api` prefix.
+- `GET /api/v2/dashboard/summary` is the exposed dashboard summary endpoint.
+- `/v2-dashboard` consumes `getV2DashboardSummary()` from `frontend/src/lib/v2DashboardApi.ts` as its primary source of parsed intelligence.
+- `/v2-parsed-data` is routed in the React application and linked from the sidebar.
+- The dashboard is read-only: it does not trigger parsing, enqueue RQ work, launch external tools, call subprocesses, or build recommendation previews.
+- PostgreSQL-backed API responses remain the source of truth for scan counters, parsed counters, signal matrix, AD surface hints, top services, recent scans, and diagnostics.

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class V2ScanCounters(BaseModel):
@@ -45,8 +45,8 @@ class V2TopService(BaseModel):
 
 
 class V2ServiceSummary(BaseModel):
-    top_ports: list[V2TopPort] = []
-    top_service_names: list[V2TopService] = []
+    top_ports: list[V2TopPort] = Field(default_factory=list)
+    top_service_names: list[V2TopService] = Field(default_factory=list)
 
 
 class V2AssetCounters(BaseModel):
@@ -91,5 +91,5 @@ class V2DashboardSummary(BaseModel):
     services: V2ServiceSummary
     assets: V2AssetCounters
     ad_surface: V2AdSurfaceCounters
-    recent_scans: list[V2RecentScan] = []
-    recent_diagnostics: list[V2RecentDiagnostic] = []
+    recent_scans: list[V2RecentScan] = Field(default_factory=list)
+    recent_diagnostics: list[V2RecentDiagnostic] = Field(default_factory=list)
