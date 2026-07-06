@@ -103,3 +103,8 @@ The frontend never sends a raw command to execute. The backend always rebuilds a
 * [ ] Worker container runtime identity is UID/GID `10001:10001` after startup.
 * [ ] Smoke verifies `/app/evidence` and `/app/runtime` are writable from both API and worker containers.
 * [ ] Compose keeps `openadzero-evidence` and `openadzero-runtime` named volumes for default startup.
+
+## V2 pentest orchestrator foundation
+
+- Added a backend-only Windows/AD pentest orchestration foundation with static phases, persistent phase states, persistent action recommendation contracts, and read/recompute API endpoints.
+- The foundation is intentionally non-executing: no tool launch, no RQ job creation, no subprocess usage, and no raw command acceptance.

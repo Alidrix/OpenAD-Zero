@@ -35,3 +35,7 @@ Tailwind CSS v4 changes the PostCSS integration and requires a dedicated migrati
 ## Docker runtime user model
 
 The backend image intentionally starts its entrypoint as root so Docker named volumes mounted at `/app/evidence` and `/app/runtime` can be created and repaired. The entrypoint then drops privileges to `APP_UID:APP_GID` (default `10001:10001`) before launching the API or worker. Do not add a static `USER openadzero` instruction unless the volume repair flow is redesigned.
+
+## V2 pentest orchestrator limitations
+
+- The pentest orchestrator currently recommends actions only. Server-side approvals, RQ execution, frontend Attack Control Center integration, and `Approve & Run` wiring are intentionally deferred to later prompts.
