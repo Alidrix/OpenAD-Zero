@@ -1,4 +1,5 @@
 import {API_URL, ApiError} from './api';
+import {mergeAuthHeaders} from './auth';
 
 export type V2SafeTemplate = {
   id: string;
@@ -62,7 +63,7 @@ export type V2RecommendationCatalog = {
 };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers);
+  const headers = mergeAuthHeaders(options.headers);
   headers.set('Content-Type', 'application/json');
 
   const response = await fetch(`${API_URL}${path}`, {

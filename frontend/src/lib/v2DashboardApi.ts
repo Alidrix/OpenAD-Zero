@@ -1,4 +1,5 @@
 import {API_URL, ApiError} from './api';
+import {mergeAuthHeaders} from './auth';
 
 export type V2ScanCounters = {
   total: number;
@@ -83,7 +84,7 @@ export type V2DashboardSummary = {
 };
 
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {headers: {'Content-Type': 'application/json'}});
+  const response = await fetch(`${API_URL}${path}`, {headers: mergeAuthHeaders({'Content-Type': 'application/json'})});
 
   if (!response.ok) {
     let details: unknown = null;

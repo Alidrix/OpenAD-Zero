@@ -1,5 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.core.auth import require_ws_token
 from app.db.models import ScanEvent
 from app.db.session import SessionLocal
 from app.events.scan_websocket_manager import scan_ws_manager, serialize_scan_event
@@ -15,6 +16,7 @@ def query_scan_events(db, scan_id: str, limit: int = 200):
 
 @router.websocket('/ws/v2/scans/{scan_id}')
 async def ws_v2_scan(websocket: WebSocket, scan_id: str):
+    await require_ws_token(websocket)
     await scan_ws_manager.connect(scan_id, websocket)
     try:
         db = SessionLocal()
@@ -23,7 +25,9 @@ async def ws_v2_scan(websocket: WebSocket, scan_id: str):
         finally:
             db.close()
         if not scan_exists:
-            await websocket.send_json({'type': 'scan.error', 'event_type': 'scan.error', 'scan_id': scan_id, 'message': 'Scan not found'})
+            await websocket.send_json(
+                {'type': 'scan.error', 'event_type': 'scan.error', 'scan_id': scan_id, 'message': 'Scan not found'}
+            )
             await websocket.close(code=1008)
             scan_ws_manager.disconnect(scan_id, websocket)
             return
