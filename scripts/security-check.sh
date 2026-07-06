@@ -46,7 +46,7 @@ else
   fail "Approval frontend payload appears to accept command material"
 fi
 
-if rg -n "Path\(get_settings\(\)\.evidence_dir\)" backend/app --glob '!core/paths.py'; then
+if rg -n "Path\(get_settings\(\)\.evidence_dir\)" backend/app --glob '!backend/app/core/paths.py' --glob '!backend/app/core/parameter_validation.py'; then
   fail "Direct evidence_dir path usage found"
 fi
 

@@ -114,3 +114,7 @@ The frontend never sends a raw command to execute. The backend always rebuilds a
 - Server-side `operator_approvals` persistence and API endpoints are in place.
 - Approval preparation/approval/rejection are protected by the existing API-token dependency.
 - Execution remains intentionally unconnected; RQ queuing belongs to the next prompt.
+
+## Prompt 05 strict parameter validation readiness
+
+OpenAD-Zero now centralizes validation for network values, input files, output files, credentials, enums and free text. Tool previews, approvals and the future execution boundary use the same validator to avoid target-only scope bypasses.
