@@ -85,6 +85,12 @@ export const enqueueDemoScan = (scanId: string): Promise<V2Scan> =>
     body: JSON.stringify({}),
   });
 
+export const startInitialDiscovery = (scanId: string, profile: 'safe_default' = 'safe_default'): Promise<V2Scan> =>
+  request<V2Scan>(`/api/v2/scans/${encodeURIComponent(scanId)}/start-initial-discovery`, {
+    method: 'POST',
+    body: JSON.stringify({profile}),
+  });
+
 export const stopScan = (scanId: string): Promise<V2Scan> =>
   request<V2Scan>(`/api/v2/scans/${encodeURIComponent(scanId)}/stop`, {
     method: 'POST',

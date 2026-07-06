@@ -7,6 +7,7 @@ import {
   listScanEvents,
   listScans,
   renameScan,
+  startInitialDiscovery,
   stopScan,
   type V2Scan,
   type V2ScanArtifact,
@@ -60,6 +61,7 @@ function ScanActions({
   onStop,
   onDelete,
   onRunDemo,
+  onRunInitialDiscovery,
   onRecommendations,
   onParsedData,
 }: {
@@ -69,10 +71,12 @@ function ScanActions({
   onStop: () => void;
   onDelete: () => void;
   onRunDemo: () => void;
+  onRunInitialDiscovery: () => void;
   onRecommendations: () => void;
   onParsedData: () => void;
 }) {
   const canRunDemo = DEMO_RUN_STATUSES.has(scan.status);
+  const canRunInitialDiscovery = !['queued', 'running', 'stopping', 'deleted'].includes(scan.status);
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -87,6 +91,9 @@ function ScanActions({
       </button>
       <button className="v2-button v2-button-secondary" onClick={onParsedData}>
         View parsed data
+      </button>
+      <button className="v2-button v2-button-secondary" disabled={!canRunInitialDiscovery} onClick={onRunInitialDiscovery}>
+        Start initial discovery
       </button>
       <button className="v2-button v2-button-secondary" disabled={!canRunDemo} onClick={onRunDemo}>
         Run demo progress
@@ -289,6 +296,15 @@ export function ScanLibrary() {
     await refresh();
   }
 
+  async function runInitialDiscovery(scan: V2Scan) {
+    if (['queued', 'running', 'stopping', 'deleted'].includes(scan.status)) {
+      return;
+    }
+
+    replace(await startInitialDiscovery(scan.id));
+    await refresh();
+  }
+
   async function runDemo(scan: V2Scan) {
     if (!DEMO_RUN_STATUSES.has(scan.status)) {
       return;
@@ -372,6 +388,7 @@ export function ScanLibrary() {
                       onInspect={() => setSelectedId(scan.id)}
                       onRename={() => rename(scan)}
                       onRunDemo={() => runDemo(scan)}
+                      onRunInitialDiscovery={() => runInitialDiscovery(scan)}
                       onRecommendations={() => { window.location.href = `/v2-recommendations?scan_id=${encodeURIComponent(scan.id)}`; }}
                       onParsedData={() => { window.location.href = `/v2-parsed-data?scan_id=${encodeURIComponent(scan.id)}`; }}
                       onStop={() => stop(scan)}
