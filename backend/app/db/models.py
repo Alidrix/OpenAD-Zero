@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -82,7 +82,11 @@ class Scan(Base):
 
 class ScanStep(Base):
     __tablename__ = 'scan_steps'
-    __table_args__ = (CheckConstraint('progress_percent >= 0 AND progress_percent <= 100', name='ck_scan_steps_progress_percent_range'),)
+    __table_args__ = (
+        CheckConstraint(
+            'progress_percent >= 0 AND progress_percent <= 100', name='ck_scan_steps_progress_percent_range'
+        ),
+    )
     id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
     scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
     order: Mapped[int] = mapped_column(Integer)
@@ -116,6 +120,7 @@ class ScanArtifact(Base):
     sha256: Mapped[str | None] = mapped_column(String(64))
     size_bytes: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 class ParsedAsset(Base):
     __tablename__ = 'parsed_assets'
@@ -171,7 +176,9 @@ class ParsedFinding(Base):
     __tablename__ = 'parsed_findings'
     __table_args__ = (
         CheckConstraint('confidence >= 0 AND confidence <= 1', name='ck_parsed_findings_confidence_range'),
-        CheckConstraint("severity IN ('info', 'low', 'medium', 'high', 'critical')", name='ck_parsed_findings_severity'),
+        CheckConstraint(
+            "severity IN ('info', 'low', 'medium', 'high', 'critical')", name='ck_parsed_findings_severity'
+        ),
         Index('ix_parsed_findings_scan_id', 'scan_id'),
     )
     id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
@@ -520,3 +527,57 @@ class MissionTimelineEvent(Base):
     related_bloodhound_collection_id: Mapped[str | None] = mapped_column(String(120))
     metadata_json: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class PentestPhaseState(Base):
+    __tablename__ = 'pentest_phase_states'
+    __table_args__ = (
+        Index('ix_pentest_phase_states_scan_id', 'scan_id'),
+        Index('ix_pentest_phase_states_mission_id', 'mission_id'),
+        Index('ix_pentest_phase_states_phase_id', 'phase_id'),
+        Index('ix_pentest_phase_states_status', 'status'),
+        Index('ix_pentest_phase_states_risk_level', 'risk_level'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    mission_id: Mapped[str | None] = mapped_column(ForeignKey('missions.id'), nullable=True)
+    phase_id: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(40), default='not_started')
+    summary: Mapped[str | None] = mapped_column(Text)
+    risk_level: Mapped[str] = mapped_column(String(40), default='info')
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PentestAction(Base):
+    __tablename__ = 'pentest_actions'
+    __table_args__ = (
+        Index('ix_pentest_actions_scan_id', 'scan_id'),
+        Index('ix_pentest_actions_mission_id', 'mission_id'),
+        Index('ix_pentest_actions_phase_id', 'phase_id'),
+        Index('ix_pentest_actions_status', 'status'),
+        Index('ix_pentest_actions_risk_level', 'risk_level'),
+        Index('ix_pentest_actions_execution_mode', 'execution_mode'),
+        Index('ix_pentest_actions_tool_id', 'tool_id'),
+        Index('ix_pentest_actions_template_id', 'template_id'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    mission_id: Mapped[str | None] = mapped_column(ForeignKey('missions.id'), nullable=True)
+    phase_id: Mapped[str] = mapped_column(String(120))
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    reason: Mapped[str] = mapped_column(Text)
+    risk_level: Mapped[str] = mapped_column(String(40), default='low')
+    execution_mode: Mapped[str] = mapped_column(String(60), default='approval_required')
+    tool_id: Mapped[str] = mapped_column(String(120))
+    template_id: Mapped[str] = mapped_column(String(160))
+    required_inputs_json: Mapped[list | None] = mapped_column(JSON)
+    resolved_inputs_json: Mapped[dict | None] = mapped_column(JSON)
+    missing_inputs_json: Mapped[list | None] = mapped_column(JSON)
+    scope_sensitive_params_json: Mapped[dict | None] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(40), default='proposed')
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
