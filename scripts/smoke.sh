@@ -10,6 +10,8 @@ check "Worker health" "$API/api/health/worker"
 if curl -fsS "$UI" >/dev/null; then echo "Frontend reachable"; else echo "Frontend unavailable (skipping)"; fi
 
 if command -v docker >/dev/null 2>&1; then
-  docker compose exec -T openadzero-api python /app/scripts/check_evidence_dir.py
-  echo "Evidence directory writable"
+  docker compose exec -T openadzero-api python /app/scripts/check_runtime_permissions.py
+  echo "API runtime runs as UID/GID 10001 and evidence/runtime are writable"
+  docker compose exec -T openadzero-worker python /app/scripts/check_runtime_permissions.py
+  echo "Worker runtime runs as UID/GID 10001 and evidence/runtime are writable"
 fi

@@ -31,3 +31,7 @@ This is not a stable v1.0 release. It is intended for controlled validation.
 OpenAD Zero v0.1.0-rc1 intentionally stays on Tailwind CSS v3.4.17.
 
 Tailwind CSS v4 changes the PostCSS integration and requires a dedicated migration. This migration is deferred to v0.2.0 to keep the release candidate stable.
+
+## Docker runtime user model
+
+The backend image intentionally starts its entrypoint as root so Docker named volumes mounted at `/app/evidence` and `/app/runtime` can be created and repaired. The entrypoint then drops privileges to `APP_UID:APP_GID` (default `10001:10001`) before launching the API or worker. Do not add a static `USER openadzero` instruction unless the volume repair flow is redesigned.

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 from sqlalchemy.orm import Session
-from app.core.config import get_settings
+from app.core.paths import get_evidence_root
 from app.db.models import ParseDiagnostic, ParsedAsset, ParsedFinding, ParsedService, ParsedSignal, Scan
 from app.parsing.schemas import ParsePersistedResult
 from app.parsing.signals import normalize_signal
@@ -48,7 +48,7 @@ def is_supported_nmap_artifact(artifact) -> bool:
     return 'nmap' in text or str(artifact.path).lower().endswith('.xml')
 
 def artifact_path_under_evidence(path: str) -> Path | None:
-    root=Path(get_settings().evidence_dir).resolve()
+    root=get_evidence_root(create=False)
     candidate=Path(path)
     if not candidate.is_absolute(): candidate=root / candidate
     resolved=candidate.resolve()
