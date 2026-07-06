@@ -7,6 +7,7 @@ import yaml
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.parameter_validation import ParameterValidationError, mask_sensitive_params, validate_action_parameters
 from app.core.scope import is_target_in_validated_scope
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS, COMMAND_TEMPLATES
 from app.tool_automation.executor import (
@@ -24,8 +25,9 @@ router = APIRouter(prefix='/tool-automation', tags=['tool-automation'])
 _RUNS: dict[str, dict] = {}
 _PLACEHOLDER_RE = re.compile(r'{([a-zA-Z0-9_]+)}')
 
+
 class ToolActionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra='forbid')
     tool_id: str
     template_id: str | None = None
     params: dict[str, str] = Field(default_factory=dict)
@@ -41,10 +43,32 @@ class ToolActionRequest(BaseModel):
     check_status: str | None = None
 
 
-
-def _masked_preview(command: list[str], params: dict[str, str]) -> tuple[list[str], str]:
+def _masked_preview(
+    command: list[str], params: dict[str, str], template_id: str | None = None
+) -> tuple[list[str], str]:
     masked = mask_command(command, params)
     return masked, ' '.join(masked)
+
+
+def _validate_payload(payload: ToolActionRequest) -> dict[str, str]:
+    if not payload.template_id:
+        return dict(payload.params)
+    template = COMMAND_TEMPLATE_DEFINITIONS.get(payload.template_id)
+    if template is None:
+        raise HTTPException(status_code=400, detail='Selected template is not allowed for this tool.')
+    try:
+        params = dict(payload.params)
+        if payload.target and 'target' in template.required_params and 'target' not in params:
+            params['target'] = payload.target
+        return validate_action_parameters(
+            params,
+            template,
+            payload.scope or ([payload.target] if payload.target else []),
+            require_input_exists=False,
+        )
+    except ParameterValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 
 def _render(template_id: str, params: dict[str, str]) -> list[str]:
     argv = COMMAND_TEMPLATES.get(template_id)
@@ -64,55 +88,123 @@ def _target_in_scope(payload: ToolActionRequest) -> bool:
         return True
     return is_target_in_validated_scope(payload.target, payload.scope or [payload.target])
 
+
 @router.get('/tools')
 def tools():
     return list(load_tool_catalog().values())
 
+
 @router.get('/templates')
 def templates():
-    return [{**COMMAND_TEMPLATE_DEFINITIONS[tid].__dict__, 'placeholders': sorted(set(_PLACEHOLDER_RE.findall(' '.join(argv))))} for tid, argv in COMMAND_TEMPLATES.items()]
+    return [
+        {
+            **COMMAND_TEMPLATE_DEFINITIONS[tid].__dict__,
+            'placeholders': sorted(set(_PLACEHOLDER_RE.findall(' '.join(argv)))),
+        }
+        for tid, argv in COMMAND_TEMPLATES.items()
+    ]
+
 
 @router.post('/preview')
 def preview(payload: ToolActionRequest):
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='preview', target_in_scope=_target_in_scope(payload), selected_template_id=payload.template_id)
+    decision = evaluate_tool_action(
+        tool_id=payload.tool_id,
+        action='preview',
+        target_in_scope=_target_in_scope(payload),
+        selected_template_id=payload.template_id,
+    )
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
-    command = _render(payload.template_id, payload.params) if payload.template_id else []
+    params = _validate_payload(payload)
+    command = _render(payload.template_id, params) if payload.template_id else []
     command_hash = compute_command_hash(command)
-    masked_command, command_preview = _masked_preview(command, payload.params)
-    return {'decision': decision, 'masked_command': masked_command, 'command': masked_command, 'command_preview': command_preview, 'preview_command_hash': command_hash}
+    masked_command, command_preview = _masked_preview(command, params, payload.template_id)
+    return {
+        'decision': decision,
+        'masked_command': masked_command,
+        'command': masked_command,
+        'command_preview': command_preview,
+        'preview_command_hash': command_hash,
+        'masked_preview_json': {
+            'params': mask_sensitive_params(
+                params,
+                COMMAND_TEMPLATE_DEFINITIONS[payload.template_id].credential_params if payload.template_id else None,
+            )
+        },
+    }
+
 
 @router.post('/approve')
 def approve(payload: ToolActionRequest):
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='approve', target_in_scope=_target_in_scope(payload), selected_template_id=payload.template_id)
+    decision = evaluate_tool_action(
+        tool_id=payload.tool_id,
+        action='approve',
+        target_in_scope=_target_in_scope(payload),
+        selected_template_id=payload.template_id,
+    )
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
+    _validate_payload(payload)
     return {'decision': decision, 'approved': True}
+
 
 @router.post('/run')
 def run(payload: ToolActionRequest):
     raw = getattr(payload, '__pydantic_extra__', None) or {}
     if 'command' in raw:
         raise HTTPException(status_code=400, detail='Raw commands are not accepted.')
-    command = _render(payload.template_id, payload.params) if payload.template_id else []
+    params = _validate_payload(payload)
+    command = _render(payload.template_id, params) if payload.template_id else []
     command_hash = compute_command_hash(command)
-    decision = evaluate_tool_action(tool_id=payload.tool_id, action='run', target_in_scope=_target_in_scope(payload), selected_template_id=payload.template_id, preview_generated=payload.preview_generated, human_approved=payload.human_approved, terms_accepted=payload.terms_accepted, argv=command, command_hash=command_hash, preview_command_hash=payload.preview_command_hash)
+    decision = evaluate_tool_action(
+        tool_id=payload.tool_id,
+        action='run',
+        target_in_scope=_target_in_scope(payload),
+        selected_template_id=payload.template_id,
+        preview_generated=payload.preview_generated,
+        human_approved=payload.human_approved,
+        terms_accepted=payload.terms_accepted,
+        argv=command,
+        command_hash=command_hash,
+        preview_command_hash=payload.preview_command_hash,
+    )
     if not decision.allowed:
         raise HTTPException(status_code=403, detail=decision.reason)
-    masked_command, command_preview = _masked_preview(command, payload.params)
+    masked_command, command_preview = _masked_preview(command, params, payload.template_id)
     timeout = 300
     try:
-        result = execute_tool_request(ToolExecutionRequest(payload.tool_id, payload.template_id or '', payload.target, dict(payload.params), payload.preview_command_hash or '', payload.human_approved, payload.terms_accepted, payload.final_confirmation or payload.final_exploit_confirmation, payload.scope), command, command_preview, timeout)
+        result = execute_tool_request(
+            ToolExecutionRequest(
+                payload.tool_id,
+                payload.template_id or '',
+                payload.target,
+                dict(params),
+                payload.preview_command_hash or '',
+                payload.human_approved,
+                payload.terms_accepted,
+                payload.final_confirmation or payload.final_exploit_confirmation,
+                payload.scope,
+            ),
+            command,
+            command_preview,
+            timeout,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    record = result.__dict__ | {'masked_command': masked_command, 'command_preview': command_preview, 'preview_command_hash': command_hash}
+    record = result.__dict__ | {
+        'masked_command': masked_command,
+        'command_preview': command_preview,
+        'preview_command_hash': command_hash,
+    }
     _RUNS[result.run_id] = record
     return redact_mapping(record)
+
 
 @router.get('/presets')
 def presets():
     path = Path(__file__).parents[1] / 'tool_automation' / 'workflow_presets.yml'
     return yaml.safe_load(path.read_text())
+
 
 @router.get('/findings')
 def findings(tool_id: str | None = Query(default=None), target: str | None = Query(default=None)):
@@ -120,30 +212,40 @@ def findings(tool_id: str | None = Query(default=None), target: str | None = Que
     for run in list(_RUNS.values()):
         for item in run.get('findings', []):
             rows.append(item if isinstance(item, dict) else item.__dict__)
-    return [redact_mapping(item) for item in rows if (not tool_id or item.get('tool_id') == tool_id) and (not target or item.get('target') == target)]
+    return [
+        redact_mapping(item)
+        for item in rows
+        if (not tool_id or item.get('tool_id') == tool_id) and (not target or item.get('target') == target)
+    ]
 
 
 @router.get('/tool-health')
 def tool_health():
     return collect_tool_health()
 
+
 @router.get('/suggestions')
 def suggestions():
     from app.tool_automation.correlation import suggest_metasploit_searches
+
     return [s.__dict__ for s in suggest_metasploit_searches([])]
+
 
 @router.post('/metasploit/suggest')
 def metasploit_suggest(findings_payload: list[dict]):
     from app.tool_automation.correlation import suggest_metasploit_searches
     from app.tool_automation.results import ParsedFinding
+
     findings = [ParsedFinding(**item) for item in findings_payload]
     return [s.__dict__ for s in suggest_metasploit_searches(findings)]
+
 
 @router.get('/runs/{run_id}')
 def get_run(run_id: str):
     if run_id not in _RUNS:
         raise HTTPException(status_code=404, detail='Run not found')
     return redact_mapping(_RUNS[run_id])
+
 
 @router.get('/runs')
 def list_runs(tool_id: str | None = Query(default=None)):

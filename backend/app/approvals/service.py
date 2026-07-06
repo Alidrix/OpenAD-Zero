@@ -9,6 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.approvals.errors import ApprovalConflict, ApprovalError, ApprovalNotFound
 from app.core.config import get_settings
+from app.core.parameter_validation import (
+    ParameterValidationError,
+    mask_sensitive_params,
+    validate_action_parameters,
+    validate_scope_sensitive_params,
+)
 from app.db.models import OperatorApproval, PentestAction, Scan
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
 from app.tool_automation.policy import load_tool_catalog
@@ -66,19 +72,47 @@ def _render_arg(arg: str, values: dict[str, Any]) -> str:
     return rendered
 
 
-def _build_preview(action: PentestAction) -> tuple[dict[str, Any], list[str]]:
+def _validated_scope_for(scan: Scan, action: PentestAction) -> list[str]:
+    mission = None
+    if scan.mission_id:
+        mission = getattr(scan, 'mission', None) or None
+    return list(
+        getattr(mission, 'validated_targets', None)
+        or (action.scope_sensitive_params_json or {}).get('validated_scope')
+        or []
+    )
+
+
+def _validate_action(action: PentestAction, scan: Scan) -> tuple[dict[str, Any], list[str]]:
     _tool, template = _resolve_catalog(action)
     resolved = action.resolved_inputs_json or {}
+    scope = _validated_scope_for(scan, action)
+    if action.missing_inputs_json:
+        return resolved, scope
+    try:
+        validate_action_parameters(resolved, template, scope, reject_unexpected=False)
+    except ParameterValidationError as exc:
+        raise ApprovalError(str(exc), 400) from exc
+    return resolved, validate_scope_sensitive_params(resolved, template, scope)
+
+
+def _build_preview(action: PentestAction, scan: Scan) -> tuple[dict[str, Any], list[str], list[str]]:
+    _tool, template = _resolve_catalog(action)
+    resolved, validated_scope_values = _validate_action(action, scan)
     missing = [name for name in template.required_params if name not in resolved]
-    argv = [_render_arg(arg, resolved) for arg in template.argv]
-    return {
-        'tool_id': action.tool_id,
-        'template_id': action.template_id,
-        'rendered_argv': argv,
-        'description': template.description,
-        'parser': template.parser,
-        'output_artifact_type': template.output_artifact_type,
-    }, missing
+    argv = [_render_arg(arg, mask_sensitive_params(resolved, template.credential_params)) for arg in template.argv]
+    return (
+        {
+            'tool_id': action.tool_id,
+            'template_id': action.template_id,
+            'rendered_argv': argv,
+            'description': template.description,
+            'parser': template.parser,
+            'output_artifact_type': template.output_artifact_type,
+        },
+        missing,
+        validated_scope_values,
+    )
 
 
 def _scope_snapshot(scan: Scan, action: PentestAction) -> dict[str, Any]:
@@ -87,6 +121,7 @@ def _scope_snapshot(scan: Scan, action: PentestAction) -> dict[str, Any]:
         'mission_id': scan.mission_id,
         'scan_type': scan.scan_type,
         'action_scope_sensitive_params': _mask(action.scope_sensitive_params_json or {}),
+        'validated_scope_values': [],
     }
 
 
@@ -168,10 +203,16 @@ def prepare_approval(db: Session, scan_id: str, action_id: str, operator_note: s
     if action.status in BLOCKING_STATUSES:
         raise ApprovalConflict(f'Action status {action.status} cannot be prepared')
     level = approval_level_for(action.execution_mode)
-    preview, template_missing = _build_preview(action)
+    preview, template_missing, validated_scope_values = _build_preview(action, scan)
     missing = list(dict.fromkeys((action.missing_inputs_json or []) + template_missing))
     scope = _scope_snapshot(scan, action)
-    resolved = _mask(action.resolved_inputs_json or {})
+    scope['validated_scope_values'] = validated_scope_values
+    resolved = mask_sensitive_params(
+        action.resolved_inputs_json or {},
+        COMMAND_TEMPLATE_DEFINITIONS.get(action.template_id).credential_params
+        if COMMAND_TEMPLATE_DEFINITIONS.get(action.template_id)
+        else None,
+    )
     command_hash = compute_approval_hash(
         tool_id=action.tool_id,
         template_id=action.template_id,
@@ -255,6 +296,9 @@ def approve_approval(
     if approval.approval_level == 'reinforced' and not (reinforced_confirmation or '').strip():
         raise ApprovalError('Reinforced approval requires explicit confirmation', 400)
     action = db.query(PentestAction).filter_by(id=action_id, scan_id=scan_id).first()
+    scan = db.query(Scan).filter_by(id=scan_id).first()
+    if action is not None and scan is not None:
+        _validate_action(action, scan)
     if action is None or action.execution_mode == 'manual_only':
         raise ApprovalError('Action cannot be approved', 400)
     now = datetime.utcnow()

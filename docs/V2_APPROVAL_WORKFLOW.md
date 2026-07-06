@@ -36,3 +36,7 @@ Approval request schemas forbid extra fields, so frontend payloads containing `c
 ## Future Prompt 05
 
 Prompt 05 can wire approved `approval_id` records to RQ execution. That next step should consume the approval atomically and reject any attempt to reuse it.
+
+## Prompt 05 parameter validation
+
+Approval preparation now validates all template-declared network, file input, file output, credential, enum and free-text parameters before creating a pending approval. The scope snapshot includes validated scope values, and approval cannot be prepared for out-of-scope network parameters or filesystem paths outside evidence/runtime roots.

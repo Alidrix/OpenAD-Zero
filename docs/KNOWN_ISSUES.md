@@ -43,3 +43,7 @@ The backend image intentionally starts its entrypoint as root so Docker named vo
 ## Approval execution not yet wired
 
 Operator approvals can be prepared, approved, rejected, expired, and marked consumed by service code, but no RQ execution consumes approvals yet. This is intentional for Prompt 04 and should be addressed in Prompt 05.
+
+## Prompt 05 remaining execution boundary
+
+Strict parameter validation is in place for previews and approvals. RQ execution is still intentionally deferred; Prompt 06 should consume approved approvals atomically and reuse the same validator at job start.

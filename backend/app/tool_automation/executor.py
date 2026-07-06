@@ -10,8 +10,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
+from app.core.parameter_validation import ParameterValidationError, validate_action_parameters
 from app.core.paths import get_evidence_root
 from app.core.scope import is_target_in_validated_scope
+from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
 from app.tool_automation.parsers import parse_tool_output
 from app.tool_automation.redaction import mask_command, redact_text
 from app.tool_automation.results import ParsedFinding
@@ -148,6 +150,15 @@ def load_findings() -> list[dict]:
 def execute_tool_request(
     request: ToolExecutionRequest, argv: list[str], command_preview: str, timeout_seconds: int = 300
 ) -> ToolExecutionResult:
+    template = COMMAND_TEMPLATE_DEFINITIONS.get(request.template_id)
+    if template is not None:
+        try:
+            params = dict(request.params)
+            if request.target and 'target' in template.required_params and 'target' not in params:
+                params['target'] = request.target
+            validate_action_parameters(params, template, request.scope or ([request.target] if request.target else []))
+        except ParameterValidationError as exc:
+            raise ValueError(str(exc)) from exc
     if request.target and not is_target_in_validated_scope(request.target, request.scope or [request.target]):
         raise ValueError('Target is outside the validated scope.')
     actual_hash = compute_command_hash(argv)
