@@ -1,0 +1,1 @@
+<?xml version="1.0"?><nmaprun><host><status state="up"/><address addr="10.0.0.20" addrtype="ipv4"/><ports><port protocol="tcp" portid="88"><state state="open"/><service name="kerberos-sec" product="Kerberos" version=""/></port><port protocol="tcp" portid="389"><state state="open"/><service name="ldap" product="Active Directory LDAP" version=""/></port></ports></host></nmaprun>

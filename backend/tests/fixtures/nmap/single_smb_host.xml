@@ -1,0 +1,1 @@
+<?xml version="1.0"?><nmaprun><host><status state="up"/><address addr="10.0.0.10" addrtype="ipv4"/><ports><port protocol="tcp" portid="445"><state state="open"/><service name="microsoft-ds" product="Windows SMB" version="10"/></port></ports></host></nmaprun>
