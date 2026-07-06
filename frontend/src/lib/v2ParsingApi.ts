@@ -1,4 +1,5 @@
 import {API_URL, ApiError} from './api';
+import {mergeAuthHeaders} from './auth';
 
 export type ParsedAsset = {
   id: string;
@@ -89,7 +90,7 @@ export type ParsePersistedResult = {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
-    headers: {'Content-Type': 'application/json'},
+    headers: mergeAuthHeaders({'Content-Type': 'application/json', ...(options?.headers as Record<string,string>|undefined)}),
     ...options,
   });
 

@@ -1,3 +1,4 @@
+import {mergeAuthHeaders} from './auth';
 import type {Capability, CapabilityConfig} from '../types/capabilities';
 export const API_URL=(import.meta.env.VITE_API_URL as string)||'';
 export const API=API_URL;
@@ -20,7 +21,8 @@ export type SMBShare={name:string;access?:string;remark?:string;anonymous:boolea
 export type Host={id:string;ip:string;hostname?:string;status:string;is_domain_controller_candidate:boolean;services:Service[];smb_facts?:SMBFact[];smb_shares?:SMBShare[]};
 export type Mission={id:string;name:string;status:string;validated_targets:string[];jobs:any[];hosts:Host[];findings:any[];next_actions:any[];web_targets?:any[]};
 async function request<T>(path:string,options?:RequestInit):Promise<T>{
-  const response=await fetch(`${API_URL}${path}`,{headers:{'Content-Type':'application/json'},...options});
+  const headers=mergeAuthHeaders({'Content-Type':'application/json', ...(options?.headers as Record<string,string>|undefined)});
+  const response=await fetch(`${API_URL}${path}`,{...options,headers});
   if(!response.ok){
     let details:unknown=null;
     try{details=await response.json()}catch{details=await response.text()}
@@ -55,7 +57,7 @@ export const getWebTargets=(id:string)=>req<any[]>(`/api/missions/${id}/web-targ
 export const getBloodHoundCommand=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/sharphound-command`);
 export const getBloodHoundStatus=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/status`);
 export const getBloodHoundCollections=(id:string)=>req<any[]>(`/api/missions/${id}/bloodhound/collections`);
-export async function uploadBloodHoundZip(id:string,file:File){const fd=new FormData();fd.append('file',file);const r=await fetch(API_URL+`/api/missions/${id}/bloodhound/upload`,{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());return r.json()}
+export async function uploadBloodHoundZip(id:string,file:File){const fd=new FormData();fd.append('file',file);const r=await fetch(API_URL+`/api/missions/${id}/bloodhound/upload`,{method:'POST',body:fd,headers:mergeAuthHeaders()});if(!r.ok)throw new Error(await r.text());return r.json()}
 export const getBloodHoundExplorerStatus=(id:string)=>req<any>(`/api/missions/${id}/bloodhound/explorer/status`);
 export const searchBloodHoundObjects=(id:string,q:string,types:string,limit=20)=>req<any[]>(`/api/missions/${id}/bloodhound/objects/search?q=${encodeURIComponent(q)}&types=${encodeURIComponent(types)}&limit=${limit}`);
 export const getBloodHoundObject=(id:string,oid:string)=>req<any>(`/api/missions/${id}/bloodhound/objects/${encodeURIComponent(oid)}`);
@@ -71,7 +73,7 @@ import type {Evidence,EvidenceLink,EvidencePreview} from '../types/evidence';
 export const listEvidence=(missionId:string,filters?:{category?:string;q?:string;source?:string})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,v)});return req<Evidence[]>(`/api/missions/${missionId}/evidence${qs.toString()?`?${qs}`:''}`)};
 export const getEvidence=(missionId:string,evidenceId:string)=>req<Evidence>(`/api/missions/${missionId}/evidence/${evidenceId}`);
 export const getEvidencePreview=(missionId:string,evidenceId:string)=>req<EvidencePreview>(`/api/missions/${missionId}/evidence/${evidenceId}/preview`);
-export async function importEvidence(missionId:string,formData:FormData){const r=await fetch(API_URL+`/api/missions/${missionId}/evidence/import`,{method:'POST',body:formData});if(!r.ok)throw new Error(await r.text());return r.json() as Promise<Evidence>}
+export async function importEvidence(missionId:string,formData:FormData){const r=await fetch(API_URL+`/api/missions/${missionId}/evidence/import`,{method:'POST',body:formData,headers:mergeAuthHeaders()});if(!r.ok)throw new Error(await r.text());return r.json() as Promise<Evidence>}
 export const deleteEvidence=(missionId:string,evidenceId:string)=>req<{deleted:boolean}>(`/api/missions/${missionId}/evidence/${evidenceId}`,{method:'DELETE'});
 export const createEvidenceLink=(missionId:string,evidenceId:string,payload:{target_type:string;target_id:string})=>req<EvidenceLink>(`/api/missions/${missionId}/evidence/${evidenceId}/links`,{method:'POST',body:JSON.stringify(payload)});
 export const listEvidenceLinks=(missionId:string,evidenceId:string)=>req<EvidenceLink[]>(`/api/missions/${missionId}/evidence/${evidenceId}/links`);
@@ -100,6 +102,8 @@ export const cancelJob=(missionId:string,jobId:string)=>req<Job>(`/api/missions/
 export const retryJob=(missionId:string,jobId:string)=>req<Job>(`/api/missions/${missionId}/jobs/${jobId}/retry`,{method:'POST',body:JSON.stringify({})});
 export const listMissionEvents=(missionId:string,filters?:{after_id?:string;limit?:number;event_type?:string;source?:string})=>{const qs=new URLSearchParams();Object.entries(filters||{}).forEach(([k,v])=>{if(v)qs.set(k,String(v))});return req<PersistentMissionEvent[]>(`/api/missions/${missionId}/events${qs.toString()?`?${qs}`:''}`)};
 export const workerHealth=()=>req<any>('/api/health/worker');
+export type AuthStatus={auth_enabled:boolean;localhost_bypass_enabled:boolean;token_configured:boolean};
+export const authStatus=()=>req<AuthStatus>('/api/auth/status');
 import type {CommandTemplate,ToolActionPayload,ToolAutomationTool,ToolRunRecord} from '../types/toolAutomation';
 export const getToolAutomationTools=()=>req<ToolAutomationTool[]>('/api/tool-automation/tools');
 export const getToolAutomationTemplates=()=>req<CommandTemplate[]>('/api/tool-automation/templates');

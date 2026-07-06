@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_capabilities import router as capabilities_router
@@ -18,6 +18,7 @@ from app.api.routes_v2_pentest import router as v2_pentest_router
 from app.api.routes_v2_recommendations import router as v2_recommendations_router
 from app.api.routes_v2_scan_events import router as v2_scan_events_router
 from app.api.routes_v2_scans import router as v2_scans_router
+from app.core.auth import require_api_token, validate_auth_configuration
 from app.core.config import get_settings
 from app.db.init_db import init_db
 
@@ -27,6 +28,7 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_auth_configuration()
     init_db()
     yield
 
@@ -40,16 +42,16 @@ app.add_middleware(
     allow_headers=['*'],
 )
 app.include_router(health_router, prefix='/api')
-app.include_router(missions_router, prefix='/api')
-app.include_router(capabilities_router, prefix='/api')
-app.include_router(evidence_router, prefix='/api')
-app.include_router(reports_router, prefix='/api')
-app.include_router(operations_router, prefix='/api')
-app.include_router(tool_automation_router, prefix='/api')
-app.include_router(v2_scans_router, prefix='/api')
-app.include_router(v2_recommendations_router, prefix='/api')
-app.include_router(v2_parsing_router, prefix='/api')
-app.include_router(v2_pentest_router, prefix='/api')
-app.include_router(v2_dashboard_router, prefix='/api')
+app.include_router(missions_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(capabilities_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(evidence_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(reports_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(operations_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(tool_automation_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(v2_scans_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(v2_recommendations_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(v2_parsing_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(v2_pentest_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(v2_dashboard_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(events_router)
 app.include_router(v2_scan_events_router)

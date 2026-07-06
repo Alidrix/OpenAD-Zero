@@ -1,9 +1,10 @@
 import shutil
 import subprocess
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
+from app.core.auth import require_api_token
 from app.core.config import get_settings
 from app.core.version import get_app_version
 from app.db.session import engine
@@ -22,7 +23,7 @@ def version():
     return {'name': 'OpenAD Zero', 'version': get_app_version(), 'release_stage': 'release-candidate'}
 
 
-@router.get('/health/db')
+@router.get('/health/db', dependencies=[Depends(require_api_token)])
 def health_db():
     try:
         with engine.connect() as conn:
@@ -32,7 +33,7 @@ def health_db():
         return {'status': 'unavailable', 'error': str(exc)}
 
 
-@router.get('/health/redis')
+@router.get('/health/redis', dependencies=[Depends(require_api_token)])
 def health_redis():
     try:
         get_redis_connection().ping()
@@ -53,7 +54,7 @@ def tool_status(binary: str):
     return {'available': True, 'version': version}
 
 
-@router.get('/health/tools')
+@router.get('/health/tools', dependencies=[Depends(require_api_token)])
 def health_tools():
     settings = get_settings()
     return {
@@ -64,7 +65,7 @@ def health_tools():
     }
 
 
-@router.get('/health/worker')
+@router.get('/health/worker', dependencies=[Depends(require_api_token)])
 def health_worker():
     try:
         r = get_redis_connection()
@@ -78,3 +79,13 @@ def health_worker():
         }
     except Exception as exc:
         return {'redis_available': False, 'queues': {'openadzero-default': 0, 'openadzero-scans': 0}, 'error': str(exc)}
+
+
+@router.get('/auth/status')
+def auth_status():
+    settings = get_settings()
+    return {
+        'auth_enabled': settings.openadzero_auth_enabled,
+        'localhost_bypass_enabled': settings.openadzero_allow_unauthenticated_localhost,
+        'token_configured': bool(settings.openadzero_api_token),
+    }

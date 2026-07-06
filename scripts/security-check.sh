@@ -14,6 +14,10 @@ if rg -n "BLOODHOUND_API_TOKEN|DATABASE_URL|REDIS_URL|OPENADZERO_API_TOKEN" fron
   fail "Secret-like backend env exposed in frontend/src"
 fi
 
+if rg -n "VITE_OPENADZERO_API_TOKEN|VITE_[A-Z0-9_]*(TOKEN|SECRET|KEY)" frontend/src --glob '!**/*.test.*'; then
+  fail "Secret-like VITE variable found in frontend/src"
+fi
+
 if rg -n "chmod 777" --glob '!node_modules/**' --glob '!frontend/node_modules/**' --glob '!scripts/security-check.sh' .; then
   fail "chmod 777 found"
 fi

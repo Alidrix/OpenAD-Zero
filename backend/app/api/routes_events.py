@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_api_token, require_ws_token
 from app.db.models import MissionEvent
 from app.db.session import SessionLocal, get_db
 from app.events.websocket_manager import manager
@@ -35,7 +36,7 @@ def query_events(db, mission_id, after_id=None, limit=200, event_type=None, sour
     return q.order_by(MissionEvent.created_at.asc()).limit(limit).all()
 
 
-@router.get('/api/missions/{mission_id}/events')
+@router.get('/api/missions/{mission_id}/events', dependencies=[Depends(require_api_token)])
 def list_events(
     mission_id: str,
     after_id: str | None = None,
@@ -47,7 +48,7 @@ def list_events(
     return [serialize_event(e) for e in query_events(db, mission_id, after_id, limit, event_type, source)]
 
 
-@router.get('/api/missions/{mission_id}/events/recent')
+@router.get('/api/missions/{mission_id}/events/recent', dependencies=[Depends(require_api_token)])
 def recent_events(
     mission_id: str,
     limit: int = Query(200, le=1000),
@@ -60,6 +61,7 @@ def recent_events(
 
 @router.websocket('/ws/missions/{mission_id}')
 async def ws_mission(websocket: WebSocket, mission_id: str):
+    await require_ws_token(websocket)
     await manager.connect(mission_id, websocket)
     try:
         if websocket.query_params.get('replay') == 'true':

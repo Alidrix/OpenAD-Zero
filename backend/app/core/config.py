@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     openadzero_enable_reporting: bool = False
     openadzero_enable_ai_planner: bool = False
     openadzero_enable_advanced_automation: bool = False
+    openadzero_auth_enabled: bool = False
+    openadzero_api_token: str = ''
+    openadzero_allow_unauthenticated_localhost: bool = True
+    openadzero_auth_protect_docs: bool = False
 
 
 @lru_cache
