@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     openadzero_api_token: str = ''
     openadzero_allow_unauthenticated_localhost: bool = True
     openadzero_auth_protect_docs: bool = False
+    openadzero_approval_ttl_seconds: int = 900
 
 
 @lru_cache

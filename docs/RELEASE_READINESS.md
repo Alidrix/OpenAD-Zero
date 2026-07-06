@@ -108,3 +108,9 @@ The frontend never sends a raw command to execute. The backend always rebuilds a
 
 - Added a backend-only Windows/AD pentest orchestration foundation with static phases, persistent phase states, persistent action recommendation contracts, and read/recompute API endpoints.
 - The foundation is intentionally non-executing: no tool launch, no RQ job creation, no subprocess usage, and no raw command acceptance.
+
+## Prompt 04 approval readiness
+
+- Server-side `operator_approvals` persistence and API endpoints are in place.
+- Approval preparation/approval/rejection are protected by the existing API-token dependency.
+- Execution remains intentionally unconnected; RQ queuing belongs to the next prompt.

@@ -39,3 +39,7 @@ The backend image intentionally starts its entrypoint as root so Docker named vo
 ## V2 pentest orchestrator limitations
 
 - The pentest orchestrator currently recommends actions only. Server-side approvals, RQ execution, frontend Attack Control Center integration, and `Approve & Run` wiring are intentionally deferred to later prompts.
+
+## Approval execution not yet wired
+
+Operator approvals can be prepared, approved, rejected, expired, and marked consumed by service code, but no RQ execution consumes approvals yet. This is intentional for Prompt 04 and should be addressed in Prompt 05.
