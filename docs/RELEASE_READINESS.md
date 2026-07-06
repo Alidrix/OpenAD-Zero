@@ -94,3 +94,12 @@ An OpenAD-Zero tool is executable only when:
 7. explicit terms are accepted.
 
 The frontend never sends a raw command to execute. The backend always rebuilds argv from an allowlisted template, refuses out-of-scope targets, refuses `0.0.0.0/0` and `::/0`, refuses public IPs by default, and keeps `manual_only`, `blocked_auto` and `planned` tools non-runnable. The GUI provides a dedicated landscape console per tool, separated terminal output and history, and a collapsible left sidebar grouped by Scope & Setup, Recon, SMB / NetExec, Active Directory, Coercion / Capture, Impacket, Credentials Review, Reports and Settings.
+
+## Docker runtime readiness
+
+* [ ] Backend Dockerfile copies `docker-entrypoint.sh` and uses it as `ENTRYPOINT`.
+* [ ] Entrypoint repairs `/app/evidence` and `/app/runtime` permissions before dropping to `APP_UID:APP_GID`.
+* [ ] API container runtime identity is UID/GID `10001:10001` after startup.
+* [ ] Worker container runtime identity is UID/GID `10001:10001` after startup.
+* [ ] Smoke verifies `/app/evidence` and `/app/runtime` are writable from both API and worker containers.
+* [ ] Compose keeps `openadzero-evidence` and `openadzero-runtime` named volumes for default startup.

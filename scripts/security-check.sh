@@ -6,12 +6,41 @@ fail() {
   exit 1
 }
 
-git ls-files | rg '(^|/)\.env(\.local|\.[^.]+\.local)?$' && fail "Local .env file committed" || true
-rg -n "BLOODHOUND_API_TOKEN|DATABASE_URL|REDIS_URL" frontend/src && fail "Secret-like backend env exposed in frontend/src" || true
-rg -n "chmod 777" --glob '!node_modules/**' --glob '!frontend/node_modules/**' --glob '!scripts/security-check.sh' . && fail "chmod 777 found" || true
-rg -n "shell=True" backend/app && fail "shell=True found in backend/app" || true
-rg -n "subprocess\.(run|Popen|call|check_call|check_output)\(\s*f?['\"]" backend/app && fail "String subprocess command found in backend/app" || true
-rg -n "Path\(get_settings\(\)\.evidence_dir\)" backend/app --glob '!core/paths.py' && fail "Direct evidence_dir path usage found" || true
-rg -q "USER openadzero" backend/Dockerfile || fail "Backend Dockerfile does not switch to non-root user"
+if git ls-files | rg -q '(^|/)\.env(\.local|\.[^.]+\.local)?$'; then
+  fail "Local .env file committed"
+fi
+
+if rg -n "BLOODHOUND_API_TOKEN|DATABASE_URL|REDIS_URL|OPENADZERO_API_TOKEN" frontend/src; then
+  fail "Secret-like backend env exposed in frontend/src"
+fi
+
+if rg -n "chmod 777" --glob '!node_modules/**' --glob '!frontend/node_modules/**' --glob '!scripts/security-check.sh' .; then
+  fail "chmod 777 found"
+fi
+
+if rg -n "shell=True" backend/app; then
+  fail "shell=True found in backend/app"
+fi
+
+if rg -n "subprocess\.(run|Popen|call|check_call|check_output)\(\s*f?['\"]" backend/app; then
+  fail "String subprocess command found in backend/app"
+fi
+
+if rg -n "Path\(get_settings\(\)\.evidence_dir\)" backend/app --glob '!core/paths.py'; then
+  fail "Direct evidence_dir path usage found"
+fi
+
+rg -q 'COPY scripts/docker-entrypoint\.sh /usr/local/bin/docker-entrypoint\.sh' backend/Dockerfile \
+  || fail "Backend Dockerfile does not copy docker-entrypoint.sh"
+rg -q 'ENTRYPOINT \["/usr/local/bin/docker-entrypoint.sh"\]' backend/Dockerfile \
+  || fail "Backend Dockerfile does not define docker-entrypoint.sh as ENTRYPOINT"
+rg -q 'exec gosu "\$APP_UID:\$APP_GID" "\$@"' backend/scripts/docker-entrypoint.sh \
+  || fail "docker-entrypoint.sh does not drop privileges with gosu APP_UID:APP_GID"
+rg -q 'exec su-exec "\$APP_UID:\$APP_GID" "\$@"' backend/scripts/docker-entrypoint.sh \
+  || fail "docker-entrypoint.sh does not include su-exec APP_UID:APP_GID fallback"
+rg -F -q 'APP_UID="${APP_UID:-10001}"' backend/scripts/docker-entrypoint.sh \
+  || fail "docker-entrypoint.sh does not default APP_UID to 10001"
+rg -F -q 'APP_GID="${APP_GID:-10001}"' backend/scripts/docker-entrypoint.sh \
+  || fail "docker-entrypoint.sh does not default APP_GID to 10001"
 
 echo "[OK] security-check"

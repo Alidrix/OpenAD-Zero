@@ -30,3 +30,9 @@ The release candidate version is stored in `VERSION` and exposed through `GET /a
 ## Troubleshooting
 
 Use `make ps`, `make logs-api`, `make logs-worker`, and `make health`. Health endpoints are under `/api/health`, `/api/health/db`, `/api/health/redis`, `/api/health/tools`, and `/api/health/worker`.
+
+## Docker volumes and runtime permissions
+
+The default Compose stack uses named volumes for `/app/evidence` and `/app/runtime`. The backend entrypoint starts as root only long enough to create and repair those mounted directories, then executes the API or worker as `APP_UID:APP_GID` (`10001:10001` by default). This preserves automatic volume permission repair while keeping the application runtime non-root.
+
+`scripts/smoke.sh` verifies both the API and worker are running as UID/GID `10001:10001` and that `/app/evidence` plus `/app/runtime` are writable. If you replace the named volumes with bind mounts, ensure the mounted paths can be chowned by the container entrypoint or pre-create them with compatible ownership.
