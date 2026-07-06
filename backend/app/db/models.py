@@ -581,3 +581,48 @@ class PentestAction(Base):
     status: Mapped[str] = mapped_column(String(40), default='proposed')
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class OperatorApproval(Base):
+    __tablename__ = 'operator_approvals'
+    __table_args__ = (
+        CheckConstraint(
+            "approval_level IN ('standard', 'reinforced', 'manual_only_blocked')",
+            name='ck_operator_approvals_approval_level',
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'approved', 'rejected', 'expired', 'consumed', 'blocked')",
+            name='ck_operator_approvals_status',
+        ),
+        Index('ix_operator_approvals_scan_id', 'scan_id'),
+        Index('ix_operator_approvals_mission_id', 'mission_id'),
+        Index('ix_operator_approvals_action_id', 'action_id'),
+        Index('ix_operator_approvals_status', 'status'),
+        Index('ix_operator_approvals_tool_id', 'tool_id'),
+        Index('ix_operator_approvals_template_id', 'template_id'),
+        Index('ix_operator_approvals_command_hash', 'command_hash'),
+        Index('ix_operator_approvals_expires_at', 'expires_at'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    mission_id: Mapped[str | None] = mapped_column(ForeignKey('missions.id'), nullable=True)
+    action_id: Mapped[str] = mapped_column(ForeignKey('pentest_actions.id'))
+    phase_id: Mapped[str] = mapped_column(String(120))
+    tool_id: Mapped[str] = mapped_column(String(120))
+    template_id: Mapped[str] = mapped_column(String(160))
+    command_hash: Mapped[str] = mapped_column(String(64))
+    masked_preview_json: Mapped[dict] = mapped_column(JSON)
+    resolved_inputs_json: Mapped[dict | None] = mapped_column(JSON)
+    missing_inputs_json: Mapped[list | None] = mapped_column(JSON)
+    scope_snapshot_json: Mapped[dict | None] = mapped_column(JSON)
+    risk_level: Mapped[str] = mapped_column(String(40), default='low')
+    approval_level: Mapped[str] = mapped_column(String(40), default='standard')
+    status: Mapped[str] = mapped_column(String(40), default='pending')
+    approved_by: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime)
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    rejection_reason: Mapped[str | None] = mapped_column(Text)
+    metadata_json: Mapped[dict | None] = mapped_column(JSON)

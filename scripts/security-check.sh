@@ -30,6 +30,22 @@ if rg -n "subprocess\.(run|Popen|call|check_call|check_output)\(\s*f?['\"]" back
   fail "String subprocess command found in backend/app"
 fi
 
+if python - <<'PYCHECK'
+from pathlib import Path
+text = Path("backend/app/approvals/schemas.py").read_text()
+for cls in ["ApprovalPrepareRequest", "ApprovalApproveRequest", "ApprovalRejectRequest"]:
+    start = text.index(f"class {cls}")
+    end = text.find("\n\nclass ", start + 1)
+    block = text[start:end if end != -1 else len(text)]
+    if any(field in block for field in ["command:", "argv:", "shell:", "command_hash:", "command_preview:"]):
+        raise SystemExit(1)
+PYCHECK
+then
+  :
+else
+  fail "Approval frontend payload appears to accept command material"
+fi
+
 if rg -n "Path\(get_settings\(\)\.evidence_dir\)" backend/app --glob '!core/paths.py'; then
   fail "Direct evidence_dir path usage found"
 fi

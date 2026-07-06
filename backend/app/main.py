@@ -12,6 +12,7 @@ from app.api.routes_missions import router as missions_router
 from app.api.routes_operations import router as operations_router
 from app.api.routes_reports import router as reports_router
 from app.api.routes_tool_automation import router as tool_automation_router
+from app.api.routes_v2_approvals import router as v2_approvals_router
 from app.api.routes_v2_dashboard import router as v2_dashboard_router
 from app.api.routes_v2_parsing import router as v2_parsing_router
 from app.api.routes_v2_pentest import router as v2_pentest_router
@@ -52,6 +53,7 @@ app.include_router(v2_scans_router, prefix='/api', dependencies=[Depends(require
 app.include_router(v2_recommendations_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(v2_parsing_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(v2_pentest_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(v2_approvals_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(v2_dashboard_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(events_router)
 app.include_router(v2_scan_events_router)
