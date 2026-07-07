@@ -46,3 +46,7 @@ After Nmap parsing, the pentest orchestrator recompute step applies Prompt 07 de
 ## Prompt 12 normalization update
 
 V2 artifact outputs now flow through `backend/app/normalization/` where supported Nmap, Nuclei, NetExec SMB, BloodHound ZIP, LDAP, Kerberos, and ADCS artifacts are converted into common parsed tables. This remains parsing-only: no extra tool launch, no new RQ job creation, and no subprocess is introduced by normalization.
+
+## Prompt 13 runtime hardening
+
+Initial discovery continues to run only the safe discovery profile, but execution is now delegated through the common runner wrapper. Logs are written to artifacts and only redacted bounded tails are exposed in process events.

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 import json
-import shutil
 from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.process_runner import run_process
 from app.db.models import Host, Job, NextAction, Service, SMBFact, SMBShare
 from app.db.session import SessionLocal
 from app.events.publisher import publish
@@ -95,34 +94,35 @@ async def run_netexec_job(mission_id: str, job_id: str, action_id: str):
         job.stderr_path = str(stderr)
         job.output_path = str(parsed_path)
         db.commit()
-        if shutil.which('nxc') is None:
-            raise RuntimeError('NetExec indisponible dans l’environnement backend.')
-        proc = await asyncio.create_subprocess_exec(
-            *cmd, cwd=str(jd), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        result = run_process(
+            cmd,
+            cwd=jd,
+            timeout_seconds=getattr(settings, 'netexec_timeout_seconds', 600),
+            stdout_path=stdout,
+            stderr_path=stderr,
+            max_log_bytes=settings.openadzero_process_max_log_bytes,
         )
-
-        async def pump(stream, path):
-            with path.open('w') as f:
-                while True:
-                    line = await stream.readline()
-                    if not line:
-                        break
-                    text = line.decode(errors='replace').rstrip()
-                    f.write(text + '\n')
-                    f.flush()
-                    await publish(
-                        MissionEvent(
-                            type='netexec.log', mission_id=mission_id, payload={'job_id': job_id, 'line': text}
-                        )
-                    )
-
-        await asyncio.wait_for(
-            asyncio.gather(pump(proc.stdout, stdout), pump(proc.stderr, stderr), proc.wait()),
-            timeout=getattr(settings, 'netexec_timeout_seconds', 600),
+        await publish(
+            MissionEvent(
+                type=f'process.{result.status}',
+                mission_id=mission_id,
+                payload={
+                    'job_id': job_id,
+                    'action_id': action_id,
+                    'tool_id': 'nxc',
+                    'status': result.status,
+                    'return_code': result.return_code,
+                    'duration_seconds': result.duration_seconds,
+                    'stdout_tail_redacted': result.stdout_tail,
+                    'stderr_tail_redacted': result.stderr_tail,
+                    'artifact_dir': str(jd),
+                    'error_message_redacted': result.error_message,
+                },
+            )
         )
-        job.return_code = proc.returncode
+        job.return_code = result.return_code
         job.completed_at = datetime.utcnow()
-        job.status = 'completed' if proc.returncode == 0 else 'failed'
+        job.status = result.status
         if action:
             action.status = job.status
         output = (

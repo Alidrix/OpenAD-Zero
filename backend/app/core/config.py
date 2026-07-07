@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     openadzero_action_job_timeout_seconds: int = 900
     openadzero_action_job_ttl_seconds: int = 300
     openadzero_action_result_ttl_seconds: int = 86400
+    openadzero_process_log_tail_bytes: int = 20000
+    openadzero_process_max_log_bytes: int = 5000000
 
 
 @lru_cache

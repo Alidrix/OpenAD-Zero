@@ -60,3 +60,7 @@ OpenAD-Zero now has a central Windows/AD tool catalogue grouped by family, risk,
 ## Prompt 12 normalization update
 
 V2 artifact outputs now flow through `backend/app/normalization/` where supported Nmap, Nuclei, NetExec SMB, BloodHound ZIP, LDAP, Kerberos, and ADCS artifacts are converted into common parsed tables. This remains parsing-only: no extra tool launch, no new RQ job creation, and no subprocess is introduced by normalization.
+
+## Prompt 13 runtime hardening
+
+Approved action execution now uses the shared process runner for argv-only execution, process-group timeout cleanup, bounded stdout/stderr tails, and redacted process events. Timeout is recorded as `timeout` and remains distinct from tool return-code failures.

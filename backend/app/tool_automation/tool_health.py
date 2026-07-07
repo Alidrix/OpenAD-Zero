@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
 from pathlib import Path
 
+from app.core.process_runner import run_process
 from app.tool_automation.executor import build_tool_env, ensure_tool_runtime_dirs
 
 CHECKS = {
@@ -62,10 +62,8 @@ def collect_tool_health(timeout: int = 10) -> dict[str, object]:
             tools[name] = {'available': False, 'reason': f'{argv[0]} not installed'}
             continue
         try:
-            cp = subprocess.run(
-                argv, shell=False, capture_output=True, text=True, timeout=timeout, env=env, cwd='/app/evidence'
-            )
-            output = cp.stdout or cp.stderr
+            result = run_process(argv, cwd=Path('/app/evidence'), env=env, timeout_seconds=timeout)
+            output = result.stdout_tail or result.stderr_tail
             lines = [line.strip() for line in output.splitlines() if line.strip()]
             if name == 'metasploit':
                 version = next(

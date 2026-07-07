@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -9,6 +8,7 @@ from typing import Any
 from app.approvals.run_service import build_run_context
 from app.core.config import get_settings
 from app.core.paths import get_evidence_root, safe_join_under_root
+from app.core.process_runner import run_process
 from app.db.models import ApprovedActionRun, ScanArtifact
 from app.db.session import SessionLocal
 from app.normalization.service import normalize_artifact
@@ -112,29 +112,36 @@ def run_approved_action(approval_id: str) -> None:
             artifact_dir=str(artifact_dir),
         )
         db.commit()
-        try:
-            proc = subprocess.run(
-                ctx.argv,
-                cwd=str(artifact_dir),
-                env={'PATH': '/usr/local/bin:/usr/bin:/bin'},
-                capture_output=True,
-                text=True,
-                timeout=get_settings().openadzero_action_job_timeout_seconds,
-                shell=False,
-            )
-            stdout_path.write_text(_redact(proc.stdout or ''))
-            stderr_path.write_text(_redact(proc.stderr or ''))
-            run.return_code = proc.returncode
-            final = 'completed' if proc.returncode == 0 else 'failed'
-        except subprocess.TimeoutExpired as exc:
-            stdout_path.write_text(_redact(exc.stdout or '') if isinstance(exc.stdout, str) else '')
-            stderr_path.write_text(_redact(exc.stderr or '') if isinstance(exc.stderr, str) else 'timeout')
-            run.return_code = -1
-            final = 'timeout'
-            run.error_message = 'timeout'
+        result = run_process(
+            ctx.argv,
+            cwd=artifact_dir,
+            env={'PATH': '/usr/local/bin:/usr/bin:/bin'},
+            timeout_seconds=get_settings().openadzero_action_job_timeout_seconds,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            redaction_patterns=[str(v) for v in getattr(ctx, 'params', {}).values()]
+            if hasattr(ctx, 'params')
+            else None,
+            max_log_bytes=get_settings().openadzero_process_max_log_bytes,
+        )
+        run.return_code = result.return_code
+        final = result.status
+        run.error_message = result.error_message
+        _event(
+            db,
+            ctx,
+            f'process.{final}',
+            status=final,
+            return_code=result.return_code,
+            duration_seconds=result.duration_seconds,
+            stdout_tail_redacted=result.stdout_tail,
+            stderr_tail_redacted=result.stderr_tail,
+            artifact_dir=str(artifact_dir),
+            error_message_redacted=result.error_message,
+        )
         run.status = final
         run.completed_at = datetime.utcnow()
-        ctx.action.status = final if final != 'timeout' else 'failed'
+        ctx.action.status = final
         ctx.action.updated_at = datetime.utcnow()
         (artifact_dir / 'metadata.json').write_text(
             json.dumps(

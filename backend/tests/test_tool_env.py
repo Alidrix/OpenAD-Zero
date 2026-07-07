@@ -1,5 +1,3 @@
-import subprocess
-
 from app.tool_automation import executor
 from app.tool_automation.executor import (
     ToolExecutionRequest,
@@ -25,12 +23,19 @@ def test_executor_runs_in_job_dir_with_runtime_env(monkeypatch, tmp_path):
     def fake_run(argv, **kwargs):
         calls['argv'] = argv
         calls['kwargs'] = kwargs
-        return subprocess.CompletedProcess(argv, 0, stdout='', stderr='')
+
+        class Result:
+            return_code = 0
+            status = 'completed'
+            stdout_tail = ''
+            stderr_tail = ''
+
+        return Result()
 
     monkeypatch.setattr(executor, 'ensure_tool_runtime_dirs', lambda: None)
     monkeypatch.setattr(executor, '_ensure_writable_dir', lambda path: path.mkdir(parents=True, exist_ok=True))
     monkeypatch.setattr('app.tool_automation.executor.shutil.which', lambda _: '/bin/tool')
-    monkeypatch.setattr('app.tool_automation.executor.subprocess.run', fake_run)
+    monkeypatch.setattr('app.tool_automation.executor.run_process', fake_run)
     monkeypatch.setenv('OPENAD_TOOL_RUN_DIR', str(tmp_path / 'runs'))
     monkeypatch.setenv('OPENAD_FINDINGS_DIR', str(tmp_path / 'findings'))
 
@@ -50,7 +55,7 @@ def test_executor_runs_in_job_dir_with_runtime_env(monkeypatch, tmp_path):
         'nmap -sV 10.0.0.5',
     )
 
-    assert calls['kwargs']['shell'] is False
-    assert calls['kwargs']['cwd'].startswith(str(tmp_path / 'runs'))
+    assert isinstance(calls['argv'], list)
+    assert str(calls['kwargs']['cwd']).startswith(str(tmp_path / 'runs'))
     assert calls['kwargs']['env']['HOME'] == '/app/runtime/home'
     assert calls['kwargs']['env']['NXC_PATH'] == '/app/runtime/home/.nxc'
