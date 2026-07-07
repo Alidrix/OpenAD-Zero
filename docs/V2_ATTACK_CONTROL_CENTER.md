@@ -48,3 +48,8 @@ The action queue opens `ApprovalModal` for recommended actions. The modal can pr
 ## Prompt 09 approval integration
 
 The Attack Control Center approval modal is now server-driven. It prepares approvals through the backend, displays the returned masked preview, scope snapshot, command hash, and expiration, then approves or rejects using approval-only payloads. `Approve & Run` remains disabled because execution is intentionally deferred to Prompt 10.
+
+
+## Prompt 10 controlled approved execution
+
+The Action Queue and approval modal are connected to the backend run endpoint. Queued/running/completed actions disable repeated run clicks; the UI does not simulate execution state and relies on refreshed backend actions, approvals, and events.

@@ -4,12 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.approvals.errors import ApprovalError
+from app.approvals.run_service import enqueue_approved_action_run
 from app.approvals.schemas import (
     ApprovalApproveRequest,
     ApprovalListItem,
     ApprovalPrepareRequest,
     ApprovalRejectRequest,
-    ApprovalRunContractRead,
+    ApprovalRunRead,
+    ApprovalRunRequest,
     ApprovalSummaryRead,
     OperatorApprovalRead,
 )
@@ -20,7 +22,6 @@ from app.approvals.service import (
     get_approval,
     prepare_approval,
     reject_approval,
-    run_approval_contract,
     to_read,
 )
 from app.db.models import OperatorApproval, Scan
@@ -88,9 +89,18 @@ def scan_approvals_summary(scan_id: str, db: Session = Depends(get_db)):
         _raise(exc)
 
 
-@router.post('/approvals/{approval_id}/run', response_model=ApprovalRunContractRead, status_code=501)
-def run_approval(approval_id: str, db: Session = Depends(get_db)):
+@router.post('/approvals/{approval_id}/run', response_model=ApprovalRunRead)
+def run_approval(approval_id: str, payload: ApprovalRunRequest, db: Session = Depends(get_db)):
     try:
-        return run_approval_contract(db, approval_id)
+        run = enqueue_approved_action_run(db, approval_id, payload.operator, payload.operator_note)
+        return {
+            'approval_id': run.approval_id,
+            'action_id': run.action_id,
+            'scan_id': run.scan_id,
+            'status': run.status,
+            'rq_job_id': run.rq_job_id,
+            'job_id': run.id,
+            'message': 'Approved action queued',
+        }
     except ApprovalError as exc:
         _raise(exc)

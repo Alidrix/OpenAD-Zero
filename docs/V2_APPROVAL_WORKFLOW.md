@@ -44,3 +44,8 @@ Approval preparation now validates all template-declared network, file input, fi
 ## Decision-rule approval posture
 
 Prompt 07 recommendations classify high-risk or reinforced actions as waiting for approval. Manual-only actions remain blocked. No Approve & Run execution is wired in this prompt.
+
+
+## Prompt 10 execution update
+
+Approved approvals can now be queued through `POST /api/v2/approvals/{approval_id}/run`. The endpoint accepts only `operator` and optional `operator_note`, rebuilds argv server-side, revalidates the command hash and scope, and consumes the approval only after a stable RQ job is created.

@@ -14,3 +14,7 @@ def get_default_queue() -> Queue:
 
 def get_scan_queue() -> Queue:
     return Queue('openadzero-scans', connection=get_redis_connection())
+
+
+def get_action_queue() -> Queue:
+    return Queue('openadzero-actions', connection=get_redis_connection())
