@@ -2,7 +2,21 @@ from pathlib import Path
 
 FIXTURE_ROOT = Path(__file__).parent / 'fixtures/normalization'
 TEXT_EXTENSIONS = {'.json', '.jsonl', '.xml', '.log', '.txt', '.md'}
-BANNED_EXTENSIONS = {'.zip', '.bin', '.dat', '.sqlite', '.db', '.png', '.jpg', '.jpeg', '.gif', '.pdf'}
+BANNED_EXTENSIONS = {
+    '.zip',
+    '.bin',
+    '.dat',
+    '.sqlite',
+    '.db',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.pdf',
+    '.7z',
+    '.tar',
+    '.gz',
+}
 
 
 def test_normalization_fixtures_are_text_only():

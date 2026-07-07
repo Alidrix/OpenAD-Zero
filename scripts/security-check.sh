@@ -52,6 +52,10 @@ if rg -n "extractall\(|extract\(" backend/app/normalization backend/app/parsers;
   fail "Unsafe ZIP extraction helper found in normalization/parsers"
 fi
 
+if find backend/tests/fixtures/normalization -type f \( -name "*.zip" -o -name "*.bin" -o -name "*.dat" -o -name "*.sqlite" -o -name "*.db" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.pdf" -o -name "*.7z" -o -name "*.tar" -o -name "*.gz" \) | grep -q .; then
+  fail "Binary fixture found under backend/tests/fixtures/normalization"
+fi
+
 
 if rg -n "import subprocess|from subprocess" backend/app/pentest/rules; then
   fail "subprocess import found in pentest decision rules"
