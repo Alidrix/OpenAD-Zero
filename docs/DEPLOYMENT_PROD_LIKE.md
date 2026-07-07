@@ -18,3 +18,19 @@ OPENADZERO_REQUIRE_SCHEMA_READY=true
 ```
 
 Expose the API only behind a trusted reverse proxy with TLS. Keep BloodHound/Neo4j behind the `bloodhound` Compose profile unless explicitly needed. Run `make migrate`, `make smoke`, and `./scripts/release-check.sh` before QA or release.
+
+## V2 final prod-like validation
+
+Before promoting a prod-like deployment, run:
+
+```bash
+docker compose config
+docker compose down -v
+docker compose up -d --build
+make migrate
+make smoke
+./scripts/v2-api-smoke.sh
+./scripts/local-e2e-qa.sh
+```
+
+Use only private authorized ranges. High-risk and Metasploit templates must remain blocked/manual-only/preview-only; do not alter catalog safety metadata to force execution.

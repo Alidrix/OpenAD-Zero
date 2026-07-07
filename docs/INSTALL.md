@@ -41,3 +41,18 @@ The default Compose stack uses named volumes for `/app/evidence` and `/app/runti
 ## Prompt 15 dev quick start
 
 Copy `.env.example` to `.env`, generate a local token (`python -c "import secrets; print(secrets.token_urlsafe(32))"`), set `OPENADZERO_API_TOKEN`, then run `docker compose up -d`. Apply migrations with `make migrate`, verify with `cd backend && alembic heads`, and run `make smoke`. Optional services use profiles: default/dev for API/worker/UI/Postgres/Redis, `bloodhound` for BloodHound/Neo4j, and `prod-like` documented in `docs/DEPLOYMENT_PROD_LIKE.md`.
+
+## V2 final local QA
+
+After installation, run the final V2 smoke checks:
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+make migrate
+make smoke
+./scripts/v2-api-smoke.sh
+./scripts/local-e2e-qa.sh
+```
+
+Do not commit `.env`; if auth is enabled, keep `OPENADZERO_API_TOKEN` local and paste it into Settings/Auth in the UI.

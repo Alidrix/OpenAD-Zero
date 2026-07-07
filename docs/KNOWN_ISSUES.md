@@ -85,3 +85,7 @@ OpenAD-Zero now uses `backend/app/tool_catalog/high_risk_policy.py` as the centr
 ## Prompt 15 limitations
 
 OpenAD-Zero prod-like mode expects an external TLS reverse proxy and a controlled lab network. It is not designed as an internet-exposed multi-tenant SaaS. Docker-dependent release checks may be skipped on CI runners without Docker.
+
+## Prompt 16 final QA limitations
+
+Complete Docker Compose smoke requires a local Docker daemon. When release checks are run with `OPENADZERO_RELEASE_CHECK_SKIP_DOCKER=1`, Docker build/up, worker runtime, and UI reachability must be validated manually with `./scripts/local-e2e-qa.sh` before tagging a release.

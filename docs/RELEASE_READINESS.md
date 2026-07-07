@@ -147,3 +147,10 @@ OpenAD-Zero now uses `backend/app/tool_catalog/high_risk_policy.py` as the centr
 ## Prompt 15 release readiness
 
 Alembic currently has a single effective head: `0006_add_v2_ad_normalized_models`, which merges the two prompt-14 era `0006` branches (`0006_add_approved_action_runs` and `0006_add_pentest_decision_rule_metadata`). Normal usage is `alembic upgrade head`; `upgrade heads` should not be required. Verify with `cd backend && alembic heads` and run `make migrate` before QA. The protected `/api/health/schema` endpoint reports missing required tables/columns and returns a migration hint without secrets.
+
+## Prompt 16 final V2 QA readiness
+
+- Added `scripts/local-e2e-qa.sh` for local Docker Compose end-to-end smoke, schema health, V2 API smoke, and frontend reachability checks.
+- Added `scripts/v2-api-smoke.sh` for token-aware V2 API health/catalog/readiness checks without printing secrets.
+- Added a fixture-only safe V2 backend workflow test that validates normalization, recompute, server approval, queued run, mocked runner completion, post-run normalization, recompute events, and high-risk non-execution.
+- If Docker is skipped in Codex/CI with `OPENADZERO_RELEASE_CHECK_SKIP_DOCKER=1`, local Docker QA remains required using `docs/V2_FINAL_QA_RUNBOOK.md`.
