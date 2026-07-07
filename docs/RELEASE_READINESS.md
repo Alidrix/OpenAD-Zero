@@ -142,3 +142,8 @@ Release readiness now includes the shared process runner, bounded logs, process-
 ## Prompt 14 high-risk execution policy
 
 OpenAD-Zero now uses `backend/app/tool_catalog/high_risk_policy.py` as the central policy for sensitive tooling. Metasploit is locked to preview-only/read-only entries, while credential dumping, spraying/brute force, active relay/coercion capture, command execution, lateral movement, AD write operations, exploitation, persistence, and trace cleanup remain manual-only or blocked. Approval preparation and run preparation both enforce the same policy; refused high-risk runs do not consume approvals or enqueue RQ jobs. The Attack Control Center surfaces `preview_only`, `manual_only`, and `blocked` states and does not provide a force-run path.
+
+
+## Prompt 15 release readiness
+
+Alembic currently has a single effective head: `0006_add_v2_ad_normalized_models`, which merges the two prompt-14 era `0006` branches (`0006_add_approved_action_runs` and `0006_add_pentest_decision_rule_metadata`). Normal usage is `alembic upgrade head`; `upgrade heads` should not be required. Verify with `cd backend && alembic heads` and run `make migrate` before QA. The protected `/api/health/schema` endpoint reports missing required tables/columns and returns a migration hint without secrets.

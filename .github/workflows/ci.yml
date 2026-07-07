@@ -80,6 +80,8 @@ jobs:
         run: cd backend && pytest tests/test_release_docs.py
       - name: Security check
         run: ./scripts/security-check.sh
+      - name: Release check (no Docker)
+        run: OPENADZERO_RELEASE_CHECK_SKIP_DOCKER=1 ./scripts/release-check.sh
 
   frontend:
     runs-on: ubuntu-latest

@@ -36,3 +36,8 @@ Use `make ps`, `make logs-api`, `make logs-worker`, and `make health`. Health en
 The default Compose stack uses named volumes for `/app/evidence` and `/app/runtime`. The backend entrypoint starts as root only long enough to create and repair those mounted directories, then executes the API or worker as `APP_UID:APP_GID` (`10001:10001` by default). This preserves automatic volume permission repair while keeping the application runtime non-root.
 
 `scripts/smoke.sh` verifies both the API and worker are running as UID/GID `10001:10001` and that `/app/evidence` plus `/app/runtime` are writable. If you replace the named volumes with bind mounts, ensure the mounted paths can be chowned by the container entrypoint or pre-create them with compatible ownership.
+
+
+## Prompt 15 dev quick start
+
+Copy `.env.example` to `.env`, generate a local token (`python -c "import secrets; print(secrets.token_urlsafe(32))"`), set `OPENADZERO_API_TOKEN`, then run `docker compose up -d`. Apply migrations with `make migrate`, verify with `cd backend && alembic heads`, and run `make smoke`. Optional services use profiles: default/dev for API/worker/UI/Postgres/Redis, `bloodhound` for BloodHound/Neo4j, and `prod-like` documented in `docs/DEPLOYMENT_PROD_LIKE.md`.

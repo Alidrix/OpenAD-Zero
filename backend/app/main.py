@@ -22,6 +22,7 @@ from app.api.routes_v2_scans import router as v2_scans_router
 from app.api.routes_v2_tool_catalog import router as v2_tool_catalog_router
 from app.core.auth import require_api_token, validate_auth_configuration
 from app.core.config import get_settings
+from app.core.startup_checks import run_startup_checks
 from app.db.init_db import init_db
 
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +31,7 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    run_startup_checks()
     validate_auth_configuration()
     init_db()
     yield

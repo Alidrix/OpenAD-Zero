@@ -133,4 +133,16 @@ else
   fail "Unsafe executable tool catalog template found"
 fi
 
+if git ls-files | rg -q '(^|/)\.env$'; then
+  fail "Committed .env file found"
+fi
+
+if rg -n "VITE_[A-Z0-9_]*(TOKEN|SECRET|KEY)|OPENADZERO_API_TOKEN" frontend --glob '!frontend/node_modules/**' --glob '!**/*.md'; then
+  fail "Frontend secret exposure detected"
+fi
+
+if (cd backend && command -v alembic >/dev/null 2>&1 && [ "$(alembic heads | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')" != "1" ]); then
+  fail "Ambiguous Alembic heads detected"
+fi
+
 echo "[OK] security-check"

@@ -7,6 +7,7 @@ from sqlalchemy import inspect, text
 
 from app.core.config import get_settings
 from app.db import models  # noqa: F401
+from app.db.schema_health import check_schema
 from app.db.session import Base, engine
 
 logger = logging.getLogger(__name__)
@@ -41,8 +42,23 @@ def run_migrations() -> None:
 
 def init_db() -> None:
     settings = get_settings()
-    if settings.openadzero_run_migrations_on_startup:
+    if not settings.openadzero_auto_migrate and not settings.openadzero_run_migrations_on_startup:
+        logger.warning('OPENADZERO_AUTO_MIGRATE=false; startup will not apply Alembic migrations automatically.')
+    if settings.openadzero_auto_migrate or settings.openadzero_run_migrations_on_startup:
         run_migrations()
     elif settings.openadzero_auto_create_tables:
         logger.warning('OPENADZERO_AUTO_CREATE_TABLES is enabled; use Alembic migrations for normal runs.')
         init_db_dev_only()
+    try:
+        health = check_schema(engine)
+    except Exception:
+        if settings.openadzero_require_schema_ready:
+            raise
+        logger.warning(
+            'Database schema healthcheck could not connect; run migrations before prod-like use.', exc_info=True
+        )
+        return
+    if not health['ok']:
+        logger.warning('Database schema healthcheck is incomplete: %s', health['migration_hint'])
+        if settings.openadzero_require_schema_ready:
+            raise RuntimeError('OPENADZERO_REQUIRE_SCHEMA_READY=true but database schema is incomplete')
