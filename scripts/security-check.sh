@@ -18,6 +18,19 @@ if rg -n "VITE_OPENADZERO_API_TOKEN|VITE_[A-Z0-9_]*(TOKEN|SECRET|KEY)" frontend/
   fail "Secret-like VITE variable found in frontend/src"
 fi
 
+
+if rg -n "TWENTY_FIRST_API_KEY" --glob '!docs/**' --glob '!scripts/security-check.sh' --glob '!frontend/node_modules/**' --glob '!node_modules/**' .; then
+  fail "21st.dev API key variable found"
+fi
+
+if rg -n "21st\.dev" --glob '!docs/**' --glob '!scripts/security-check.sh' --glob '!frontend/node_modules/**' --glob '!node_modules/**' .; then
+  fail "21st.dev reference found outside allowed documentation"
+fi
+
+if rg -n "raw_command|shell_command|child_process|exec\(" frontend/src --glob '!**/*.test.*'; then
+  fail "Raw frontend command execution material found"
+fi
+
 if rg -n "chmod 777" --glob '!node_modules/**' --glob '!frontend/node_modules/**' --glob '!scripts/security-check.sh' .; then
   fail "chmod 777 found"
 fi

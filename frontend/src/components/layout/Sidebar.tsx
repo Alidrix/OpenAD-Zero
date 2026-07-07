@@ -49,6 +49,7 @@ export function Sidebar() {
         {missionId && <NavLink className={active} to={base}>Dashboard</NavLink>}
 
         <Section title="V2 Operations">
+          <NavLink className={active} to="/v2-attack-control">Attack Control Center</NavLink>
           <NavLink className={active} to="/v2-dashboard">V2 Dashboard</NavLink>
           <NavLink className={active} to="/scans">Scan Library</NavLink>
           <NavLink className={active} to="/v2-recommendations">V2 Recommendations</NavLink>
