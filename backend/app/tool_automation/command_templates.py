@@ -776,10 +776,13 @@ def _infer_metadata() -> None:
         )
         if family == 'evidence_reporting' and template.risk_level == 'low':
             mode = 'safe_auto'
+        if tid.startswith('metasploit_'):
+            mode = 'preview_only'
+        if tid in {'metasploit_smb_version', 'metasploit_controlled_exploit'}:
+            mode = 'blocked'
         if family == 'manual_only_sensitive' or tid in {
             'kerbrute_passwordspray_safe_preview',
             'responder_lab_capture',
-            'metasploit_controlled_exploit',
         }:
             mode = 'manual_only'
         object.__setattr__(template, 'family', family)
@@ -793,6 +796,24 @@ def _infer_metadata() -> None:
             'blocked_reason',
             None if supported else 'Cataloged for preview/planning only; not supported by controlled runner.',
         )
+
+    for tid in [
+        'donpapi_collect_target',
+        'donpapi_collect_target_hash',
+        'gmsadumper_assessment_password',
+        'gmsadumper_assessment_hash',
+        'kerbrute_passwordspray_safe_preview',
+        'coercer_check_single_target',
+        'responder_lab_capture',
+    ]:
+        if tid in COMMAND_TEMPLATE_DEFINITIONS:
+            object.__setattr__(COMMAND_TEMPLATE_DEFINITIONS[tid], 'execution_mode', 'manual_only')
+            object.__setattr__(COMMAND_TEMPLATE_DEFINITIONS[tid], 'supported_for_run', False)
+            object.__setattr__(
+                COMMAND_TEMPLATE_DEFINITIONS[tid],
+                'blocked_reason',
+                'Manual-only high-risk capability is not executable by OpenAD-Zero.',
+            )
 
 
 def _add_catalog_only_templates() -> None:
@@ -826,6 +847,50 @@ def _add_catalog_only_templates() -> None:
         COMMAND_TEMPLATE_DEFINITIONS[tid] = tmpl
 
     entries = [
+        (
+            'metasploit_search_preview',
+            'metasploit',
+            'vulnerability_analysis',
+            'Metasploit search preview',
+            'Preview Metasploit search guidance only; no msfconsole execution.',
+            'high',
+            'preview_only',
+            'metasploit',
+            'metasploit',
+        ),
+        (
+            'metasploit_info_preview',
+            'metasploit',
+            'vulnerability_analysis',
+            'Metasploit info preview',
+            'Preview Metasploit module info guidance only; no msfconsole execution.',
+            'high',
+            'preview_only',
+            'metasploit_info',
+            'metasploit_module',
+        ),
+        (
+            'metasploit_module_metadata_preview',
+            'metasploit',
+            'vulnerability_analysis',
+            'Metasploit module metadata preview',
+            'Preview allowlisted module metadata only; no execution.',
+            'high',
+            'preview_only',
+            'metasploit_info',
+            'metasploit_module',
+        ),
+        (
+            'metasploit_check_preview',
+            'metasploit',
+            'vulnerability_analysis',
+            'Metasploit check preview',
+            'Preview allowlisted non-destructive check intent; no execution.',
+            'high',
+            'preview_only',
+            'metasploit_check',
+            'vulnerability',
+        ),
         (
             'nmap_service_fingerprint_limited',
             'nmap',

@@ -112,12 +112,16 @@ rg -F -q 'APP_GID="${APP_GID:-10001}"' backend/scripts/docker-entrypoint.sh \
 if PYTHONPATH=backend python - <<'PYCATALOG'
 from app.tool_catalog.registry import list_template_metadata
 bad=[]
-danger={'mimikatz','lsass','secretsdump','psexec','wmiexec','smbexec','atexec','password spray','bruteforce','brute force','xp_cmdshell','pass-the-hash'}
+from app.tool_catalog.high_risk_policy import RUN_FORBIDDEN_TOKENS, validate_template_high_risk_policy, HighRiskPolicyViolation
 for template in list_template_metadata():
-    if template.execution_mode in {'manual_only','blocked'} and template.supported_for_run:
+    try:
+        validate_template_high_risk_policy(template)
+    except HighRiskPolicyViolation as exc:
+        bad.append(f"{template.template_id}:{exc}")
+    if template.execution_mode in {'manual_only','blocked','preview_only','planned'} and template.supported_for_run:
         bad.append(f"{template.template_id}:{template.execution_mode}:supported")
     argv_text = ' '.join(template.argv).casefold().replace('--no-bruteforce', '')
-    if template.supported_for_run and any(word in argv_text for word in danger):
+    if template.supported_for_run and any(word in argv_text for word in RUN_FORBIDDEN_TOKENS):
         bad.append(f"{template.template_id}:dangerous-keyword")
 if bad:
     print('\n'.join(bad))

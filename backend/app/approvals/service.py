@@ -18,6 +18,7 @@ from app.core.parameter_validation import (
 from app.db.models import OperatorApproval, PentestAction, Scan
 from app.services.scan_service import add_scan_event
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
+from app.tool_catalog.high_risk_policy import HighRiskPolicyViolation, assert_template_allowed_for_approval
 from app.tool_catalog.registry import get_template, normalize_template_id
 
 SECRET_KEYS = {'password', 'pass', 'secret', 'token', 'key', 'hash', 'ntlm_hash', 'credential', 'api_key'}
@@ -50,8 +51,10 @@ def _resolve_catalog(action: PentestAction):
     template = COMMAND_TEMPLATE_DEFINITIONS.get(resolved_template_id)
     if template_meta is None or template is None:
         raise ApprovalError('Action tool/template is not allowlisted', 400)
-    if template_meta.execution_mode in {'manual_only', 'blocked'}:
-        raise ApprovalError(f'Template is {template_meta.execution_mode} and cannot be approved', 403)
+    try:
+        assert_template_allowed_for_approval(template_meta)
+    except HighRiskPolicyViolation as exc:
+        raise ApprovalError(str(exc), 403) from exc
     return {'id': template_meta.tool_id, 'templates': [template_meta.template_id]}, template
 
 
@@ -213,11 +216,14 @@ def prepare_approval(db: Session, scan_id: str, action_id: str, operator_note: s
     template_meta = get_template(resolved_template_id)
     if template_meta is None:
         raise ApprovalError('Template not found in tool catalog', 400)
-    if action.execution_mode in {'manual_only', 'blocked'} or template_meta.execution_mode in {
-        'manual_only',
-        'blocked',
-    }:
+    if action.execution_mode in {'manual_only', 'blocked'}:
         raise ApprovalError('Manual-only or blocked actions cannot be approved', 400)
+    if action.execution_mode in {'preview_only', 'planned'}:
+        raise ApprovalError(f'{action.execution_mode} actions cannot be approved', 403)
+    try:
+        assert_template_allowed_for_approval(template_meta)
+    except HighRiskPolicyViolation as exc:
+        raise ApprovalError(str(exc), 403) from exc
     if action.status in BLOCKING_STATUSES:
         raise ApprovalConflict(f'Action status {action.status} cannot be prepared')
     level = approval_level_for(action.execution_mode)

@@ -5,6 +5,7 @@ from typing import Any
 
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS, CommandTemplate
 from app.tool_catalog.families import FAMILIES
+from app.tool_catalog.high_risk_policy import HighRiskPolicyViolation, validate_template_high_risk_policy
 from app.tool_catalog.models import TemplateMetadata, ToolMetadata
 
 SUPPORTED_RUN_TEMPLATE_IDS = {
@@ -96,10 +97,29 @@ def list_template_metadata() -> list[TemplateMetadata]:
     for tid, t in sorted(COMMAND_TEMPLATE_DEFINITIONS.items()):
         supported = bool(getattr(t, 'supported_for_run', False)) and tid in SUPPORTED_RUN_TEMPLATE_IDS
         mode = getattr(t, 'execution_mode', 'manual_only')
+        candidate = {
+            **getattr(t, '__dict__', {}),
+            'template_id': tid,
+            'supported_for_run': supported,
+            'execution_mode': mode,
+        }
+        try:
+            validate_template_high_risk_policy(candidate)
+        except HighRiskPolicyViolation:
+            supported = False
+            mode = 'blocked'
         status = (
             'supported'
             if supported
-            else ('manual_only' if mode == 'manual_only' else 'blocked' if mode == 'blocked' else 'preview_only')
+            else (
+                'manual_only'
+                if mode == 'manual_only'
+                else 'blocked'
+                if mode == 'blocked'
+                else 'planned'
+                if mode == 'planned'
+                else 'preview_only'
+            )
         )
         out.append(
             TemplateMetadata(

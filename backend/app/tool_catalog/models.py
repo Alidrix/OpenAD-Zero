@@ -4,7 +4,15 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 INTEGRATION_STATUSES = {'supported', 'preview_only', 'manual_only', 'blocked', 'planned'}
-EXECUTION_MODES = {'safe_auto', 'approval_required', 'reinforced_approval_required', 'manual_only', 'blocked'}
+EXECUTION_MODES = {
+    'safe_auto',
+    'approval_required',
+    'reinforced_approval_required',
+    'preview_only',
+    'manual_only',
+    'blocked',
+    'planned',
+}
 RISK_LEVELS = {'info', 'low', 'medium', 'high', 'critical'}
 
 

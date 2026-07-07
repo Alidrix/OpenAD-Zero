@@ -38,3 +38,7 @@ OpenAD-Zero now has a central Windows/AD tool catalogue grouped by family, risk,
 ## Prompt 12 normalization update
 
 V2 artifact outputs now flow through `backend/app/normalization/` where supported Nmap, Nuclei, NetExec SMB, BloodHound ZIP, LDAP, Kerberos, and ADCS artifacts are converted into common parsed tables. This remains parsing-only: no extra tool launch, no new RQ job creation, and no subprocess is introduced by normalization.
+
+## Prompt 14 high-risk execution policy
+
+OpenAD-Zero now uses `backend/app/tool_catalog/high_risk_policy.py` as the central policy for sensitive tooling. Metasploit is locked to preview-only/read-only entries, while credential dumping, spraying/brute force, active relay/coercion capture, command execution, lateral movement, AD write operations, exploitation, persistence, and trace cleanup remain manual-only or blocked. Approval preparation and run preparation both enforce the same policy; refused high-risk runs do not consume approvals or enqueue RQ jobs. The Attack Control Center surfaces `preview_only`, `manual_only`, and `blocked` states and does not provide a force-run path.

@@ -21,6 +21,7 @@ from app.db.models import ApprovedActionRun, OperatorApproval, PentestAction, Sc
 from app.queue.connection import get_action_queue
 from app.services.scan_service import add_scan_event
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
+from app.tool_catalog.high_risk_policy import HighRiskPolicyViolation, assert_template_allowed_for_run
 from app.tool_catalog.registry import SUPPORTED_RUN_TEMPLATE_IDS, get_template, normalize_template_id
 from app.tool_catalog.risk_policy import classify_execution_allowed
 
@@ -88,6 +89,10 @@ def build_run_context(db: Session, approval_id: str, *, artifact_dir: str | None
     allowed, status_code, reason = classify_execution_allowed(meta.execution_mode, meta.supported_for_run)
     if not allowed:
         raise ApprovalError(reason, status_code)
+    try:
+        assert_template_allowed_for_run(meta)
+    except HighRiskPolicyViolation as exc:
+        raise ApprovalError(str(exc), 403) from exc
     scope = _validated_scope_for(scan, action)
     try:
         resolved = validate_action_parameters(
