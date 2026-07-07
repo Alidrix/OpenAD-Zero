@@ -16,6 +16,7 @@ from app.core.parameter_validation import (
     validate_scope_sensitive_params,
 )
 from app.db.models import OperatorApproval, PentestAction, Scan
+from app.services.scan_service import add_scan_event
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
 from app.tool_automation.policy import load_tool_catalog
 
@@ -155,6 +156,26 @@ def compute_approval_hash(
     return hashlib.sha256(_canonical(payload).encode()).hexdigest()
 
 
+def _approval_event_payload(approval: OperatorApproval) -> dict[str, Any]:
+    return {
+        'approval_id': approval.id,
+        'scan_id': approval.scan_id,
+        'action_id': approval.action_id,
+        'phase_id': approval.phase_id,
+        'tool_id': approval.tool_id,
+        'template_id': approval.template_id,
+        'risk_level': approval.risk_level,
+        'approval_level': approval.approval_level,
+        'status': approval.status,
+    }
+
+
+def _record_approval_event(db: Session, approval: OperatorApproval, event_type: str) -> None:
+    add_scan_event(
+        db, approval.scan_id, event_type, event_type.replace('.', ' ').title(), _approval_event_payload(approval)
+    )
+
+
 def to_read(row: OperatorApproval) -> dict[str, Any]:
     return {
         'id': row.id,
@@ -186,6 +207,7 @@ def to_read(row: OperatorApproval) -> dict[str, Any]:
 def expire_approval_if_needed(db: Session, approval: OperatorApproval) -> OperatorApproval:
     if approval.status == 'pending' and approval.expires_at <= datetime.utcnow():
         approval.status = 'expired'
+        _record_approval_event(db, approval, 'approval.expired')
         db.commit()
         db.refresh(approval)
     return approval
@@ -253,6 +275,8 @@ def prepare_approval(db: Session, scan_id: str, action_id: str, operator_note: s
         metadata_json={'operator_note': operator_note} if operator_note else {},
     )
     db.add(approval)
+    db.flush()
+    _record_approval_event(db, approval, 'approval.prepared')
     if action.status == 'proposed':
         action.status = 'waiting_approval'
         action.updated_at = now
@@ -312,6 +336,7 @@ def approve_approval(
     }
     action.status = 'approved'
     action.updated_at = now
+    _record_approval_event(db, approval, 'approval.approved')
     db.commit()
     db.refresh(approval)
     return approval
@@ -332,6 +357,7 @@ def reject_approval(
     if action is not None:
         action.status = 'rejected'
         action.updated_at = now
+    _record_approval_event(db, approval, 'approval.rejected')
     db.commit()
     db.refresh(approval)
     return approval
@@ -346,3 +372,48 @@ def mark_approval_consumed(db: Session, approval_id: str) -> OperatorApproval:
     db.commit()
     db.refresh(approval)
     return approval
+
+
+def approvals_summary(db: Session, scan_id: str) -> dict[str, Any]:
+    if db.query(Scan).filter_by(id=scan_id).first() is None:
+        raise ApprovalNotFound('Scan not found')
+    rows = [expire_approval_if_needed(db, row) for row in db.query(OperatorApproval).filter_by(scan_id=scan_id).all()]
+    summary: dict[str, Any] = {
+        'scan_id': scan_id,
+        'total': len(rows),
+        'pending': 0,
+        'approved': 0,
+        'rejected': 0,
+        'expired': 0,
+        'consumed': 0,
+        'blocked': 0,
+        'reinforced_pending': 0,
+        'next_expiration_at': None,
+    }
+    pending_expirations = []
+    for row in rows:
+        if row.status in summary:
+            summary[row.status] += 1
+        if row.status == 'pending' and row.approval_level == 'reinforced':
+            summary['reinforced_pending'] += 1
+        if row.status == 'pending' and row.expires_at is not None:
+            pending_expirations.append(row.expires_at)
+    summary['next_expiration_at'] = min(pending_expirations) if pending_expirations else None
+    return summary
+
+
+def run_approval_contract(db: Session, approval_id: str) -> dict[str, Any]:
+    approval = get_approval(db, approval_id)
+    if approval.status != 'approved':
+        raise ApprovalConflict(f'Approval status {approval.status} cannot be run')
+    if approval.expires_at <= datetime.utcnow():
+        raise ApprovalConflict('Approval expired')
+    if approval.consumed_at is not None or approval.status == 'consumed':
+        raise ApprovalConflict('Approval already consumed')
+    action = db.query(PentestAction).filter_by(id=approval.action_id, scan_id=approval.scan_id).first()
+    if action is None:
+        raise ApprovalNotFound('Pentest action not found')
+    return {
+        'ready': False,
+        'reason': 'Execution runner is not implemented yet. This endpoint will be enabled in Prompt 10.',
+    }

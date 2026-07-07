@@ -31,6 +31,11 @@ if rg -n "raw_command|shell_command|child_process|exec\(" frontend/src --glob '!
   fail "Raw frontend command execution material found"
 fi
 
+
+if rg -n "JSON\.stringify\([^)]*(command|argv|shell|raw_command|human_approved)" frontend/src --glob '!**/*.test.*'; then
+  fail "Frontend approval payload may send raw command material"
+fi
+
 if rg -n "chmod 777" --glob '!node_modules/**' --glob '!frontend/node_modules/**' --glob '!scripts/security-check.sh' .; then
   fail "chmod 777 found"
 fi
@@ -59,7 +64,7 @@ for cls in ["ApprovalPrepareRequest", "ApprovalApproveRequest", "ApprovalRejectR
     start = text.index(f"class {cls}")
     end = text.find("\n\nclass ", start + 1)
     block = text[start:end if end != -1 else len(text)]
-    if any(field in block for field in ["command:", "argv:", "shell:", "command_hash:", "command_preview:"]):
+    if any(field in block for field in ["command:", "argv:", "shell:", "raw_command:", "command_hash:", "command_preview:", "human_approved:"]):
         raise SystemExit(1)
 PYCHECK
 then

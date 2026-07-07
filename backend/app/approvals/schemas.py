@@ -56,3 +56,21 @@ class OperatorApprovalRead(BaseModel):
 
 class ApprovalListItem(OperatorApprovalRead):
     pass
+
+
+class ApprovalSummaryRead(BaseModel):
+    scan_id: str
+    total: int = 0
+    pending: int = 0
+    approved: int = 0
+    rejected: int = 0
+    expired: int = 0
+    consumed: int = 0
+    blocked: int = 0
+    reinforced_pending: int = 0
+    next_expiration_at: datetime | None = None
+
+
+class ApprovalRunContractRead(BaseModel):
+    ready: bool
+    reason: str

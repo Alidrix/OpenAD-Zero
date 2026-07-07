@@ -44,3 +44,7 @@ The action queue opens `ApprovalModal` for recommended actions. The modal can pr
 - `Approve & Run` is intentionally disabled until the final RQ execution workflow is implemented in a later prompt.
 - The frontend never sends raw command material, argv arrays, shell strings, or command hashes.
 - No 21st.dev dependency, marketplace UI dependency, external API key, or `TWENTY_FIRST_API_KEY` is used.
+
+## Prompt 09 approval integration
+
+The Attack Control Center approval modal is now server-driven. It prepares approvals through the backend, displays the returned masked preview, scope snapshot, command hash, and expiration, then approves or rejects using approval-only payloads. `Approve & Run` remains disabled because execution is intentionally deferred to Prompt 10.
