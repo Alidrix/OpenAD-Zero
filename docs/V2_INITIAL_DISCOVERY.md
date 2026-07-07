@@ -41,3 +41,8 @@ The workflow persists progress events from `scan.initial_discovery_queued` throu
 ## Follow-on recommendations
 
 After Nmap parsing, the pentest orchestrator recompute step applies Prompt 07 decision rules to SMB, LDAP/Kerberos, web, remote management, MSSQL, ADCS, BloodHound, credential exposure, and reporting signals.
+
+
+## Prompt 12 normalization update
+
+V2 artifact outputs now flow through `backend/app/normalization/` where supported Nmap, Nuclei, NetExec SMB, BloodHound ZIP, LDAP, Kerberos, and ADCS artifacts are converted into common parsed tables. This remains parsing-only: no extra tool launch, no new RQ job creation, and no subprocess is introduced by normalization.

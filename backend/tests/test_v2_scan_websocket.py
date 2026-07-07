@@ -23,7 +23,9 @@ def test_v2_scan_websocket_replays_scan_events_in_order(client):
     original_session_local = routes_v2_scan_events.SessionLocal
     routes_v2_scan_events.SessionLocal = Session
     try:
-        created = client.post('/api/v2/scans', json={'name': 'WS scan', 'scan_type': 'manual', 'tool_name': 'manual'}).json()
+        created = client.post(
+            '/api/v2/scans', json={'name': 'WS scan', 'scan_type': 'manual', 'tool_name': 'manual'}
+        ).json()
         scan_id = created['id']
         renamed = client.patch(f'/api/v2/scans/{scan_id}/rename', json={'name': 'WS scan renamed'}).json()
         assert renamed['name'] == 'WS scan renamed'

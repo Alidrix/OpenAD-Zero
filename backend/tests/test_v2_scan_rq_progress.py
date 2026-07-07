@@ -49,11 +49,13 @@ def test_enqueue_demo_scan_creates_rq_job_and_queued_status(client, monkeypatch)
     app.dependency_overrides[get_db] = override_db
     monkeypatch.setattr('app.services.scan_orchestrator.get_scan_queue', lambda: FakeQueue())
     try:
-        created = client.post('/api/v2/scans', json={'name': 'Demo enqueue', 'scan_type': 'demo', 'tool_name': 'demo-worker'}).json()
-        queued = client.post(f"/api/v2/scans/{created['id']}/enqueue-demo").json()
+        created = client.post(
+            '/api/v2/scans', json={'name': 'Demo enqueue', 'scan_type': 'demo', 'tool_name': 'demo-worker'}
+        ).json()
+        queued = client.post(f'/api/v2/scans/{created["id"]}/enqueue-demo').json()
         assert queued['status'] == 'queued'
         assert queued['rq_job_id'] == 'rq-demo-123'
-        events = client.get(f"/api/v2/scans/{created['id']}/events").json()
+        events = client.get(f'/api/v2/scans/{created["id"]}/events').json()
         assert any(event['event_type'] == 'scan.queued' for event in events)
     finally:
         app.dependency_overrides.clear()
@@ -123,7 +125,9 @@ def test_stop_started_rq_job_sends_stop_command(db_session, monkeypatch):
 
     monkeypatch.setattr('app.services.scan_orchestrator.get_redis_connection', lambda: object())
     monkeypatch.setattr('app.services.scan_orchestrator.Job.fetch', lambda job_id, connection: fake_job)
-    monkeypatch.setattr('app.services.scan_orchestrator.send_stop_job_command', lambda connection, job_id: sent.append(job_id))
+    monkeypatch.setattr(
+        'app.services.scan_orchestrator.send_stop_job_command', lambda connection, job_id: sent.append(job_id)
+    )
 
     stopping = request_scan_stop(db_session, scan.id)
     assert sent == ['rq-started']
@@ -140,7 +144,10 @@ def test_stop_rq_unavailable_preserves_state_and_records_failure(db_session, mon
     scan.rq_job_id = 'rq-unavailable'
     db_session.commit()
 
-    monkeypatch.setattr('app.services.scan_orchestrator.get_redis_connection', lambda: (_ for _ in ()).throw(ConnectionError('redis down')))
+    monkeypatch.setattr(
+        'app.services.scan_orchestrator.get_redis_connection',
+        lambda: (_ for _ in ()).throw(ConnectionError('redis down')),
+    )
 
     try:
         request_scan_stop(db_session, scan.id)
@@ -157,6 +164,7 @@ def test_stop_rq_unavailable_preserves_state_and_records_failure(db_session, mon
 
 def test_demo_worker_does_not_import_or_call_external_tools():
     import inspect
+
     import app.workers.v2_scan_jobs as jobs
 
     source = inspect.getsource(jobs)

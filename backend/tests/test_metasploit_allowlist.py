@@ -1,5 +1,5 @@
-from app.tool_automation.metasploit_allowlist import validate_metasploit_module
 from app.tool_automation.command_templates import COMMAND_TEMPLATES
+from app.tool_automation.metasploit_allowlist import validate_metasploit_module
 
 
 def test_module_absent_refused():
@@ -8,7 +8,9 @@ def test_module_absent_refused():
 
 
 def test_module_disabled_refused():
-    ok, reason = validate_metasploit_module('msf_controlled_exploit_example', final_confirmation=True, check_status='success')
+    ok, reason = validate_metasploit_module(
+        'msf_controlled_exploit_example', final_confirmation=True, check_status='success'
+    )
     assert not ok and 'disabled' in reason
 
 

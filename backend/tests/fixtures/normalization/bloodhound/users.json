@@ -1,0 +1,18 @@
+{
+  "data": [
+    {
+      "ObjectIdentifier": "S-1-5-21-U",
+      "Properties": {
+        "name": "ALICE@EXAMPLE.LOCAL",
+        "domain": "EXAMPLE.LOCAL",
+        "highvalue": true
+      },
+      "Aces": [
+        {
+          "RightName": "GenericAll",
+          "PrincipalSID": "S-1-5-21-G"
+        }
+      ]
+    }
+  ]
+}

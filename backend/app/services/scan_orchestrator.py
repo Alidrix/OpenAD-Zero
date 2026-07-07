@@ -22,7 +22,9 @@ def mark_scan_queued(db: Session, scan_id: str, rq_job_id: str | None = None):
         return None
     scan.status = 'queued'
     scan.rq_job_id = rq_job_id
-    scan_service.add_scan_event(db, scan_id, 'scan.queued', 'Scan marked queued', {'rq_job_id': rq_job_id, 'status': 'queued'})
+    scan_service.add_scan_event(
+        db, scan_id, 'scan.queued', 'Scan marked queued', {'rq_job_id': rq_job_id, 'status': 'queued'}
+    )
     db.commit()
     db.refresh(scan)
     return scan
@@ -47,7 +49,12 @@ def enqueue_demo_scan(db: Session, scan_id: str):
         scan_id,
         'scan.queued',
         'Demo scan worker queued',
-        {'rq_job_id': job.id, 'status': 'queued', 'progress_percent': scan.progress_percent, 'current_step': scan.current_step},
+        {
+            'rq_job_id': job.id,
+            'status': 'queued',
+            'progress_percent': scan.progress_percent,
+            'current_step': scan.current_step,
+        },
     )
     db.commit()
     db.refresh(scan)
@@ -80,7 +87,9 @@ def mark_scan_failed(db: Session, scan_id: str, message: str = 'Scan failed'):
     return scan
 
 
-def _logical_stop(db: Session, scan, event_type: str = 'scan.stopped', message: str = 'Scan stopped logically without RQ job'):
+def _logical_stop(
+    db: Session, scan, event_type: str = 'scan.stopped', message: str = 'Scan stopped logically without RQ job'
+):
     scan.status = 'stopped'
     scan.stopped_at = datetime.utcnow()
     scan.finished_at = scan.finished_at or scan.stopped_at
@@ -103,7 +112,13 @@ def request_scan_stop(db: Session, scan_id: str):
         raw_status = job.get_status(refresh=True)
         status = getattr(raw_status, 'value', str(raw_status)).lower()
     except Exception as exc:
-        scan_service.add_scan_event(db, scan_id, 'scan.stop_failed', 'Unable to contact RQ while requesting stop', {'rq_job_id': scan.rq_job_id, 'error': str(exc)})
+        scan_service.add_scan_event(
+            db,
+            scan_id,
+            'scan.stop_failed',
+            'Unable to contact RQ while requesting stop',
+            {'rq_job_id': scan.rq_job_id, 'error': str(exc)},
+        )
         db.commit()
         db.refresh(scan)
         raise RuntimeError('Unable to contact RQ while requesting stop') from exc
@@ -114,24 +129,54 @@ def request_scan_stop(db: Session, scan_id: str):
     if status in {'started', 'running'}:
         send_stop_job_command(redis_conn, scan.rq_job_id)
         scan.status = 'stopping'
-        scan_service.add_scan_event(db, scan_id, 'scan.stop_requested', 'Stop requested for running RQ demo scan', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'stopping'})
+        scan_service.add_scan_event(
+            db,
+            scan_id,
+            'scan.stop_requested',
+            'Stop requested for running RQ demo scan',
+            {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'stopping'},
+        )
     elif status == 'finished':
         scan.status = 'completed'
         scan.progress_percent = 100
         scan.finished_at = scan.finished_at or datetime.utcnow()
-        scan_service.add_scan_event(db, scan_id, 'scan.rq_synchronized', 'RQ job already finished; scan synchronized', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'completed'})
+        scan_service.add_scan_event(
+            db,
+            scan_id,
+            'scan.rq_synchronized',
+            'RQ job already finished; scan synchronized',
+            {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'completed'},
+        )
     elif status in {'failed'}:
         scan.status = 'failed'
         scan.finished_at = scan.finished_at or datetime.utcnow()
-        scan_service.add_scan_event(db, scan_id, 'scan.rq_synchronized', 'RQ job failed; scan synchronized', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'failed'})
+        scan_service.add_scan_event(
+            db,
+            scan_id,
+            'scan.rq_synchronized',
+            'RQ job failed; scan synchronized',
+            {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'failed'},
+        )
     elif status in {'stopped', 'canceled', 'cancelled'}:
         scan.status = 'stopped'
         scan.stopped_at = scan.stopped_at or datetime.utcnow()
         scan.finished_at = scan.finished_at or scan.stopped_at
-        scan_service.add_scan_event(db, scan_id, 'scan.stopped', 'RQ job stopped/canceled; scan synchronized', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'stopped'})
+        scan_service.add_scan_event(
+            db,
+            scan_id,
+            'scan.stopped',
+            'RQ job stopped/canceled; scan synchronized',
+            {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'stopped'},
+        )
     else:
         scan.status = 'stopping'
-        scan_service.add_scan_event(db, scan_id, 'scan.stop_requested', 'Stop requested for RQ demo scan with unknown status', {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'stopping'})
+        scan_service.add_scan_event(
+            db,
+            scan_id,
+            'scan.stop_requested',
+            'Stop requested for RQ demo scan with unknown status',
+            {'rq_job_id': scan.rq_job_id, 'rq_status': status, 'status': 'stopping'},
+        )
     db.commit()
     db.refresh(scan)
     return scan

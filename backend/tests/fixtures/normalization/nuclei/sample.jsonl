@@ -1,0 +1,1 @@
+{"template-id":"cve-2024-demo","info":{"name":"Demo CVE","severity":"critical","tags":["cve","panel"],"reference":["https://example.test"]},"matched-at":"https://10.0.0.10","host":"https://10.0.0.10","ip":"10.0.0.10","port":"443","scheme":"https"}

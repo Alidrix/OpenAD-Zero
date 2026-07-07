@@ -1,0 +1,21 @@
+{
+  "domain": "corp.local",
+  "objects": [
+    {
+      "object_id": "S-1-5-21-1000",
+      "object_type": "user",
+      "name": "alice",
+      "sam_account_name": "alice",
+      "distinguished_name": "CN=alice,CN=Users,DC=corp,DC=local",
+      "domain": "corp.local",
+      "enabled": true
+    }
+  ],
+  "credential_risks": [
+    {
+      "risk_type": "weak_password_policy",
+      "domain": "corp.local",
+      "risk_level": "high"
+    }
+  ]
+}

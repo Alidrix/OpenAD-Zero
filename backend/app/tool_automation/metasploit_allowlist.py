@@ -1,14 +1,25 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 import yaml
 
 PATH = Path(__file__).with_name('metasploit_allowlist.yml')
+
 
 def load_metasploit_allowlist(path: Path = PATH) -> dict[str, dict]:
     raw = yaml.safe_load(path.read_text()) or {}
     return {m['id']: m for m in raw.get('modules', [])}
 
-def validate_metasploit_module(module_id: str, *, options: dict[str, object] | None = None, payload: str | None = None, final_confirmation: bool = False, check_status: str | None = None) -> tuple[bool, str]:
+
+def validate_metasploit_module(
+    module_id: str,
+    *,
+    options: dict[str, object] | None = None,
+    payload: str | None = None,
+    final_confirmation: bool = False,
+    check_status: str | None = None,
+) -> tuple[bool, str]:
     item = load_metasploit_allowlist().get(module_id)
     if not item:
         return False, 'Metasploit module is not allowlisted.'

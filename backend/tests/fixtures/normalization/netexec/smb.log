@@ -1,0 +1,3 @@
+SMB 10.0.0.10 445 DC01 [*] Windows Server (domain: EXAMPLE) (signing:False)
+SMB 10.0.0.10 445 DC01 [+] NULL session possible
+SMB 10.0.0.10 445 DC01 Guest access; Share READ

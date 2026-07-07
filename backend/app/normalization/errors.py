@@ -1,0 +1,2 @@
+class NormalizationError(Exception):
+    pass
