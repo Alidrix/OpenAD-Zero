@@ -125,3 +125,7 @@ OpenAD-Zero now centralizes validation for network values, input files, output f
 ## Prompt 10 readiness note
 
 Approved action execution is available for the safe Prompt 10 template allowlist through RQ with artifacts under EVIDENCE_DIR, hash/scope revalidation, and post-run recompute. High-risk templates and broad cancel remain deferred.
+
+## Prompt 11 Windows/AD tool catalog update
+
+OpenAD-Zero now has a central Windows/AD tool catalogue grouped by family, risk, execution mode, parser/artifact expectations, and `supported_for_run` status. Decision rules normalize recommendations through the catalogue, approval preparation refuses manual-only/blocked templates, and approved-action run preparation remains limited to the existing Prompt 10 supported templates. The Attack Control Center includes a read-only Tool Catalog / Tool Readiness panel; it contains no run buttons.

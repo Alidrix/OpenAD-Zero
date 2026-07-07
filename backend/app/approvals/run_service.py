@@ -21,16 +21,10 @@ from app.db.models import ApprovedActionRun, OperatorApproval, PentestAction, Sc
 from app.queue.connection import get_action_queue
 from app.services.scan_service import add_scan_event
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
+from app.tool_catalog.registry import SUPPORTED_RUN_TEMPLATE_IDS, get_template, normalize_template_id
+from app.tool_catalog.risk_policy import classify_execution_allowed
 
-SUPPORTED_EXECUTABLE_TEMPLATES = {
-    'nmap_safe_discovery',
-    'netexec_smb_fingerprint',
-    'netexec_smb_signing_check',
-    'netexec_smb_null_session_check',
-    'netexec_smb_null_session_shares',
-    'nuclei_safe_templates',
-    'nuclei_web_exposure_scan',
-}
+SUPPORTED_EXECUTABLE_TEMPLATES = SUPPORTED_RUN_TEMPLATE_IDS
 RUN_STATUSES = {'queued', 'running', 'completed', 'failed', 'timeout', 'cancelled', 'blocked'}
 
 
@@ -66,15 +60,7 @@ def _record_run_event(db: Session, ctx: ApprovedActionRunContext, event_type: st
 
 
 def _normalize_template_id(action: PentestAction) -> str:
-    aliases = {
-        'smb_fingerprint': 'netexec_smb_fingerprint',
-        'smb_signing_check': 'netexec_smb_signing_check',
-        'smb_null_session_check': 'netexec_smb_null_session_check',
-        'smb_null_session_shares': 'netexec_smb_null_session_shares',
-        'safe_templates': 'nuclei_safe_templates',
-        'web_exposure_scan': 'nuclei_web_exposure_scan',
-    }
-    return aliases.get(action.template_id, action.template_id)
+    return normalize_template_id(action.tool_id, action.template_id)
 
 
 def _render_arg(arg: str, values: dict[str, Any]) -> str:
@@ -96,8 +82,12 @@ def build_run_context(db: Session, approval_id: str, *, artifact_dir: str | None
     template = COMMAND_TEMPLATE_DEFINITIONS.get(template_id)
     if template is None:
         raise ApprovalError('Template not found', 501)
-    if template_id not in SUPPORTED_EXECUTABLE_TEMPLATES:
-        raise ApprovalError('Template not executable yet', 501)
+    meta = get_template(template_id)
+    if meta is None:
+        raise ApprovalError('Template not found in tool catalog', 501)
+    allowed, status_code, reason = classify_execution_allowed(meta.execution_mode, meta.supported_for_run)
+    if not allowed:
+        raise ApprovalError(reason, status_code)
     scope = _validated_scope_for(scan, action)
     try:
         resolved = validate_action_parameters(

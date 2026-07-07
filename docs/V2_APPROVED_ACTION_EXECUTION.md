@@ -51,3 +51,7 @@ The backend records events such as `approval.run_requested`, `approval.run_queue
 ## Limits
 
 Cancel remains limited to existing scan/job stop capabilities; a dedicated approval cancel API is deferred. Prompt 10 intentionally does not activate all tools or high-risk execution templates.
+
+## Prompt 11 Windows/AD tool catalog update
+
+OpenAD-Zero now has a central Windows/AD tool catalogue grouped by family, risk, execution mode, parser/artifact expectations, and `supported_for_run` status. Decision rules normalize recommendations through the catalogue, approval preparation refuses manual-only/blocked templates, and approved-action run preparation remains limited to the existing Prompt 10 supported templates. The Attack Control Center includes a read-only Tool Catalog / Tool Readiness panel; it contains no run buttons.

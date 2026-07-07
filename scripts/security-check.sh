@@ -90,4 +90,25 @@ rg -F -q 'APP_UID="${APP_UID:-10001}"' backend/scripts/docker-entrypoint.sh \
 rg -F -q 'APP_GID="${APP_GID:-10001}"' backend/scripts/docker-entrypoint.sh \
   || fail "docker-entrypoint.sh does not default APP_GID to 10001"
 
+
+if PYTHONPATH=backend python - <<'PYCATALOG'
+from app.tool_catalog.registry import list_template_metadata
+bad=[]
+danger={'mimikatz','lsass','secretsdump','psexec','wmiexec','smbexec','atexec','password spray','bruteforce','brute force','xp_cmdshell','pass-the-hash'}
+for template in list_template_metadata():
+    if template.execution_mode in {'manual_only','blocked'} and template.supported_for_run:
+        bad.append(f"{template.template_id}:{template.execution_mode}:supported")
+    argv_text = ' '.join(template.argv).casefold().replace('--no-bruteforce', '')
+    if template.supported_for_run and any(word in argv_text for word in danger):
+        bad.append(f"{template.template_id}:dangerous-keyword")
+if bad:
+    print('\n'.join(bad))
+    raise SystemExit(1)
+PYCATALOG
+then
+  :
+else
+  fail "Unsafe executable tool catalog template found"
+fi
+
 echo "[OK] security-check"
