@@ -47,3 +47,5 @@ Operator approvals can be prepared, approved, rejected, expired, and marked cons
 ## Prompt 05 remaining execution boundary
 
 Strict parameter validation is in place for previews and approvals. RQ execution is still intentionally deferred; Prompt 06 should consume approved approvals atomically and reuse the same validator at job start.
+
+- Prompt 07 does not execute recommended actions; GUI approval and RQ execution are intentionally deferred to later prompts.

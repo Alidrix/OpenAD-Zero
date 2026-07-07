@@ -30,6 +30,15 @@ if rg -n "subprocess\.(run|Popen|call|check_call|check_output)\(\s*f?['\"]" back
   fail "String subprocess command found in backend/app"
 fi
 
+
+if rg -n "import subprocess|from subprocess" backend/app/pentest/rules; then
+  fail "subprocess import found in pentest decision rules"
+fi
+
+if rg -n "command|argv|shell=True|raw_command" backend/app/pentest/rules --glob '!**/__pycache__/**'; then
+  fail "Raw command material found in pentest decision rules"
+fi
+
 if python - <<'PYCHECK'
 from pathlib import Path
 text = Path("backend/app/approvals/schemas.py").read_text()
