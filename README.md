@@ -89,3 +89,18 @@ OpenAD-Zero includes an experimental parsing-only V2 normalized data layer under
 ### Experimental V2 safe template recommendations
 
 OpenAD-Zero includes an experimental preview-only V2 recommendation layer under `/api/v2/recommendations/*` and `/v2-recommendations`. It loads a metadata-only catalog from `command-catalog/v2`, derives recommendations from persisted scan signals, and rebuilds argv previews on the backend from allowlisted templates. This slice does not execute NetExec, Nmap, Impacket, BloodHound, Kerbrute, Responder, shell commands, RQ jobs, password spraying, dumping, or lateral movement.
+
+## V2 final QA runbook
+
+For a full local V2 validation, see [`docs/V2_FINAL_QA_RUNBOOK.md`](docs/V2_FINAL_QA_RUNBOOK.md). Quick commands:
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+make migrate
+make smoke
+./scripts/v2-api-smoke.sh
+./scripts/local-e2e-qa.sh
+```
+
+Never commit `.env` or API tokens. The V2 approval/run workflow remains limited to supported safe templates; high-risk and Metasploit execution stays locked.
