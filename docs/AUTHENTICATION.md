@@ -55,3 +55,8 @@ These endpoints remain public:
 ## Protected endpoints
 
 When auth is enabled, sensitive mission, evidence, report, operations, capabilities, jobs/events, tool automation, V2 scans, V2 parsing, V2 recommendations, V2 dashboard, V2 pentest orchestrator, and detailed health endpoints require a valid bearer token. Detailed health endpoints include `/api/health/db`, `/api/health/redis`, `/api/health/tools`, and `/api/health/worker`.
+
+
+## Prod-like guardrails
+
+Set `OPENADZERO_ENV=prod-like` and `OPENADZERO_AUTH_ENABLED=true`. Provide `OPENADZERO_API_TOKEN` or preferably `OPENADZERO_API_TOKEN_FILE=/run/secrets/openadzero_api_token`. The backend refuses empty tokens and weak placeholders in prod-like mode. `/api/auth/status` reports only booleans and never returns the token value.

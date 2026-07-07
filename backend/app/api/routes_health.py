@@ -6,6 +6,7 @@ from sqlalchemy import text
 from app.core.auth import require_api_token
 from app.core.config import get_settings
 from app.core.version import get_app_version
+from app.db.schema_health import check_schema
 from app.db.session import engine
 from app.queue.connection import get_redis_connection
 
@@ -57,6 +58,19 @@ def health_tools():
         'nuclei': tool_status('nuclei'),
         'bloodhound': {'enabled': settings.bloodhound_enabled, 'configured': bool(settings.bloodhound_api_token)},
     }
+
+
+@router.get('/health/schema', dependencies=[Depends(require_api_token)])
+def health_schema():
+    try:
+        return check_schema(engine)
+    except Exception:
+        return {
+            'ok': False,
+            'missing_tables': [],
+            'missing_columns': {},
+            'migration_hint': 'Database unavailable; run migrations after the database is reachable.',
+        }
 
 
 @router.get('/health/worker', dependencies=[Depends(require_api_token)])

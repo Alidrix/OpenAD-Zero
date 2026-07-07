@@ -13,8 +13,17 @@ branch_labels = None
 depends_on = None
 
 
+def _tables() -> set[str]:
+    return set(sa.inspect(op.get_bind()).get_table_names())
+
+def _indexes(table: str) -> set[str]:
+    if table not in _tables():
+        return set()
+    return {i['name'] for i in sa.inspect(op.get_bind()).get_indexes(table)}
+
 def upgrade() -> None:
-    op.create_table(
+    if 'approved_action_runs' not in _tables():
+        op.create_table(
         'approved_action_runs',
         sa.Column('id', sa.String(), nullable=False),
         sa.Column('approval_id', sa.String(), nullable=False),
@@ -45,8 +54,10 @@ def upgrade() -> None:
         'ix_approved_action_runs_approval_id':['approval_id'], 'ix_approved_action_runs_scan_id':['scan_id'],
         'ix_approved_action_runs_action_id':['action_id'], 'ix_approved_action_runs_status':['status'],
         'ix_approved_action_runs_rq_job_id':['rq_job_id']}.items():
-        op.create_index(name, 'approved_action_runs', cols)
+        if name not in _indexes('approved_action_runs'):
+            op.create_index(name, 'approved_action_runs', cols)
 
 
 def downgrade() -> None:
-    op.drop_table('approved_action_runs')
+    if 'approved_action_runs' in _tables():
+        op.drop_table('approved_action_runs')
