@@ -18,18 +18,11 @@ from app.core.parameter_validation import (
 from app.db.models import OperatorApproval, PentestAction, Scan
 from app.services.scan_service import add_scan_event
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
-from app.tool_automation.policy import load_tool_catalog
+from app.tool_catalog.registry import get_template, normalize_template_id
 
 SECRET_KEYS = {'password', 'pass', 'secret', 'token', 'key', 'hash', 'ntlm_hash', 'credential', 'api_key'}
 BLOCKING_STATUSES = {'queued', 'running', 'completed', 'failed', 'rejected'}
-TEMPLATE_ALIASES = {
-    ('netexec', 'smb_fingerprint'): ('netexec_smb_fingerprint', 'netexec_smb_fingerprint'),
-    ('netexec', 'smb_signing_check'): ('netexec_smb_signing_check', 'netexec_smb_signing_check'),
-    ('netexec', 'smb_null_session_check'): ('netexec_smb_null_session_check', 'netexec_smb_null_session_check'),
-    ('nuclei', 'safe_templates'): ('nuclei_safe_templates', 'nuclei_safe_templates'),
-    ('kerberos', 'kerberos_user_enumeration'): ('kerbrute', 'kerbrute_userenum'),
-    ('bloodhound', 'path_analysis'): ('bloodhound_pathfinding', 'bloodhound_pathfinding'),
-}
+TEMPLATE_ALIASES: dict[tuple[str, str], tuple[str, str]] = {}
 
 
 def _is_secret_key(key: str) -> bool:
@@ -52,18 +45,14 @@ def _canonical(value: Any) -> str:
 
 
 def _resolve_catalog(action: PentestAction):
-    tools = load_tool_catalog()
-    tool_id = action.tool_id
-    template_id = action.template_id
-    if tool_id in tools and template_id in set(tools[tool_id].get('templates') or []):
-        resolved_tool_id, resolved_template_id = tool_id, template_id
-    else:
-        resolved_tool_id, resolved_template_id = TEMPLATE_ALIASES.get((tool_id, template_id), (tool_id, template_id))
-    tool = tools.get(resolved_tool_id)
+    resolved_template_id = normalize_template_id(action.tool_id, action.template_id)
+    template_meta = get_template(resolved_template_id)
     template = COMMAND_TEMPLATE_DEFINITIONS.get(resolved_template_id)
-    if tool is None or template is None or resolved_template_id not in set(tool.get('templates') or []):
+    if template_meta is None or template is None:
         raise ApprovalError('Action tool/template is not allowlisted', 400)
-    return tool, template
+    if template_meta.execution_mode in {'manual_only', 'blocked'}:
+        raise ApprovalError(f'Template is {template_meta.execution_mode} and cannot be approved', 403)
+    return {'id': template_meta.tool_id, 'templates': [template_meta.template_id]}, template
 
 
 def _render_arg(arg: str, values: dict[str, Any]) -> str:
@@ -220,8 +209,15 @@ def prepare_approval(db: Session, scan_id: str, action_id: str, operator_note: s
     action = db.query(PentestAction).filter_by(id=action_id).first()
     if action is None or action.scan_id != scan_id:
         raise ApprovalNotFound('Pentest action not found')
-    if action.execution_mode == 'manual_only':
-        raise ApprovalError('Manual-only actions cannot be approved', 400)
+    resolved_template_id = normalize_template_id(action.tool_id, action.template_id)
+    template_meta = get_template(resolved_template_id)
+    if template_meta is None:
+        raise ApprovalError('Template not found in tool catalog', 400)
+    if action.execution_mode in {'manual_only', 'blocked'} or template_meta.execution_mode in {
+        'manual_only',
+        'blocked',
+    }:
+        raise ApprovalError('Manual-only or blocked actions cannot be approved', 400)
     if action.status in BLOCKING_STATUSES:
         raise ApprovalConflict(f'Action status {action.status} cannot be prepared')
     level = approval_level_for(action.execution_mode)

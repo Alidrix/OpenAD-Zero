@@ -19,6 +19,7 @@ from app.api.routes_v2_pentest import router as v2_pentest_router
 from app.api.routes_v2_recommendations import router as v2_recommendations_router
 from app.api.routes_v2_scan_events import router as v2_scan_events_router
 from app.api.routes_v2_scans import router as v2_scans_router
+from app.api.routes_v2_tool_catalog import router as v2_tool_catalog_router
 from app.core.auth import require_api_token, validate_auth_configuration
 from app.core.config import get_settings
 from app.db.init_db import init_db
@@ -55,5 +56,6 @@ app.include_router(v2_parsing_router, prefix='/api', dependencies=[Depends(requi
 app.include_router(v2_pentest_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(v2_approvals_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(v2_dashboard_router, prefix='/api', dependencies=[Depends(require_api_token)])
+app.include_router(v2_tool_catalog_router, prefix='/api', dependencies=[Depends(require_api_token)])
 app.include_router(events_router)
 app.include_router(v2_scan_events_router)

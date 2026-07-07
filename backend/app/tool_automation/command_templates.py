@@ -710,6 +710,464 @@ def _infer_metadata() -> None:
             'allow_hostnames',
             any(p in params for p in {'host', 'hostname', 'fqdn', 'dc_host', 'domain_controller'}),
         )
+        object.__setattr__(template, 'parser_id', template.parser)
+        object.__setattr__(template, 'artifact_type', template.output_artifact_type)
+
+    family_map = {
+        'nmap_safe_discovery': 'network_discovery',
+        'nmap_service_fingerprint_limited': 'service_fingerprinting',
+        'nuclei_safe_templates': 'web_surface_review',
+        'nuclei_web_exposure_scan': 'web_surface_review',
+        'nuclei_cves_safe_review': 'vulnerability_analysis',
+        'nuclei_misconfig_review': 'web_surface_review',
+        'nuclei_default_credentials_check_preview': 'web_surface_review',
+        'enum4linux_ng_basic': 'smb_enumeration',
+        'bloodhound_sharphound_upload': 'bloodhound_analysis',
+        'bloodhound_import_existing_zip': 'bloodhound_analysis',
+        'bloodhound_explorer': 'bloodhound_analysis',
+        'bloodhound_pathfinding': 'bloodhound_analysis',
+    }
+    for tid, template in COMMAND_TEMPLATE_DEFINITIONS.items():
+        family = family_map.get(tid)
+        if family is None:
+            if tid.startswith('netexec_smb'):
+                family = 'smb_enumeration'
+            elif tid.startswith(('ldap_', 'bloodyad_')):
+                family = 'ldap_ad_enumeration'
+            elif tid.startswith(('kerberos_', 'kerbrute_', 'impacket_getnpusers', 'impacket_getuserspns')):
+                family = 'kerberos_review'
+            elif tid.startswith(('adcs_',)):
+                family = 'adcs_review'
+            elif tid.startswith(('bloodhound_',)):
+                family = 'bloodhound_analysis'
+            elif tid.startswith(('winrm_', 'wmi_')):
+                family = 'remote_management_review'
+            elif tid.startswith('rdp_'):
+                family = 'rdp_review'
+            elif tid.startswith('mssql_'):
+                family = 'mssql_review'
+            elif tid.startswith(
+                ('credential_', 'password_policy', 'secrets_', 'gmsa_', 'smb_anonymous', 'kerberos_roastability')
+            ):
+                family = 'credential_exposure_review'
+            elif tid.startswith(('coercer_', 'responder_')):
+                family = 'coercion_capture_review'
+            elif tid.startswith('impacket_'):
+                family = 'smb_enumeration'
+            elif tid.startswith(('generate_', 'prepare_', 'consolidate_')):
+                family = 'evidence_reporting'
+            elif tid.startswith('metasploit_'):
+                family = 'vulnerability_analysis'
+            else:
+                family = 'manual_only_sensitive'
+        supported = tid in {
+            'nmap_safe_discovery',
+            'netexec_smb_fingerprint',
+            'netexec_smb_signing_check',
+            'netexec_smb_null_session_check',
+            'netexec_smb_null_session_shares',
+            'nuclei_safe_templates',
+            'nuclei_web_exposure_scan',
+        }
+        mode = (
+            'approval_required'
+            if supported
+            else ('reinforced_approval_required' if template.risk_level == 'high' else 'approval_required')
+        )
+        if family == 'evidence_reporting' and template.risk_level == 'low':
+            mode = 'safe_auto'
+        if family == 'manual_only_sensitive' or tid in {
+            'kerbrute_passwordspray_safe_preview',
+            'responder_lab_capture',
+            'metasploit_controlled_exploit',
+        }:
+            mode = 'manual_only'
+        object.__setattr__(template, 'family', family)
+        object.__setattr__(template, 'execution_mode', mode)
+        object.__setattr__(template, 'supported_for_run', supported)
+        object.__setattr__(
+            template, 'safety_notes', ['Backend allowlisted argv only; no raw frontend command material.']
+        )
+        object.__setattr__(
+            template,
+            'blocked_reason',
+            None if supported else 'Cataloged for preview/planning only; not supported by controlled runner.',
+        )
+
+
+def _add_catalog_only_templates() -> None:
+    def add(
+        tid,
+        tool,
+        family,
+        name,
+        desc,
+        risk='medium',
+        mode='approval_required',
+        parser='catalog_review',
+        artifact='review',
+        argv=None,
+        req=None,
+    ):
+        if tid in COMMAND_TEMPLATE_DEFINITIONS:
+            return
+        tmpl = CommandTemplate(
+            tid, tool, name, desc, argv or ['catalog-preview', tid], req or [], [], parser, risk, artifact
+        )
+        object.__setattr__(tmpl, 'family', family)
+        object.__setattr__(tmpl, 'execution_mode', mode)
+        object.__setattr__(tmpl, 'supported_for_run', False)
+        object.__setattr__(tmpl, 'parser_id', parser)
+        object.__setattr__(tmpl, 'artifact_type', artifact)
+        object.__setattr__(tmpl, 'safety_notes', ['Catalog metadata only; not executable in Prompt 11.'])
+        object.__setattr__(
+            tmpl, 'blocked_reason', 'Preview/manual/planned template is not executable by the controlled runner.'
+        )
+        COMMAND_TEMPLATE_DEFINITIONS[tid] = tmpl
+
+    entries = [
+        (
+            'nmap_service_fingerprint_limited',
+            'nmap',
+            'service_fingerprinting',
+            'Nmap limited service fingerprint',
+            'Limited service fingerprinting; no -A or arbitrary NSE.',
+            'medium',
+            'approval_required',
+        ),
+        (
+            'ldap_basic_domain_info',
+            'ldapsearch',
+            'ldap_ad_enumeration',
+            'LDAP basic domain info',
+            'Read-only domain naming/context review.',
+        ),
+        (
+            'ldap_domain_users_preview',
+            'ldapsearch',
+            'ldap_ad_enumeration',
+            'LDAP users preview',
+            'Preview bounded user enumeration.',
+        ),
+        (
+            'ldap_domain_groups_preview',
+            'ldapsearch',
+            'ldap_ad_enumeration',
+            'LDAP groups preview',
+            'Preview bounded group enumeration.',
+        ),
+        (
+            'ldap_domain_computers_preview',
+            'ldapsearch',
+            'ldap_ad_enumeration',
+            'LDAP computers preview',
+            'Preview bounded computer enumeration.',
+        ),
+        (
+            'ldap_signing_review',
+            'ldapsearch',
+            'ldap_ad_enumeration',
+            'LDAP signing review',
+            'Review LDAP signing/channel binding posture.',
+        ),
+        (
+            'ldap_machine_account_quota_review',
+            'ldapsearch',
+            'ldap_ad_enumeration',
+            'Machine account quota review',
+            'Review MachineAccountQuota from imported/read-only data.',
+        ),
+        ('ldap_trusts_review', 'ldapsearch', 'ldap_ad_enumeration', 'LDAP trusts review', 'Review trusts read-only.'),
+        (
+            'kerberos_realm_discovery',
+            'kerbrute',
+            'kerberos_review',
+            'Kerberos realm discovery',
+            'Realm/DC discovery review.',
+            'medium',
+            'approval_required',
+        ),
+        (
+            'kerbrute_userenum_preview',
+            'kerbrute',
+            'kerberos_review',
+            'Kerbrute userenum preview',
+            'Preview-only controlled Kerberos user enumeration.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        (
+            'kerberos_asrep_exposure_review',
+            'reporting',
+            'kerberos_review',
+            'ASREP exposure review',
+            'Review imported ASREP exposure data.',
+            'medium',
+            'approval_required',
+        ),
+        (
+            'kerberos_spn_exposure_review',
+            'reporting',
+            'kerberos_review',
+            'SPN exposure review',
+            'Review imported SPN exposure data.',
+            'medium',
+            'approval_required',
+        ),
+        (
+            'adcs_http_endpoint_review',
+            'certipy',
+            'adcs_review',
+            'ADCS HTTP endpoint review',
+            'Review ADCS HTTP endpoints.',
+        ),
+        (
+            'adcs_template_inventory_review',
+            'certipy',
+            'adcs_review',
+            'ADCS template inventory',
+            'Read-only template inventory review.',
+        ),
+        (
+            'adcs_esc_path_review_preview',
+            'certipy',
+            'adcs_review',
+            'ADCS ESC path preview',
+            'Preview ESC-path review without exploitation.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        (
+            'bloodhound_import_existing_zip',
+            'bloodhound',
+            'bloodhound_analysis',
+            'BloodHound import existing ZIP',
+            'Import existing SharpHound archive metadata only.',
+            'medium',
+            'approval_required',
+        ),
+        (
+            'bloodhound_pathfinding_review',
+            'bloodhound',
+            'bloodhound_analysis',
+            'BloodHound pathfinding review',
+            'Analyze existing graph paths.',
+        ),
+        (
+            'bloodhound_high_value_targets_review',
+            'bloodhound',
+            'bloodhound_analysis',
+            'BloodHound high value targets',
+            'Analyze high-value targets from imported data.',
+        ),
+        (
+            'bloodhound_dangerous_acl_review',
+            'bloodhound',
+            'bloodhound_analysis',
+            'BloodHound dangerous ACL review',
+            'Analyze dangerous ACLs from imported data.',
+        ),
+        (
+            'bloodhound_kerberoastable_from_imported_data',
+            'bloodhound',
+            'bloodhound_analysis',
+            'Kerberoastable from imported data',
+            'Analyze imported Kerberoastable flags.',
+        ),
+        (
+            'bloodhound_asreproastable_from_imported_data',
+            'bloodhound',
+            'bloodhound_analysis',
+            'ASREPRoastable from imported data',
+            'Analyze imported ASREPRoastable flags.',
+        ),
+        (
+            'nuclei_cves_safe_review',
+            'nuclei',
+            'vulnerability_analysis',
+            'Nuclei CVEs safe review',
+            'Curated non-aggressive CVE review.',
+            'medium',
+            'approval_required',
+        ),
+        (
+            'nuclei_misconfig_review',
+            'nuclei',
+            'web_surface_review',
+            'Nuclei misconfiguration review',
+            'Curated misconfiguration review.',
+            'medium',
+            'approval_required',
+        ),
+        (
+            'nuclei_default_credentials_check_preview',
+            'nuclei',
+            'web_surface_review',
+            'Default credentials check preview',
+            'Preview only; active default-credential checks are reinforced/blocked.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        (
+            'winrm_exposure_review',
+            'netexec_winrm',
+            'remote_management_review',
+            'WinRM exposure review',
+            'Review WinRM exposure.',
+        ),
+        (
+            'winrm_auth_surface_review',
+            'netexec_winrm',
+            'remote_management_review',
+            'WinRM auth surface',
+            'Review WinRM auth surface.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        ('rdp_exposure_review', 'nmap', 'rdp_review', 'RDP exposure review', 'Review RDP exposure.'),
+        ('rdp_nla_tls_review', 'nmap', 'rdp_review', 'RDP NLA/TLS review', 'Review RDP NLA/TLS posture.'),
+        (
+            'wmi_exposure_review',
+            'netexec_wmi',
+            'remote_management_review',
+            'WMI exposure review',
+            'Review WMI exposure.',
+        ),
+        ('mssql_exposure_review', 'netexec_mssql', 'mssql_review', 'MSSQL exposure review', 'Review MSSQL exposure.'),
+        (
+            'mssql_auth_surface_review',
+            'netexec_mssql',
+            'mssql_review',
+            'MSSQL auth surface',
+            'Review MSSQL auth surface.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        (
+            'mssql_linked_server_review_preview',
+            'netexec_mssql',
+            'mssql_review',
+            'MSSQL linked server preview',
+            'Preview linked server review.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        (
+            'credential_exposure_summary',
+            'reporting',
+            'credential_exposure_review',
+            'Credential exposure summary',
+            'Summarize credential exposure evidence.',
+            'low',
+            'safe_auto',
+        ),
+        (
+            'smb_anonymous_exposure_review',
+            'reporting',
+            'credential_exposure_review',
+            'SMB anonymous exposure review',
+            'Summarize SMB anonymous exposure.',
+        ),
+        (
+            'kerberos_roastability_summary',
+            'reporting',
+            'credential_exposure_review',
+            'Kerberos roastability summary',
+            'Summarize roastability from imported data.',
+        ),
+        (
+            'gmsa_exposure_review_from_imported_data',
+            'reporting',
+            'credential_exposure_review',
+            'gMSA exposure review',
+            'Summarize imported gMSA exposure data.',
+        ),
+        (
+            'password_policy_review',
+            'reporting',
+            'credential_exposure_review',
+            'Password policy review',
+            'Summarize password policy evidence.',
+        ),
+        (
+            'secrets_evidence_review',
+            'reporting',
+            'credential_exposure_review',
+            'Secrets evidence review',
+            'Review already collected evidence; no dumping.',
+            'high',
+            'manual_only',
+        ),
+        (
+            'coercer_methods_preview',
+            'coercer',
+            'coercion_capture_review',
+            'Coercer methods preview',
+            'Preview coercion methods.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        (
+            'coercer_single_target_check_preview',
+            'coercer',
+            'coercion_capture_review',
+            'Coercer single target preview',
+            'Preview a single-target coercion check only.',
+            'high',
+            'reinforced_approval_required',
+        ),
+        (
+            'responder_analyze_mode_preview',
+            'responder',
+            'coercion_capture_review',
+            'Responder analyze mode preview',
+            'Preview analyze-only mode.',
+            'high',
+            'reinforced_approval_required',
+        ),
+    ]
+    for e in entries:
+        add(*e)
+    for tid in [
+        'impacket_lookupsid_preview',
+        'impacket_rpcdump_preview',
+        'impacket_samrdump_preview',
+        'impacket_smbclient_list_preview',
+        'impacket_getnpusers_preview',
+        'impacket_getuserspns_preview',
+    ]:
+        add(
+            tid,
+            'impacket',
+            'smb_enumeration',
+            tid.replace('_', ' ').title(),
+            'Sensitive Impacket read-oriented preview only.',
+            'high',
+            'reinforced_approval_required',
+        )
+    for tid in [
+        'mimikatz',
+        'lsass_dump',
+        'secretsdump',
+        'pass_the_hash',
+        'password_spray',
+        'bruteforce',
+        'lateral_movement_execution',
+        'persistence',
+        'trace_cleanup',
+    ]:
+        add(
+            tid,
+            tid,
+            'manual_only_sensitive',
+            tid.replace('_', ' ').title(),
+            'Explicitly non-executable sensitive workflow.',
+            'critical',
+            'manual_only',
+            'manual_only',
+            None,
+        )
 
 
 _infer_metadata()
+_add_catalog_only_templates()

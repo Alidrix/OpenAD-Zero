@@ -53,3 +53,7 @@ The Attack Control Center approval modal is now server-driven. It prepares appro
 ## Prompt 10 controlled approved execution
 
 The Action Queue and approval modal are connected to the backend run endpoint. Queued/running/completed actions disable repeated run clicks; the UI does not simulate execution state and relies on refreshed backend actions, approvals, and events.
+
+## Prompt 11 Windows/AD tool catalog update
+
+OpenAD-Zero now has a central Windows/AD tool catalogue grouped by family, risk, execution mode, parser/artifact expectations, and `supported_for_run` status. Decision rules normalize recommendations through the catalogue, approval preparation refuses manual-only/blocked templates, and approved-action run preparation remains limited to the existing Prompt 10 supported templates. The Attack Control Center includes a read-only Tool Catalog / Tool Readiness panel; it contains no run buttons.

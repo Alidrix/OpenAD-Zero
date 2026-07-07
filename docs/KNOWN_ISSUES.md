@@ -63,3 +63,7 @@ Prompt 09 adds the approval `/run` contract, but it intentionally returns `ready
 ## Prompt 10 remaining limits
 
 Only the initial safe approved-action template allowlist is executable. Unsupported approved templates return 501 without consuming the approval. Dedicated approval cancel is not yet implemented.
+
+## Prompt 11 Windows/AD tool catalog update
+
+OpenAD-Zero now has a central Windows/AD tool catalogue grouped by family, risk, execution mode, parser/artifact expectations, and `supported_for_run` status. Decision rules normalize recommendations through the catalogue, approval preparation refuses manual-only/blocked templates, and approved-action run preparation remains limited to the existing Prompt 10 supported templates. The Attack Control Center includes a read-only Tool Catalog / Tool Readiness panel; it contains no run buttons.
