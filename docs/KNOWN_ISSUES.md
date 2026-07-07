@@ -58,3 +58,8 @@ Strict parameter validation is in place for previews and approvals. RQ execution
 ## V2 approval execution deferred
 
 Prompt 09 adds the approval `/run` contract, but it intentionally returns `ready: false` and does not launch RQ execution. Prompt 10 must implement the runner, consumed transitions, and queued/running action updates.
+
+
+## Prompt 10 remaining limits
+
+Only the initial safe approved-action template allowlist is executable. Unsupported approved templates return 501 without consuming the approval. Dedicated approval cancel is not yet implemented.

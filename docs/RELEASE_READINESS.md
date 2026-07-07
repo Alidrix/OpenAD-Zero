@@ -120,3 +120,8 @@ The frontend never sends a raw command to execute. The backend always rebuilds a
 OpenAD-Zero now centralizes validation for network values, input files, output files, credentials, enums and free text. Tool previews, approvals and the future execution boundary use the same validator to avoid target-only scope bypasses.
 
 - Prompt 07 adds advanced pentest decision rules with priority, dedupe keys, and recommendation-only phase updates.
+
+
+## Prompt 10 readiness note
+
+Approved action execution is available for the safe Prompt 10 template allowlist through RQ with artifacts under EVIDENCE_DIR, hash/scope revalidation, and post-run recompute. High-risk templates and broad cancel remain deferred.

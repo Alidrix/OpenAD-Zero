@@ -30,6 +30,14 @@
   requires_terms_acceptance: false
   templates: [netexec_smb_null_session_check]
   notes: "Read-only SMB null-session checks after preview."
+- id: netexec_smb_null_session_shares
+  name: NetExec SMB null session shares
+  integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [netexec_smb_null_session_shares]
+  notes: "Read-only SMB null-session share checks after preview."
 - id: nuclei_safe_templates
   name: Nuclei safe templates
   integration_status: assisted_safe
@@ -38,6 +46,14 @@
   requires_terms_acceptance: false
   templates: [nuclei_safe_templates]
   notes: "Safe template execution after preview."
+- id: nuclei_web_exposure_scan
+  name: Nuclei web exposure scan
+  integration_status: assisted_safe
+  risk_level: low
+  requires_human_approval: false
+  requires_terms_acceptance: false
+  templates: [nuclei_web_exposure_scan]
+  notes: "Safe web exposure template execution after preview."
 - id: enum4linux_ng_basic
   name: enum4linux-ng basic JSON quick
   integration_status: assisted_safe

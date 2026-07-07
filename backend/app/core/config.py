@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     openadzero_allow_unauthenticated_localhost: bool = True
     openadzero_auth_protect_docs: bool = False
     openadzero_approval_ttl_seconds: int = 900
+    openadzero_action_job_timeout_seconds: int = 900
+    openadzero_action_job_ttl_seconds: int = 300
+    openadzero_action_result_ttl_seconds: int = 86400
 
 
 @lru_cache

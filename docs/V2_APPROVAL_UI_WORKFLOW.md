@@ -35,3 +35,8 @@ The `/run` endpoint is contractual only in Prompt 09. It verifies the approval a
 ## Security guarantees
 
 The frontend never builds or submits raw commands, `argv`, `shell`, `raw_command`, `command_hash`, or `human_approved`. The backend computes the command hash from server-side state, returns only a masked preview, requires API authentication through the existing V2 router protection, validates scope-sensitive parameters, and persists only UI-safe approval events.
+
+
+## Prompt 10 Approve & Run update
+
+The Attack Control Center now enables **Approve & Run** for approved, unconsumed approvals. The UI calls `/api/v2/approvals/{approval_id}/run` without command, argv, shell, or hash fields and refreshes server state after the queued response. A `501` response is shown as “Template not executable yet”.

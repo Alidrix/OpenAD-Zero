@@ -229,6 +229,36 @@ class ParseDiagnostic(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class ApprovedActionRun(Base):
+    __tablename__ = 'approved_action_runs'
+    __table_args__ = (
+        Index('ix_approved_action_runs_approval_id', 'approval_id'),
+        Index('ix_approved_action_runs_scan_id', 'scan_id'),
+        Index('ix_approved_action_runs_action_id', 'action_id'),
+        Index('ix_approved_action_runs_status', 'status'),
+        Index('ix_approved_action_runs_rq_job_id', 'rq_job_id'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    approval_id: Mapped[str] = mapped_column(ForeignKey('operator_approvals.id'))
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    mission_id: Mapped[str | None] = mapped_column(ForeignKey('missions.id'), nullable=True)
+    action_id: Mapped[str] = mapped_column(ForeignKey('pentest_actions.id'))
+    tool_id: Mapped[str] = mapped_column(String(120))
+    template_id: Mapped[str] = mapped_column(String(160))
+    rq_job_id: Mapped[str] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(40), default='queued')
+    command_hash: Mapped[str] = mapped_column(String(64))
+    masked_command_json: Mapped[dict | None] = mapped_column(JSON)
+    stdout_path: Mapped[str | None] = mapped_column(Text)
+    stderr_path: Mapped[str | None] = mapped_column(Text)
+    artifact_dir: Mapped[str | None] = mapped_column(Text)
+    return_code: Mapped[int | None] = mapped_column(Integer)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    queued_at: Mapped[datetime | None] = mapped_column(DateTime)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 class Job(Base):
     __tablename__ = 'jobs'
     id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)

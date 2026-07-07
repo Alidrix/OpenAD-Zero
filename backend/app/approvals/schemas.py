@@ -71,6 +71,21 @@ class ApprovalSummaryRead(BaseModel):
     next_expiration_at: datetime | None = None
 
 
+class ApprovalRunRequest(StrictApprovalPayload):
+    operator: str = Field(default='local-operator', min_length=1, max_length=200)
+    operator_note: str | None = Field(default=None, max_length=2000)
+
+
+class ApprovalRunRead(BaseModel):
+    approval_id: str
+    action_id: str
+    scan_id: str
+    status: str
+    rq_job_id: str
+    job_id: str
+    message: str
+
+
 class ApprovalRunContractRead(BaseModel):
     ready: bool
     reason: str
