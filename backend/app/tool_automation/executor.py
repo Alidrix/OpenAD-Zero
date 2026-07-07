@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,6 +11,7 @@ from uuid import uuid4
 
 from app.core.parameter_validation import ParameterValidationError, validate_action_parameters
 from app.core.paths import get_evidence_root
+from app.core.process_runner import run_process
 from app.core.scope import is_target_in_validated_scope
 from app.tool_automation.command_templates import COMMAND_TEMPLATE_DEFINITIONS
 from app.tool_automation.parsers import parse_tool_output
@@ -177,17 +177,18 @@ def execute_tool_request(
     try:
         if not argv or not shutil.which(argv[0]):
             raise FileNotFoundError(argv[0] if argv else '')
-        completed = subprocess.run(
-            argv, shell=False, capture_output=True, text=True, timeout=timeout_seconds, cwd=str(job_dir), env=safe_env
+        result_run = run_process(
+            argv,
+            cwd=job_dir,
+            env=safe_env,
+            timeout_seconds=timeout_seconds,
+            stdout_path=job_dir / 'stdout.log',
+            stderr_path=job_dir / 'stderr.log',
         )
-        returncode = completed.returncode
-        stdout_lines = [redact_text(line) for line in completed.stdout.splitlines()]
-        stderr_lines = [redact_text(line) for line in completed.stderr.splitlines()]
-        status = 'success' if completed.returncode == 0 else 'failed'
-    except subprocess.TimeoutExpired as exc:
-        status = 'timeout'
-        stdout_lines = [redact_text(line) for line in (exc.stdout or '').splitlines()]
-        stderr_lines = [redact_text(line) for line in (exc.stderr or '').splitlines()]
+        returncode = result_run.return_code
+        stdout_lines = [redact_text(line) for line in result_run.stdout_tail.splitlines()]
+        stderr_lines = [redact_text(line) for line in result_run.stderr_tail.splitlines()]
+        status = 'success' if result_run.status == 'completed' else result_run.status
     except FileNotFoundError as exc:
         status = 'blocked'
         stderr_lines = [f'Missing binary: {exc.filename or argv[0]}']

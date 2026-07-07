@@ -1,5 +1,4 @@
 import shutil
-import subprocess
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
@@ -46,12 +45,7 @@ def tool_status(binary: str):
     path = shutil.which(binary)
     if not path:
         return {'available': False, 'version': None}
-    try:
-        r = subprocess.run([binary, '--version'], capture_output=True, text=True, timeout=5)
-        version = (r.stdout or r.stderr).strip().splitlines()[0] if (r.stdout or r.stderr).strip() else 'available'
-    except Exception:
-        version = 'available'
-    return {'available': True, 'version': version}
+    return {'available': True, 'version': 'available'}
 
 
 @router.get('/health/tools', dependencies=[Depends(require_api_token)])

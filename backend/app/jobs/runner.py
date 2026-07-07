@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import asyncio
 import shutil
 from pathlib import Path
 
+from app.core.config import get_settings
+from app.core.process_runner import run_process
 from app.core.security import ensure_allowed_tool
 from app.events.publisher import publish
 from app.events.schemas import MissionEvent
 
 
 class CommandResult:
-    def __init__(self, return_code: int, timed_out: bool = False):
+    def __init__(self, return_code: int | None, timed_out: bool = False, status: str = 'failed'):
         self.return_code = return_code
         self.timed_out = timed_out
+        self.status = status
 
 
 async def run_command(
@@ -35,38 +40,35 @@ async def run_command(
                 },
             )
         )
-        return CommandResult(127)
-    proc = await asyncio.create_subprocess_exec(
-        tool, *args, cwd=str(cwd), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        return CommandResult(127, False, 'failed')
+    await publish(
+        MissionEvent(type='process.started', mission_id=mission_id, payload={'job_id': job_id, 'tool_id': tool})
     )
-
-    async def pump(stream, path, prefix):
-        with path.open('w') as f:
-            while True:
-                line = await stream.readline()
-                if not line:
-                    break
-                text = line.decode(errors='replace').rstrip()
-                f.write(text + '\n')
-                f.flush()
-                await publish(
-                    MissionEvent(
-                        type='job.log', mission_id=mission_id, payload={'job_id': job_id, 'line': f'[{prefix}] {text}'}
-                    )
-                )
-
-    tasks = [
-        asyncio.create_task(pump(proc.stdout, stdout_path, tool)),
-        asyncio.create_task(pump(proc.stderr, stderr_path, tool)),
-    ]
-    try:
-        rc = await asyncio.wait_for(proc.wait(), timeout=timeout)
-    except TimeoutError:
-        proc.kill()
-        await proc.wait()
-        rc = -1
-        timed = True
-    else:
-        timed = False
-    await asyncio.gather(*tasks)
-    return CommandResult(rc, timed)
+    result = await asyncio.to_thread(
+        run_process,
+        [tool, *args],
+        cwd,
+        None,
+        timeout,
+        stdout_path,
+        stderr_path,
+        None,
+        get_settings().openadzero_process_max_log_bytes,
+    )
+    await publish(
+        MissionEvent(
+            type=f'process.{result.status}',
+            mission_id=mission_id,
+            payload={
+                'job_id': job_id,
+                'tool_id': tool,
+                'status': result.status,
+                'return_code': result.return_code,
+                'duration_seconds': result.duration_seconds,
+                'stdout_tail_redacted': result.stdout_tail,
+                'stderr_tail_redacted': result.stderr_tail,
+                'error_message_redacted': result.error_message,
+            },
+        )
+    )
+    return CommandResult(result.return_code, result.timed_out, result.status)

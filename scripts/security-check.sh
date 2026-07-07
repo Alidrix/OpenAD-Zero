@@ -48,6 +48,16 @@ if rg -n "subprocess\.(run|Popen|call|check_call|check_output)\(\s*f?['\"]" back
   fail "String subprocess command found in backend/app"
 fi
 
+
+# Prompt 13 subprocess hardening: only the shared runner may import subprocess in backend/app.
+if rg -n "^import subprocess|^from subprocess" backend/app --glob '!backend/app/core/process_runner.py' --glob '!backend/app/db/init_db.py'; then
+  fail "subprocess import found outside approved backend runner/init migration helper"
+fi
+
+if rg -n "subprocess\.(run|Popen|call|check_call|check_output)\(" backend/app --glob '!backend/app/core/process_runner.py' --glob '!backend/app/db/init_db.py'; then
+  fail "raw subprocess execution found outside approved backend runner/init migration helper"
+fi
+
 if rg -n "extractall\(|extract\(" backend/app/normalization backend/app/parsers; then
   fail "Unsafe ZIP extraction helper found in normalization/parsers"
 fi

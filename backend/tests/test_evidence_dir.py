@@ -60,10 +60,14 @@ def test_tool_run_storage_uses_evidence_dir(tmp_path, monkeypatch):
 
     argv = ['nmap', '-sV', '10.0.0.5']
     monkeypatch.setattr('app.tool_automation.executor.shutil.which', lambda _: '/bin/tool')
-    monkeypatch.setattr(
-        'app.tool_automation.executor.subprocess.run',
-        lambda argv, **kwargs: __import__('subprocess').CompletedProcess(argv, 0, stdout='', stderr=''),
-    )
+
+    class Result:
+        return_code = 0
+        status = 'completed'
+        stdout_tail = ''
+        stderr_tail = ''
+
+    monkeypatch.setattr('app.tool_automation.executor.run_process', lambda argv, **kwargs: Result())
 
     result = execute_tool_request(
         ToolExecutionRequest(

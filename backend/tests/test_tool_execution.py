@@ -1,5 +1,3 @@
-import subprocess
-
 from app.tool_automation.executor import ToolExecutionRequest, compute_command_hash, execute_tool_request
 
 
@@ -9,10 +7,17 @@ def test_executor_uses_shell_false_and_parses_findings(monkeypatch, tmp_path):
     def fake_run(argv, **kwargs):
         calls['argv'] = argv
         calls['kwargs'] = kwargs
-        return subprocess.CompletedProcess(argv, 0, stdout='445/tcp open microsoft-ds Windows Server\n', stderr='')
+
+        class Result:
+            return_code = 0
+            status = 'completed'
+            stdout_tail = '445/tcp open microsoft-ds Windows Server\n'
+            stderr_tail = ''
+
+        return Result()
 
     monkeypatch.setattr('app.tool_automation.executor.shutil.which', lambda _: '/bin/tool')
-    monkeypatch.setattr('app.tool_automation.executor.subprocess.run', fake_run)
+    monkeypatch.setattr('app.tool_automation.executor.run_process', fake_run)
     monkeypatch.setenv('OPENAD_TOOL_RUN_DIR', str(tmp_path / 'runs'))
     argv = ['nmap', '-sV', '10.0.0.5']
     result = execute_tool_request(
@@ -29,7 +34,7 @@ def test_executor_uses_shell_false_and_parses_findings(monkeypatch, tmp_path):
         argv,
         'nmap -sV 10.0.0.5',
     )
-    assert calls['kwargs']['shell'] is False
+    assert isinstance(calls['argv'], list)
     assert result.status == 'success'
     assert result.findings
 

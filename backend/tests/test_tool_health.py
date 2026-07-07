@@ -1,5 +1,3 @@
-import subprocess
-
 from app.tool_automation import tool_health
 
 
@@ -15,9 +13,16 @@ def test_tool_health_uses_runtime_env_for_netexec_and_nuclei(monkeypatch):
 
     def fake_run(argv, **kwargs):
         calls.append((argv, kwargs))
-        return subprocess.CompletedProcess(argv, 0, stdout='ok\n', stderr='')
 
-    monkeypatch.setattr(tool_health.subprocess, 'run', fake_run)
+        class Result:
+            stdout_tail = 'ok\n'
+            stderr_tail = ''
+            status = 'completed'
+            return_code = 0
+
+        return Result()
+
+    monkeypatch.setattr(tool_health, 'run_process', fake_run)
     result = tool_health.collect_tool_health()
 
     assert result['status'] == 'ok'
@@ -28,7 +33,7 @@ def test_tool_health_uses_runtime_env_for_netexec_and_nuclei(monkeypatch):
     assert nxc_call['env']['HOME'] != '/app'
     assert nuclei_call['env']['XDG_CONFIG_HOME'] == '/app/runtime/config'
     assert nuclei_call['env']['XDG_CONFIG_HOME'] != '/app/.config'
-    assert nxc_call['cwd'] == '/app/evidence'
+    assert str(nxc_call['cwd']) == '/app/evidence'
 
 
 def test_tool_health_reports_misconfigured_runtime(monkeypatch):
