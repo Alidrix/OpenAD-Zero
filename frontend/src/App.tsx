@@ -18,6 +18,7 @@ import {V2BrandPage} from './pages/V2BrandPage';
 import {V2DashboardPage} from './pages/V2DashboardPage';
 import {V2RecommendationsPage} from './pages/V2RecommendationsPage';
 import {V2ParsedDataPage} from './pages/V2ParsedDataPage';
+import {V2AttackControlCenter} from './pages/V2AttackControlCenter';
 import {WebTargetsPage} from './pages/WebTargetsPage';
 import {BloodHoundExplorerPage} from './pages/bloodhound/BloodHoundExplorerPage';
 import {BloodHoundPage} from './pages/bloodhound/BloodHoundPage';
@@ -44,6 +45,8 @@ export default function App() {
         <Route path="/capabilities" element={<CapabilitiesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/scans" element={<ScanLibrary />} />
+        <Route path="/v2-attack-control" element={<V2AttackControlCenter />} />
+        <Route path="/v2-attack-control/:scanId" element={<V2AttackControlCenter />} />
         <Route path="/v2-dashboard" element={<V2DashboardPage />} />
         <Route path="/v2-recommendations" element={<V2RecommendationsPage />} />
         <Route path="/v2-parsed-data" element={<V2ParsedDataPage />} />
