@@ -6,8 +6,12 @@ from app.tool_automation import tool_health
 def test_tool_health_uses_runtime_env_for_netexec_and_nuclei(monkeypatch):
     calls = []
     monkeypatch.setattr(tool_health, 'ensure_tool_runtime_dirs', lambda: None)
-    monkeypatch.setattr(tool_health, 'runtime_dir_status', lambda: {'home': {'path': '/app/runtime/home', 'writable': True}})
-    monkeypatch.setattr(tool_health.shutil, 'which', lambda binary: f'/usr/bin/{binary}' if binary in {'nxc', 'nuclei'} else None)
+    monkeypatch.setattr(
+        tool_health, 'runtime_dir_status', lambda: {'home': {'path': '/app/runtime/home', 'writable': True}}
+    )
+    monkeypatch.setattr(
+        tool_health.shutil, 'which', lambda binary: f'/usr/bin/{binary}' if binary in {'nxc', 'nuclei'} else None
+    )
 
     def fake_run(argv, **kwargs):
         calls.append((argv, kwargs))
@@ -29,6 +33,8 @@ def test_tool_health_uses_runtime_env_for_netexec_and_nuclei(monkeypatch):
 
 def test_tool_health_reports_misconfigured_runtime(monkeypatch):
     monkeypatch.setattr(tool_health, 'ensure_tool_runtime_dirs', lambda: None)
-    monkeypatch.setattr(tool_health, 'runtime_dir_status', lambda: {'tmp': {'path': '/app/runtime/tmp', 'writable': False}})
+    monkeypatch.setattr(
+        tool_health, 'runtime_dir_status', lambda: {'tmp': {'path': '/app/runtime/tmp', 'writable': False}}
+    )
     monkeypatch.setattr(tool_health.shutil, 'which', lambda _: None)
     assert tool_health.collect_tool_health()['status'] == 'misconfigured'

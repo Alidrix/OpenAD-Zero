@@ -51,3 +51,8 @@ Approval preparation refuses manual-only/blocked templates. Run preparation acce
 ## Deliberately forbidden
 
 No raw frontend command, `shell=True`, arbitrary NSE/template paths, remote Nuclei templates, SharpHound launch, coercion capture, relay, credential dumping, pass-the-hash, password spraying, brute force, command execution, persistence, trace cleanup, or exploit automation is enabled by this catalogue.
+
+
+## Prompt 12 normalization update
+
+V2 artifact outputs now flow through `backend/app/normalization/` where supported Nmap, Nuclei, NetExec SMB, BloodHound ZIP, LDAP, Kerberos, and ADCS artifacts are converted into common parsed tables. This remains parsing-only: no extra tool launch, no new RQ job creation, and no subprocess is introduced by normalization.

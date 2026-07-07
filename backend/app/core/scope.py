@@ -57,9 +57,9 @@ def is_target_in_validated_scope(target: str, scope: list[str]) -> bool:
         target_ip = ipaddress.ip_address(target)
         if target_ip.version != 4 or not target_ip.is_private:
             return False
-        validated = validate_scope(",".join(scope)).targets
+        validated = validate_scope(','.join(scope)).targets
         for item in validated:
-            if "/" in item:
+            if '/' in item:
                 if target_ip in ipaddress.ip_network(item, strict=False):
                     return True
             elif target_ip == ipaddress.ip_address(item):

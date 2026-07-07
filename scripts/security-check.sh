@@ -48,6 +48,10 @@ if rg -n "subprocess\.(run|Popen|call|check_call|check_output)\(\s*f?['\"]" back
   fail "String subprocess command found in backend/app"
 fi
 
+if rg -n "extractall\(|extract\(" backend/app/normalization backend/app/parsers; then
+  fail "Unsafe ZIP extraction helper found in normalization/parsers"
+fi
+
 
 if rg -n "import subprocess|from subprocess" backend/app/pentest/rules; then
   fail "subprocess import found in pentest decision rules"

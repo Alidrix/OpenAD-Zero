@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Iterable
+from collections.abc import Iterable
 
 from sqlalchemy.orm import Query, Session
 
@@ -17,9 +17,9 @@ from app.dashboard.schemas import (
     V2TopService,
 )
 from app.db.models import (
-    ParseDiagnostic,
     ParsedAsset,
     ParsedFinding,
+    ParseDiagnostic,
     ParsedService,
     ParsedSignal,
     Scan,
@@ -116,9 +116,7 @@ def _build_service_summary(services: list[ParsedService]) -> V2ServiceSummary:
     ]
     top_service_names = [
         V2TopService(service_name=service_name, count=count)
-        for service_name, count in Counter(
-            service.service_name or 'unknown' for service in services
-        ).most_common(10)
+        for service_name, count in Counter(service.service_name or 'unknown' for service in services).most_common(10)
     ]
 
     return V2ServiceSummary(top_ports=top_ports, top_service_names=top_service_names)
@@ -128,14 +126,10 @@ def _build_asset_counters(assets: list[ParsedAsset]) -> V2AssetCounters:
     windows_hosts = sum(
         1
         for asset in assets
-        if (asset.os_family or '').lower() == 'windows'
-        or 'windows' in (asset.os_name or '').lower()
+        if (asset.os_family or '').lower() == 'windows' or 'windows' in (asset.os_name or '').lower()
     )
     linux_hosts = sum(
-        1
-        for asset in assets
-        if (asset.os_family or '').lower() == 'linux'
-        or 'linux' in (asset.os_name or '').lower()
+        1 for asset in assets if (asset.os_family or '').lower() == 'linux' or 'linux' in (asset.os_name or '').lower()
     )
 
     return V2AssetCounters(
@@ -216,7 +210,6 @@ def build_v2_dashboard_summary(
         ad_surface=_build_ad_surface(services, signals),
         recent_scans=[V2RecentScan.model_validate(scan, from_attributes=True) for scan in recent_scans],
         recent_diagnostics=[
-            V2RecentDiagnostic.model_validate(diagnostic, from_attributes=True)
-            for diagnostic in recent_diagnostics
+            V2RecentDiagnostic.model_validate(diagnostic, from_attributes=True) for diagnostic in recent_diagnostics
         ],
     )

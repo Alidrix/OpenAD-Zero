@@ -9,8 +9,9 @@ from typing import Any
 from app.approvals.run_service import build_run_context
 from app.core.config import get_settings
 from app.core.paths import get_evidence_root, safe_join_under_root
-from app.db.models import ApprovedActionRun, ParsedFinding, ParseDiagnostic, ParsedSignal, ScanArtifact
+from app.db.models import ApprovedActionRun, ScanArtifact
 from app.db.session import SessionLocal
+from app.normalization.service import normalize_artifact
 from app.pentest.orchestrator import PentestOrchestrator
 from app.services.scan_service import add_scan_event
 
@@ -39,117 +40,43 @@ def _event(db, ctx, event_type: str, **extra: Any) -> None:
 
 
 def _parse_outputs(db, ctx, stdout_path: Path, stderr_path: Path, run: ApprovedActionRun) -> None:
-    _event(db, ctx, 'approved_action.parsing_started', status=run.status)
-    output = (
-        (stdout_path.read_text(errors='replace') if stdout_path.exists() else '')
-        + '\n'
-        + (stderr_path.read_text(errors='replace') if stderr_path.exists() else '')
+    _event(db, ctx, 'normalization.started', status=run.status, source_type=ctx.template_id)
+    created_artifacts = []
+    for path in (stdout_path, stderr_path):
+        if path.exists():
+            artifact = ScanArtifact(
+                scan_id=ctx.scan.id,
+                artifact_type=ctx.template_id,
+                path=str(path),
+                sha256=None,
+                size_bytes=path.stat().st_size,
+            )
+            db.add(artifact)
+            db.flush()
+            created_artifacts.append(artifact)
+    total = None
+    for artifact in created_artifacts:
+        try:
+            result = normalize_artifact(db, artifact)
+            total = result if total is None else total.merge(result)
+            _event(
+                db,
+                ctx,
+                'normalization.diagnostic',
+                artifact_id=artifact.id,
+                diagnostics_count=result.diagnostics_created,
+            )
+        except Exception as exc:
+            _event(db, ctx, 'normalization.failed', artifact_id=artifact.id, error_message=str(exc))
+            raise
+    _event(
+        db,
+        ctx,
+        'normalization.completed',
+        status=run.status,
+        counts=total.as_dict() if total else {},
+        diagnostics_count=total.diagnostics_created if total else 0,
     )
-    created = 0
-    if ctx.template_id.startswith('netexec_smb'):
-        lowered = output.lower()
-        if 'signing:false' in lowered or 'signing disabled' in lowered or 'signing: false' in lowered:
-            db.add(
-                ParsedSignal(
-                    scan_id=ctx.scan.id,
-                    source_type='approved_action',
-                    source_id=run.id,
-                    signal='smb_signing_disabled',
-                    value='true',
-                    confidence=0.8,
-                )
-            )
-            created += 1
-            db.add(
-                ParsedFinding(
-                    scan_id=ctx.scan.id,
-                    source_type='approved_action',
-                    source_id=run.id,
-                    title='SMB signing disabled',
-                    description='NetExec output indicates SMB signing is not required.',
-                    severity='medium',
-                    confidence=0.8,
-                    tags_json={'template_id': ctx.template_id},
-                )
-            )
-        if 'anonymous' in lowered or 'null session' in lowered:
-            db.add(
-                ParsedSignal(
-                    scan_id=ctx.scan.id,
-                    source_type='approved_action',
-                    source_id=run.id,
-                    signal='anonymous_smb',
-                    value='true',
-                    confidence=0.7,
-                )
-            )
-            created += 1
-            db.add(
-                ParsedSignal(
-                    scan_id=ctx.scan.id,
-                    source_type='approved_action',
-                    source_id=run.id,
-                    signal='null_session_possible',
-                    value='true',
-                    confidence=0.7,
-                )
-            )
-            created += 1
-        if 'share' in lowered and ('read' in lowered or 'write' in lowered):
-            db.add(
-                ParsedSignal(
-                    scan_id=ctx.scan.id,
-                    source_type='approved_action',
-                    source_id=run.id,
-                    signal='smb_share_exposed',
-                    value='true',
-                    confidence=0.7,
-                )
-            )
-            created += 1
-    elif ctx.template_id.startswith('nuclei'):
-        for line in output.splitlines():
-            try:
-                item = json.loads(line)
-            except Exception:
-                continue
-            db.add(
-                ParsedFinding(
-                    scan_id=ctx.scan.id,
-                    source_type='approved_action',
-                    source_id=run.id,
-                    title=str(item.get('template-id') or item.get('info', {}).get('name') or 'Nuclei finding')[:255],
-                    description=json.dumps(item, sort_keys=True)[:4000],
-                    severity=str(item.get('info', {}).get('severity') or 'info'),
-                    confidence=0.8,
-                    tags_json={'template_id': ctx.template_id},
-                )
-            )
-            created += 1
-    else:
-        db.add(
-            ParseDiagnostic(
-                scan_id=ctx.scan.id,
-                source_type='approved_action',
-                source_id=run.id,
-                level='warning',
-                message='parser_missing',
-                details_json={'template_id': ctx.template_id},
-            )
-        )
-    if created == 0 and ctx.template_id.startswith(('netexec_smb', 'nuclei')):
-        db.add(
-            ParseDiagnostic(
-                scan_id=ctx.scan.id,
-                source_type='approved_action',
-                source_id=run.id,
-                level='info',
-                message='parser_completed_no_findings',
-                details_json={'template_id': ctx.template_id},
-            )
-        )
-    db.flush()
-    _event(db, ctx, 'approved_action.parsing_completed', status=run.status)
 
 
 def run_approved_action(approval_id: str) -> None:

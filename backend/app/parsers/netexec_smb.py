@@ -1,96 +1,72 @@
 from __future__ import annotations
 
+import json
 import re
-from typing import Any
-
-ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
-SMB_RE = re.compile(r'^SMB\s+(?P<ip>\d{1,3}(?:\.\d{1,3}){3})\s+(?P<port>\d+)\s+(?P<rest>.*)$', re.I)
+from pathlib import Path
 
 
-def _bool_after(rest: str, labels: list[str]) -> bool | None:
-    for label in labels:
-        m = re.search(label + r'\s*[:=]\s*(True|False|Yes|No|Enabled|Disabled|Required|Not\s+Required)', rest, re.I)
-        if m:
-            val = m.group(1).lower().replace(' ', '')
-            return val in {'true', 'yes', 'enabled', 'required'}
-    return None
+def parse_netexec_smb(path: str | Path) -> dict:
+    text = Path(path).read_text(errors='replace') if Path(path).exists() else ''
+    if Path(path).suffix == '.json':
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+    low = text.lower()
+    hosts = sorted(set(re.findall(r'(?:\d{1,3}\.){3}\d{1,3}', text)))
+    return {
+        'raw_empty': not text.strip(),
+        'hosts': hosts,
+        'signals': {
+            'smb_signing_disabled': any(
+                x in low for x in ['signing:false', 'signing: false', 'signing disabled', 'signing is disabled']
+            ),
+            'smb_signing_required': any(x in low for x in ['signing:true', 'signing: true', 'signing required']),
+            'anonymous_smb_possible': 'anonymous' in low,
+            'null_session_possible': 'null session' in low,
+            'smb_share_listed': ' share' in low or '\tshare' in low,
+            'smb_admin_access_detected': any(x in low for x in ['pwn3d', 'admin access', 'administrator']),
+            'smb_guest_access_detected': 'guest' in low,
+            'domain_joined_host': 'domain:' in low,
+        },
+        'text': text[:4000],
+    }
 
 
-def parse_netexec_smb_output(text: str) -> dict[str, list[dict[str, Any]]]:
-    facts_by_ip: dict[str, dict[str, Any]] = {}
-    shares: list[dict[str, Any]] = []
-    current_ip: str | None = None
-    for raw in text.splitlines():
-        line = ANSI_RE.sub('', raw).strip()
-        if not line or line.lower().startswith(('warning', 'error:', '[*]')):
+def _bool_after(text: str, key: str):
+    m = re.search(rf'{re.escape(key)}\s*:\s*(true|false)', text, re.I)
+    return None if not m else m.group(1).lower() == 'true'
+
+
+def parse_netexec_smb_output(output: str) -> dict:
+    facts = []
+    shares = []
+    lines = output.splitlines()
+    for i, line in enumerate(lines):
+        if not line.strip():
             continue
-        m = SMB_RE.match(line)
+        m = re.match(r'^SMB\s+((?:\d{1,3}\.){3}\d{1,3})\s+\d+\s+(\S+)\s+(.*)$', line)
         if not m:
-            # tolerate table share rows following an SMB host line
-            if current_ip:
-                cols = re.split(r'\s{2,}|\t+', line)
-                if cols and cols[0] and cols[0].upper() not in {'SHARE', 'NAME'} and len(cols) >= 2:
-                    name, access = cols[0].strip(), cols[1].strip()
-                    if name and access and re.match(r'^[A-Za-z0-9_$.-]+$', name):
-                        shares.append(
-                            {
-                                'ip': current_ip,
-                                'name': name,
-                                'access': access,
-                                'remark': cols[2].strip() if len(cols) > 2 else '',
-                                'anonymous': True,
-                            }
-                        )
             continue
-        ip, rest = m.group('ip'), m.group('rest')
-        current_ip = ip
-        fact = facts_by_ip.setdefault(
-            ip,
-            {
-                'ip': ip,
-                'hostname': None,
-                'domain': None,
-                'os': None,
-                'smb_signing_required': None,
-                'smbv1_enabled': None,
-                'null_session_possible': None,
-                'raw_line': line,
-            },
-        )
-        # Common NXC: SMB ip 445 HOST [*] Windows ... (domain:LAB) (signing:True) (SMBv1:False)
-        host_match = re.match(r'(?P<host>\S+)\s+(?P<tail>.*)', rest)
-        tail = rest
-        if host_match:
-            host = host_match.group('host')
-            if host not in {'[*]', '[+]', '[-]'}:
-                fact['hostname'] = host
-            tail = host_match.group('tail')
-        dom = re.search(r'(?:domain|domain name)\s*[:=]\s*([^\s)]+)', rest, re.I)
-        if dom:
-            fact['domain'] = dom.group(1)
-        signing = _bool_after(rest, [r'signing', r'smb signing'])
+        ip, host, rest = m.groups()
+        fact = {'ip': ip, 'hostname': host}
+        dm = re.search(r'domain:([^\)\s]+)', rest, re.I)
+        if dm:
+            fact['domain'] = dm.group(1)
+        signing = _bool_after(rest, 'signing')
         if signing is not None:
             fact['smb_signing_required'] = signing
-        smbv1 = _bool_after(rest, [r'smbv1'])
+        smbv1 = _bool_after(rest, 'SMBv1')
         if smbv1 is not None:
             fact['smbv1_enabled'] = smbv1
-        if '[+]' in rest and ("'':" in rest or 'null' in rest.lower() or '-u' not in rest):
+        if '[+]' in rest and ('\\:' in rest or 'null' in rest.lower() or rest.strip().endswith(':')):
             fact['null_session_possible'] = True
-        if 'STATUS_LOGON_FAILURE' in rest or 'STATUS_ACCESS_DENIED' in rest or '[-]' in rest:
-            fact['null_session_possible'] = (
-                False if fact.get('null_session_possible') is None else fact['null_session_possible']
-            )
-        os_part = re.sub(r'\([^)]*\)', '', tail)
-        os_part = re.sub(r'\[[^]]*\]', '', os_part).strip(' -')
-        if os_part and any(w.lower() in os_part.lower() for w in ['windows', 'server', 'samba']):
-            fact['os'] = os_part
-        # inline share row sometimes: SMB ip 445 HOST Share Permissions Remark
-        if re.search(r'\b(READ|WRITE|NO ACCESS|Read|Write)\b', rest) and 'signing' not in rest.lower():
-            cols = re.split(r'\s{2,}|\t+', rest)
-            if len(cols) >= 3:
-                name = cols[-3].strip()
-                access = cols[-2].strip()
-                remark = cols[-1].strip()
-                if re.match(r'^[A-Za-z0-9_$.-]+$', name):
-                    shares.append({'ip': ip, 'name': name, 'access': access, 'remark': remark, 'anonymous': True})
-    return {'facts': list(facts_by_ip.values()), 'shares': shares}
+        if 'guest' in rest.lower():
+            fact['guest_access_possible'] = True
+        if len(fact) > 2 or '[*]' in rest or '[+]' in rest:
+            facts.append(fact)
+        if i + 2 < len(lines) and 'Share' in lines[i + 1] and 'Permissions' in lines[i + 1]:
+            sm = lines[i + 2].split()
+            if len(sm) >= 2:
+                shares.append({'ip': ip, 'name': sm[0], 'access': sm[1], 'remark': ' '.join(sm[2:])})
+    return {'facts': facts, 'shares': shares}

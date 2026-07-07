@@ -35,19 +35,53 @@ def test_executable_after_human_approval_run_gates():
     assert 'preview' in evaluate_tool_action(**base).reason
     assert 'human approval' in evaluate_tool_action(**base, preview_generated=True).reason
     assert 'terms acceptance' in evaluate_tool_action(**base, preview_generated=True, human_approved=True).reason
-    assert 'hash' in evaluate_tool_action(**base, preview_generated=True, human_approved=True, terms_accepted=True, command_hash='abc', preview_command_hash='abc').reason
-    assert evaluate_tool_action(**base, preview_generated=True, human_approved=True, terms_accepted=True, command_hash='abc', preview_command_hash='abc').allowed
+    assert (
+        'hash'
+        in evaluate_tool_action(
+            **base,
+            preview_generated=True,
+            human_approved=True,
+            terms_accepted=True,
+            command_hash='abc',
+            preview_command_hash='abc',
+        ).reason
+    )
+    assert evaluate_tool_action(
+        **base,
+        preview_generated=True,
+        human_approved=True,
+        terms_accepted=True,
+        command_hash='abc',
+        preview_command_hash='abc',
+    ).allowed
 
 
 def test_executable_after_human_approval_template_refusals():
     assert 'No declared' in evaluate_tool_action(tool_id='kerbrute', action='run').reason
-    assert 'not allowed' in evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='missing').reason
-    assert 'not allowed' in evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='responder_analyze').reason
+    assert (
+        'not allowed' in evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='missing').reason
+    )
+    assert (
+        'not allowed'
+        in evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='responder_analyze').reason
+    )
 
 
 def test_sensitive_keywords_block_safe_but_not_declared_advanced_after_all_gates():
-    assert not evaluate_tool_action(tool_id='nmap_safe_discovery', action='run', selected_template_id='nmap_safe_discovery', argv=['responder']).allowed
-    decision = evaluate_tool_action(tool_id='responder', action='run', selected_template_id='responder_analyze', argv=COMMAND_TEMPLATES['responder_analyze'], preview_generated=True, human_approved=True, terms_accepted=True, command_hash='abc', preview_command_hash='abc')
+    assert not evaluate_tool_action(
+        tool_id='nmap_safe_discovery', action='run', selected_template_id='nmap_safe_discovery', argv=['responder']
+    ).allowed
+    decision = evaluate_tool_action(
+        tool_id='responder',
+        action='run',
+        selected_template_id='responder_analyze',
+        argv=COMMAND_TEMPLATES['responder_analyze'],
+        preview_generated=True,
+        human_approved=True,
+        terms_accepted=True,
+        command_hash='abc',
+        preview_command_hash='abc',
+    )
     assert decision.allowed and decision.risk_level == 'high'
 
 
@@ -76,7 +110,7 @@ def test_command_templates_are_argument_lists_without_shell_true():
 
 
 def test_catalog_uses_strict_integration_statuses():
-    raw = yaml.safe_load(Path('backend/app/tool_automation/tools.yml').read_text())
+    raw = yaml.safe_load((Path(__file__).parents[1] / 'app/tool_automation/tools.yml').read_text())
     assert {item['integration_status'] for item in raw} <= VALID_INTEGRATION_STATUSES
 
 
@@ -94,20 +128,40 @@ def test_metasploit_templates_forbid_payload_sessions_and_background_exploit():
             for token in forbidden:
                 assert token not in joined
 
+
 def test_preview_hash_mismatch_refused():
-    decision = evaluate_tool_action(tool_id='kerbrute', action='run', selected_template_id='kerbrute_userenum', preview_generated=True, human_approved=True, terms_accepted=True, command_hash='new', preview_command_hash='old')
+    decision = evaluate_tool_action(
+        tool_id='kerbrute',
+        action='run',
+        selected_template_id='kerbrute_userenum',
+        preview_generated=True,
+        human_approved=True,
+        terms_accepted=True,
+        command_hash='new',
+        preview_command_hash='old',
+    )
     assert not decision.allowed and 'hash' in decision.reason
+
 
 import json
 
 
 def test_preview_masks_password_in_command(client):
-    response = client.post('/api/tool-automation/preview', json={
-        'tool_id': 'bloodyad',
-        'template_id': 'bloodyad_get_object',
-        'target': '10.10.10.5',
-        'params': {'dc_ip': '10.10.10.5', 'domain': 'LAB.LOCAL', 'username': 'alice', 'password': 'SuperSecretPassword123', 'object': 'Domain Admins'},
-    })
+    response = client.post(
+        '/api/tool-automation/preview',
+        json={
+            'tool_id': 'bloodyad',
+            'template_id': 'bloodyad_get_object',
+            'target': '10.10.10.5',
+            'params': {
+                'dc_ip': '10.10.10.5',
+                'domain': 'LAB.LOCAL',
+                'username': 'alice',
+                'password': 'SuperSecretPassword123',
+                'object': 'Domain Admins',
+            },
+        },
+    )
     assert response.status_code == 200
     body = response.json()
     serialized = json.dumps(body)
@@ -120,11 +174,40 @@ def test_preview_masks_password_in_command(client):
 
 
 def test_run_recalculates_preview_hash_and_rejects_mismatch(client):
-    payload = {'tool_id': 'bloodyad', 'template_id': 'bloodyad_get_object', 'target': '10.10.10.5', 'params': {'dc_ip': '10.10.10.5', 'domain': 'LAB.LOCAL', 'username': 'alice', 'password': 'SuperSecretPassword123', 'object': 'Domain Admins'}}
+    payload = {
+        'tool_id': 'bloodyad',
+        'template_id': 'bloodyad_get_object',
+        'target': '10.10.10.5',
+        'params': {
+            'dc_ip': '10.10.10.5',
+            'domain': 'LAB.LOCAL',
+            'username': 'alice',
+            'password': 'SuperSecretPassword123',
+            'object': 'Domain Admins',
+        },
+    }
     preview = client.post('/api/tool-automation/preview', json=payload).json()
-    bad = client.post('/api/tool-automation/run', json={**payload, 'human_approved': True, 'terms_accepted': True, 'preview_generated': True, 'preview_command_hash': 'bad'})
+    bad = client.post(
+        '/api/tool-automation/run',
+        json={
+            **payload,
+            'human_approved': True,
+            'terms_accepted': True,
+            'preview_generated': True,
+            'preview_command_hash': 'bad',
+        },
+    )
     assert bad.status_code == 403
-    ok = client.post('/api/tool-automation/run', json={**payload, 'human_approved': True, 'terms_accepted': True, 'preview_generated': True, 'preview_command_hash': preview['preview_command_hash']})
+    ok = client.post(
+        '/api/tool-automation/run',
+        json={
+            **payload,
+            'human_approved': True,
+            'terms_accepted': True,
+            'preview_generated': True,
+            'preview_command_hash': preview['preview_command_hash'],
+        },
+    )
     assert ok.status_code == 200
     serialized = json.dumps(ok.json())
     assert 'SuperSecretPassword123' not in serialized
@@ -133,11 +216,29 @@ def test_run_recalculates_preview_hash_and_rejects_mismatch(client):
 
 def test_preview_masks_hash_token_secret_key_and_no_secret_command_field(client):
     cases = [
-        ('gmsadumper', 'gmsadumper_assessment_hash', {'username': 'alice', 'ntlm_hash': '8846f7eaee8fb117ad06bdd830b7586c', 'domain': 'LAB.LOCAL', 'dc_ip': '10.10.10.5'}, '8846f7eaee8fb117ad06bdd830b7586c'),
-        ('kerbrute', 'kerbrute_passwordspray_safe_preview', {'dc_ip': '10.10.10.5', 'domain': 'LAB.LOCAL', 'userlist': 'users.txt', 'password': 'SpraySecret123'}, 'SpraySecret123'),
+        (
+            'gmsadumper',
+            'gmsadumper_assessment_hash',
+            {
+                'username': 'alice',
+                'ntlm_hash': '8846f7eaee8fb117ad06bdd830b7586c',
+                'domain': 'LAB.LOCAL',
+                'dc_ip': '10.10.10.5',
+            },
+            '8846f7eaee8fb117ad06bdd830b7586c',
+        ),
+        (
+            'kerbrute',
+            'kerbrute_passwordspray_safe_preview',
+            {'dc_ip': '10.10.10.5', 'domain': 'LAB.LOCAL', 'userlist': 'users.txt', 'password': 'SpraySecret123'},
+            'SpraySecret123',
+        ),
     ]
     for tool_id, template_id, params, secret in cases:
-        r = client.post('/api/tool-automation/preview', json={'tool_id': tool_id, 'template_id': template_id, 'target': '10.10.10.5', 'params': params})
+        r = client.post(
+            '/api/tool-automation/preview',
+            json={'tool_id': tool_id, 'template_id': template_id, 'target': '10.10.10.5', 'params': params},
+        )
         assert r.status_code == 200
         body = r.json()
         assert secret not in json.dumps(body)
