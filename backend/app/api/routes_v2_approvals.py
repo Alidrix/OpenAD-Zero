@@ -9,14 +9,18 @@ from app.approvals.schemas import (
     ApprovalListItem,
     ApprovalPrepareRequest,
     ApprovalRejectRequest,
+    ApprovalRunContractRead,
+    ApprovalSummaryRead,
     OperatorApprovalRead,
 )
 from app.approvals.service import (
+    approvals_summary,
     approve_approval,
     expire_approval_if_needed,
     get_approval,
     prepare_approval,
     reject_approval,
+    run_approval_contract,
     to_read,
 )
 from app.db.models import OperatorApproval, Scan
@@ -74,3 +78,19 @@ def list_scan_approvals(scan_id: str, status: str | None = Query(default=None), 
         query = query.filter(OperatorApproval.status == status)
     rows = query.order_by(OperatorApproval.created_at.desc()).all()
     return [to_read(expire_approval_if_needed(db, row)) for row in rows]
+
+
+@router.get('/scans/{scan_id}/approvals/summary', response_model=ApprovalSummaryRead)
+def scan_approvals_summary(scan_id: str, db: Session = Depends(get_db)):
+    try:
+        return approvals_summary(db, scan_id)
+    except ApprovalError as exc:
+        _raise(exc)
+
+
+@router.post('/approvals/{approval_id}/run', response_model=ApprovalRunContractRead, status_code=501)
+def run_approval(approval_id: str, db: Session = Depends(get_db)):
+    try:
+        return run_approval_contract(db, approval_id)
+    except ApprovalError as exc:
+        _raise(exc)

@@ -54,3 +54,7 @@ Strict parameter validation is in place for previews and approvals. RQ execution
 
 - `Approve & Run` is visible but disabled until the final RQ execution workflow is connected.
 - V2 report generation is disabled in the cockpit until a scan-specific endpoint is confirmed.
+
+## V2 approval execution deferred
+
+Prompt 09 adds the approval `/run` contract, but it intentionally returns `ready: false` and does not launch RQ execution. Prompt 10 must implement the runner, consumed transitions, and queued/running action updates.
