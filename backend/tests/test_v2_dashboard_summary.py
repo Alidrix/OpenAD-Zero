@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.db.models import Job, ParseDiagnostic, ParsedAsset, ParsedService, ParsedSignal, Scan
+from app.db.models import Job, ParsedAsset, ParseDiagnostic, ParsedService, ParsedSignal, Scan
 from app.db.session import Base, get_db
 from app.main import app
 
@@ -81,41 +81,43 @@ def test_v2_dashboard_summary_aggregates_parsed_rows_and_filters_scan_id(client,
         )
         db.add(asset)
         db.flush()
-        db.add_all([
-            ParsedService(
-                scan_id=scan_one.id,
-                asset_id=asset.id,
-                source_type='test',
-                ip_address='10.0.0.10',
-                port=445,
-                protocol='tcp',
-                service_name='smb',
-                state='open',
-                confidence=0.9,
-            ),
-            ParsedSignal(
-                scan_id=scan_one.id,
-                asset_id=asset.id,
-                source_type='test',
-                signal='ldap_open',
-                value='true',
-                confidence=0.9,
-            ),
-            ParsedSignal(
-                scan_id=scan_one.id,
-                asset_id=asset.id,
-                source_type='test',
-                signal='kerberos_open',
-                value='true',
-                confidence=0.9,
-            ),
-            ParsedAsset(
-                scan_id=scan_two.id,
-                source_type='test',
-                ip_address='10.0.0.20',
-                confidence=0.9,
-            ),
-        ])
+        db.add_all(
+            [
+                ParsedService(
+                    scan_id=scan_one.id,
+                    asset_id=asset.id,
+                    source_type='test',
+                    ip_address='10.0.0.10',
+                    port=445,
+                    protocol='tcp',
+                    service_name='smb',
+                    state='open',
+                    confidence=0.9,
+                ),
+                ParsedSignal(
+                    scan_id=scan_one.id,
+                    asset_id=asset.id,
+                    source_type='test',
+                    signal='ldap_open',
+                    value='true',
+                    confidence=0.9,
+                ),
+                ParsedSignal(
+                    scan_id=scan_one.id,
+                    asset_id=asset.id,
+                    source_type='test',
+                    signal='kerberos_open',
+                    value='true',
+                    confidence=0.9,
+                ),
+                ParsedAsset(
+                    scan_id=scan_two.id,
+                    source_type='test',
+                    ip_address='10.0.0.20',
+                    confidence=0.9,
+                ),
+            ]
+        )
         db.commit()
         scan_one_id = scan_one.id
         jobs_before = db.query(Job).count()
@@ -164,12 +166,14 @@ def test_v2_dashboard_summary_limit_recent_and_deleted_filter(client):
         )
         db.add_all([live_one, live_two, deleted])
         db.flush()
-        db.add_all([
-            ParseDiagnostic(scan_id=live_one.id, source_type='test', level='warning', message='one'),
-            ParseDiagnostic(scan_id=live_two.id, source_type='test', level='warning', message='two'),
-            ParsedAsset(scan_id=deleted.id, source_type='test', ip_address='10.0.0.99'),
-            ParseDiagnostic(scan_id=deleted.id, source_type='test', level='warning', message='deleted'),
-        ])
+        db.add_all(
+            [
+                ParseDiagnostic(scan_id=live_one.id, source_type='test', level='warning', message='one'),
+                ParseDiagnostic(scan_id=live_two.id, source_type='test', level='warning', message='two'),
+                ParsedAsset(scan_id=deleted.id, source_type='test', ip_address='10.0.0.99'),
+                ParseDiagnostic(scan_id=deleted.id, source_type='test', level='warning', message='deleted'),
+            ]
+        )
         db.commit()
         db.close()
 

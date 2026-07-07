@@ -78,6 +78,10 @@ class Scan(Base):
     parsed_findings = relationship('ParsedFinding', cascade='all, delete-orphan')
     parsed_signals = relationship('ParsedSignal', cascade='all, delete-orphan')
     parse_diagnostics = relationship('ParseDiagnostic', cascade='all, delete-orphan')
+    parsed_ad_objects = relationship('ParsedADObject', cascade='all, delete-orphan')
+    parsed_ad_relations = relationship('ParsedADRelation', cascade='all, delete-orphan')
+    parsed_attack_paths = relationship('ParsedAttackPath', cascade='all, delete-orphan')
+    parsed_credential_risks = relationship('ParsedCredentialRisk', cascade='all, delete-orphan')
 
 
 class ScanStep(Base):
@@ -227,6 +231,110 @@ class ParseDiagnostic(Base):
     message: Mapped[str] = mapped_column(Text)
     details_json: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ParsedADObject(Base):
+    __tablename__ = 'parsed_ad_objects'
+    __table_args__ = (
+        Index('ix_parsed_ad_objects_scan_id', 'scan_id'),
+        Index('ix_parsed_ad_objects_source_type', 'source_type'),
+        Index('ix_parsed_ad_objects_source_id', 'source_id'),
+        Index('ix_parsed_ad_objects_object_id', 'object_id'),
+        Index('ix_parsed_ad_objects_object_type', 'object_type'),
+        Index('ix_parsed_ad_objects_domain', 'domain'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    object_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    object_type: Mapped[str] = mapped_column(String(80), default='unknown')
+    name: Mapped[str | None] = mapped_column(String(255))
+    domain: Mapped[str | None] = mapped_column(String(255))
+    distinguished_name: Mapped[str | None] = mapped_column(Text)
+    sam_account_name: Mapped[str | None] = mapped_column(String(255))
+    sid: Mapped[str | None] = mapped_column(String(255))
+    enabled: Mapped[bool | None] = mapped_column(Boolean)
+    high_value: Mapped[bool] = mapped_column(Boolean, default=False)
+    owned: Mapped[bool] = mapped_column(Boolean, default=False)
+    properties_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ParsedADRelation(Base):
+    __tablename__ = 'parsed_ad_relations'
+    __table_args__ = (
+        Index('ix_parsed_ad_relations_scan_id', 'scan_id'),
+        Index('ix_parsed_ad_relations_source_type', 'source_type'),
+        Index('ix_parsed_ad_relations_source_id', 'source_id'),
+        Index('ix_parsed_ad_relations_relation_type', 'relation_type'),
+        Index('ix_parsed_ad_relations_risk_level', 'risk_level'),
+        Index('ix_parsed_ad_relations_target_object_id', 'target_object_id'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_object_id: Mapped[str] = mapped_column(String(255))
+    target_object_id: Mapped[str] = mapped_column(String(255))
+    relation_type: Mapped[str] = mapped_column(String(120), default='Unknown')
+    is_abusable: Mapped[bool] = mapped_column(Boolean, default=False)
+    risk_level: Mapped[str] = mapped_column(String(40), default='info')
+    properties_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ParsedAttackPath(Base):
+    __tablename__ = 'parsed_attack_paths'
+    __table_args__ = (
+        Index('ix_parsed_attack_paths_scan_id', 'scan_id'),
+        Index('ix_parsed_attack_paths_source_type', 'source_type'),
+        Index('ix_parsed_attack_paths_source_id', 'source_id'),
+        Index('ix_parsed_attack_paths_risk_level', 'risk_level'),
+        Index('ix_parsed_attack_paths_target_object_id', 'target_object_id'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    path_type: Mapped[str] = mapped_column(String(120), default='unknown')
+    source_object_id: Mapped[str | None] = mapped_column(String(255))
+    target_object_id: Mapped[str | None] = mapped_column(String(255))
+    target_label: Mapped[str | None] = mapped_column(String(255))
+    risk_level: Mapped[str] = mapped_column(String(40), default='medium')
+    length: Mapped[int] = mapped_column(Integer, default=0)
+    nodes_json: Mapped[list | None] = mapped_column(JSON)
+    edges_json: Mapped[list | None] = mapped_column(JSON)
+    summary: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ParsedCredentialRisk(Base):
+    __tablename__ = 'parsed_credential_risks'
+    __table_args__ = (
+        Index('ix_parsed_credential_risks_scan_id', 'scan_id'),
+        Index('ix_parsed_credential_risks_source_type', 'source_type'),
+        Index('ix_parsed_credential_risks_source_id', 'source_id'),
+        Index('ix_parsed_credential_risks_risk_type', 'risk_type'),
+        Index('ix_parsed_credential_risks_risk_level', 'risk_level'),
+        Index('ix_parsed_credential_risks_domain', 'domain'),
+    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    risk_type: Mapped[str] = mapped_column(String(120))
+    principal: Mapped[str | None] = mapped_column(String(255))
+    asset_ip: Mapped[str | None] = mapped_column(String(80))
+    domain: Mapped[str | None] = mapped_column(String(255))
+    risk_level: Mapped[str] = mapped_column(String(40), default='medium')
+    evidence: Mapped[str | None] = mapped_column(Text)
+    properties_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class ApprovedActionRun(Base):

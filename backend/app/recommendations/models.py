@@ -27,7 +27,7 @@ class V2RuleWhen(BaseModel):
 class V2RuleRecommendation(BaseModel):
     template_id: str
     reason: str
-    priority: str = "low"
+    priority: str = 'low'
 
 
 class V2RecommendationRule(BaseModel):
@@ -63,7 +63,7 @@ class V2CommandPreview(BaseModel):
 
 
 class V2PreviewRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra='forbid')
 
     template_id: str
     params: dict[str, str] = Field(default_factory=dict)

@@ -14,7 +14,9 @@ def _ensure_step(db, scan_id: str, order: int, name: str, progress_percent: int)
     step = db.query(ScanStep).filter_by(scan_id=scan_id, order=order).first()
     now = datetime.utcnow()
     if step is None:
-        step = ScanStep(scan_id=scan_id, order=order, name=name, status='running', progress_percent=progress_percent, started_at=now)
+        step = ScanStep(
+            scan_id=scan_id, order=order, name=name, status='running', progress_percent=progress_percent, started_at=now
+        )
         db.add(step)
     step.status = 'completed' if progress_percent == 100 else 'running'
     step.progress_percent = progress_percent
@@ -34,7 +36,13 @@ def run_demo_scan(scan_id: str) -> dict:
         scan.status = 'running'
         scan.started_at = scan.started_at or datetime.utcnow()
         scan.current_step = 'Demo worker starting'
-        scan_service.add_scan_event(db, scan_id, 'scan.running', 'Demo scan worker started', {'status': 'running', 'progress_percent': scan.progress_percent, 'current_step': scan.current_step})
+        scan_service.add_scan_event(
+            db,
+            scan_id,
+            'scan.running',
+            'Demo scan worker started',
+            {'status': 'running', 'progress_percent': scan.progress_percent, 'current_step': scan.current_step},
+        )
         db.commit()
 
         # TODO: a future worker-control brick should check the RQ stop signal inside this loop.
@@ -55,7 +63,12 @@ def run_demo_scan(scan_id: str) -> dict:
             scan_id,
             'scan.completed',
             'Demo scan worker completed',
-            {'status': 'completed', 'progress_percent': 100, 'current_step': scan.current_step, 'metadata': {'demo_worker': True}},
+            {
+                'status': 'completed',
+                'progress_percent': 100,
+                'current_step': scan.current_step,
+                'metadata': {'demo_worker': True},
+            },
         )
         db.commit()
         return {'scan_id': scan_id, 'status': 'completed', 'progress_percent': 100}

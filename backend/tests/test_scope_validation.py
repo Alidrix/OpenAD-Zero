@@ -7,12 +7,15 @@ def test_single_private_ip_valid():
     assert validate_scope('192.168.1.10').targets == ['192.168.1.10']
 
 
-@pytest.mark.parametrize('raw,expected', [
-    ('192.168.1.0/24', ['192.168.1.0/24']),
-    ('192.168.0.0/16', ['192.168.0.0/16']),
-    ('10.0.0.0/16', ['10.0.0.0/16']),
-    ('172.16.0.0/16', ['172.16.0.0/16']),
-])
+@pytest.mark.parametrize(
+    'raw,expected',
+    [
+        ('192.168.1.0/24', ['192.168.1.0/24']),
+        ('192.168.0.0/16', ['192.168.0.0/16']),
+        ('10.0.0.0/16', ['10.0.0.0/16']),
+        ('172.16.0.0/16', ['172.16.0.0/16']),
+    ],
+)
 def test_private_cidrs_up_to_16_valid(raw, expected):
     assert validate_scope(raw).targets == expected
 

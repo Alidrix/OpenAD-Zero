@@ -84,7 +84,9 @@ def soft_delete_scan(db: Session, scan_id: str) -> Scan | None:
     return scan
 
 
-def add_scan_event(db: Session, scan_id: str, event_type: str, message: str, payload_json: dict[str, Any] | None = None) -> ScanEvent:
+def add_scan_event(
+    db: Session, scan_id: str, event_type: str, message: str, payload_json: dict[str, Any] | None = None
+) -> ScanEvent:
     event = ScanEvent(scan_id=scan_id, event_type=event_type, message=message, payload_json=payload_json)
     db.add(event)
     db.flush()
@@ -126,9 +128,17 @@ def add_scan_artifact(
         resolved.resolve().relative_to(evidence_root.resolve())
     except ValueError as exc:
         raise ValueError('scan artifacts must stay under EVIDENCE_DIR') from exc
-    artifact = ScanArtifact(scan_id=scan_id, artifact_type=artifact_type, path=str(resolved), sha256=sha256, size_bytes=size_bytes)
+    artifact = ScanArtifact(
+        scan_id=scan_id, artifact_type=artifact_type, path=str(resolved), sha256=sha256, size_bytes=size_bytes
+    )
     db.add(artifact)
-    add_scan_event(db, scan_id, 'scan.artifact_added', 'Scan artifact registered', {'artifact_type': artifact_type, 'path': str(resolved)})
+    add_scan_event(
+        db,
+        scan_id,
+        'scan.artifact_added',
+        'Scan artifact registered',
+        {'artifact_type': artifact_type, 'path': str(resolved)},
+    )
     db.commit()
     db.refresh(artifact)
     return artifact

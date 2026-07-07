@@ -11,7 +11,7 @@ from app.core.paths import get_evidence_root, safe_join_under_root
 from app.db.models import Mission, ScanStep
 from app.db.session import SessionLocal
 from app.jobs.runner import run_command
-from app.parsing.service import parse_persisted_scan
+from app.normalization.service import normalize_artifact
 from app.pentest.orchestrator import PentestOrchestrator
 from app.scanning.initial_discovery import SAFE_INITIAL_DISCOVERY_PROFILE, build_safe_nmap_command, masked_command
 from app.services import scan_service
@@ -133,7 +133,29 @@ def run_initial_discovery_scan(scan_id: str) -> None:
             return
 
         db.expire_all()
-        parse_persisted_scan(db, scan.id)
+        _event(
+            db,
+            scan,
+            'normalization.started',
+            'Normalization started',
+            40,
+            'Normalizing Nmap XML',
+            artifact_id=artifact.id,
+            source_type=artifact.artifact_type,
+        )
+        norm_result = normalize_artifact(db, artifact)
+        _event(
+            db,
+            scan,
+            'normalization.completed',
+            'Normalization completed',
+            65,
+            'Normalization completed',
+            artifact_id=artifact.id,
+            source_type=artifact.artifact_type,
+            counts=norm_result.as_dict(),
+            diagnostics_count=norm_result.diagnostics_created,
+        )
         scan = scan_service.get_scan(db, scan.id)
         scan.progress_percent = 70
         scan.current_step = 'Nmap parsing completed'
