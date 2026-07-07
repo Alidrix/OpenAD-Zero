@@ -118,3 +118,5 @@ The frontend never sends a raw command to execute. The backend always rebuilds a
 ## Prompt 05 strict parameter validation readiness
 
 OpenAD-Zero now centralizes validation for network values, input files, output files, credentials, enums and free text. Tool previews, approvals and the future execution boundary use the same validator to avoid target-only scope bypasses.
+
+- Prompt 07 adds advanced pentest decision rules with priority, dedupe keys, and recommendation-only phase updates.

@@ -562,6 +562,8 @@ class PentestAction(Base):
         Index('ix_pentest_actions_execution_mode', 'execution_mode'),
         Index('ix_pentest_actions_tool_id', 'tool_id'),
         Index('ix_pentest_actions_template_id', 'template_id'),
+        Index('ix_pentest_actions_dedupe_key', 'dedupe_key'),
+        Index('ix_pentest_actions_priority', 'priority'),
     )
     id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
     scan_id: Mapped[str] = mapped_column(ForeignKey('scans.id'))
@@ -578,6 +580,9 @@ class PentestAction(Base):
     resolved_inputs_json: Mapped[dict | None] = mapped_column(JSON)
     missing_inputs_json: Mapped[list | None] = mapped_column(JSON)
     scope_sensitive_params_json: Mapped[dict | None] = mapped_column(JSON)
+    dedupe_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    priority: Mapped[int] = mapped_column(Integer, default=20)
+    blocked_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(40), default='proposed')
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

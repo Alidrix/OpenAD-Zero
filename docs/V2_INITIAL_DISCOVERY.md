@@ -37,3 +37,7 @@ The worker then calls `PentestOrchestrator(db).recompute(scan_id)`. This only pr
 ## Events
 
 The workflow persists progress events from `scan.initial_discovery_queued` through `scan.initial_discovery_completed` or `scan.initial_discovery_failed`. Payloads contain scan id, progress, current step, job/artifact identifiers when available, and sanitized errors only.
+
+## Follow-on recommendations
+
+After Nmap parsing, the pentest orchestrator recompute step applies Prompt 07 decision rules to SMB, LDAP/Kerberos, web, remote management, MSSQL, ADCS, BloodHound, credential exposure, and reporting signals.
