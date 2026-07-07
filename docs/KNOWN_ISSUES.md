@@ -76,3 +76,7 @@ V2 artifact outputs now flow through `backend/app/normalization/` where supporte
 ## Prompt 13 remaining runtime limitations
 
 Queued cancellation is supported by existing job APIs, but cooperative live cancellation of an already running external process is limited to runner timeout/error cleanup. Prompt 14 should add a shared cancellation registry for immediate operator stop requests.
+
+## Prompt 14 high-risk execution policy
+
+OpenAD-Zero now uses `backend/app/tool_catalog/high_risk_policy.py` as the central policy for sensitive tooling. Metasploit is locked to preview-only/read-only entries, while credential dumping, spraying/brute force, active relay/coercion capture, command execution, lateral movement, AD write operations, exploitation, persistence, and trace cleanup remain manual-only or blocked. Approval preparation and run preparation both enforce the same policy; refused high-risk runs do not consume approvals or enqueue RQ jobs. The Attack Control Center surfaces `preview_only`, `manual_only`, and `blocked` states and does not provide a force-run path.
